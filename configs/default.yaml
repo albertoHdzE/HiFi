@@ -1,0 +1,56 @@
+# HiFi Default Configuration
+# See HIFI_DAVID.md for architectural rationale
+
+project:
+  name: "HiFi"
+  version: "0.1.0"
+
+data:
+  # Initial stock universe (Phase 1)
+  universe:
+    - "AAPL"
+    - "NVDA"
+    - "JPM"
+    - "JNJ"
+    - "XOM"
+    - "AMZN"
+    - "PG"
+    - "TSLA"
+    - "BRK-B"
+    - "META"
+  # Historical data range
+  start_date: "2015-01-01"
+  end_date: null  # null = present
+  # Storage
+  storage_format: "parquet"
+  raw_data_dir: "data/raw"
+  processed_data_dir: "data/processed"
+  features_dir: "data/features"
+
+evaluation:
+  # Evaluation periods (immutable benchmarks)
+  periods:
+    eval_bull:
+      start: "2017-01-01"
+      end: "2019-12-31"
+    eval_crisis:
+      start: "2020-01-01"
+      end: "2020-12-31"
+    eval_bear:
+      start: "2022-01-01"
+      end: "2022-12-31"
+    eval_oos:
+      start: "2023-01-01"
+      end: "2024-12-31"
+
+safety:
+  # Paper trading safety limits (David Section 7.9)
+  max_position_pct: 0.05
+  max_daily_loss_pct: 0.02
+  max_sector_exposure_pct: 0.25
+  max_confidence: 0.95
+  min_agents_quorum: 4
+
+reproducibility:
+  # Default random seed for deterministic operations
+  default_seed: 42

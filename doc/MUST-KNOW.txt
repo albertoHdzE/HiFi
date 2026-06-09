@@ -1,0 +1,611 @@
+1. RAG Engineering
+
+A real senior person should be able to explain:
+
+Chunking
+Fixed-size vs semantic chunking
+Chunk overlap
+Parent-child retrieval
+Hierarchical chunking
+Why 200 vs 500 vs 1000 vs 1500 tokens
+Precision vs recall tradeoffs
+
+Questions:
+
+How did you decide chunk size?
+What overlap did you use?
+What happened when chunks were too large?
+What happened when chunks were too small?
+Embeddings
+
+Must know:
+
+OpenAI embeddings
+BGE
+E5
+MiniLM
+Instructor
+Voyage (modern systems)
+
+Should explain:
+
+Why one model over another
+Cost
+Latency
+Multilingual performance
+Domain adaptation
+
+Questions:
+
+Which embedding model?
+Why?
+What metric did you optimize?
+Vector Databases
+
+Must understand:
+
+Pinecone
+OpenSearch
+Weaviate
+Qdrant
+Chroma
+
+Questions:
+
+Why this vector DB?
+What index?
+How many vectors?
+Approximate retrieval latency?
+Retrieval
+
+Must understand:
+
+Similarity search
+Hybrid search
+BM25
+Reranking
+Metadata filtering
+
+Questions:
+
+How did you improve retrieval quality?
+What was your retrieval precision?
+Did you use rerankers?
+2. LLM Engineering
+
+Must know:
+
+Model Selection
+
+Questions:
+
+Why GPT-4?
+Why Claude?
+Why Llama?
+Why not smaller models?
+
+Must discuss:
+
+Cost
+Latency
+Accuracy
+Context windows
+Prompt Engineering
+
+Must know:
+
+Few-shot prompting
+Structured output
+JSON mode
+Function calling
+Tool calling
+
+Questions:
+
+Show me a prompt that failed.
+How did you improve it?
+Hallucinations
+
+Senior people know:
+
+Hallucinations are reduced.
+Not eliminated.
+
+Questions:
+
+How do you reduce hallucinations?
+How do you measure them?
+How do you validate outputs?
+
+Red flag:
+
+"Architecture prevents hallucinations."
+
+3. Multi-Agent Systems
+
+Must know:
+
+Why Multi-Agent?
+
+Questions:
+
+Why not a single agent?
+Why LangGraph?
+Why CrewAI?
+Why not simple workflows?
+
+Must discuss:
+
+Coordination cost
+State management
+Failure modes
+Complexity tradeoffs
+LangGraph
+
+Must understand:
+
+State graph
+Cycles
+Conditional routing
+Persistence
+Checkpointing
+
+Question:
+
+What problem did LangGraph solve that LangChain could not?
+
+4. MLOps
+
+This is where many candidates collapse.
+
+Must know:
+
+Deployment
+
+Questions:
+
+How did you deploy?
+Kubernetes?
+SageMaker?
+Azure ML?
+Monitoring
+
+Questions:
+
+What did you monitor?
+What alerts existed?
+What thresholds existed?
+Drift
+
+Questions:
+
+What drift did you observe?
+How did you detect it?
+How often did retraining occur?
+Production Problems
+
+This is the killer question.
+
+Ask:
+
+Tell me the worst production issue you ever faced.
+
+Real seniors remember instantly.
+
+5. Classical Data Science
+
+Must know:
+
+Feature Engineering
+
+Questions:
+
+What features mattered?
+How did you select them?
+PCA
+
+Questions:
+
+When should PCA be used?
+When should PCA NOT be used?
+Model Selection
+
+Questions:
+
+Why XGBoost?
+Why Random Forest?
+Why Neural Networks?
+Evaluation
+
+Must know:
+
+Precision
+Recall
+F1
+ROC AUC
+PR AUC
+
+Questions:
+
+Which metric mattered?
+Why?
+6. Deep Learning
+
+Must know:
+
+Architectures
+
+Questions:
+
+CNN
+LSTM
+Transformer
+
+When and why?
+
+Training
+
+Questions:
+
+Batch size?
+Learning rate?
+Optimizer?
+Epochs?
+
+Real numbers.
+
+Not concepts.
+
+7. OCR & Multimodal
+
+Must know:
+
+OCR
+
+Questions:
+
+Tesseract?
+Azure Document Intelligence?
+Textract?
+PaddleOCR?
+
+Why?
+
+Challenges
+
+Questions:
+
+Handwritten documents?
+Rotated documents?
+Tables?
+Multi-language?
+8. Leadership
+
+This is where most "architects" fail.
+
+Ask:
+
+Team Structure
+
+How would you build your team?
+
+Must naturally discuss:
+
+Data Engineers
+Data Scientists
+ML Engineers
+MLOps
+QA
+Product
+Domain Experts
+Ownership
+
+Questions:
+
+What did YOU do?
+What did your team do?
+
+This single question exposes many exaggerations.
+
+9. Numbers (My Favorite Category)
+
+Real seniors remember numbers.
+
+Not exact.
+
+Approximate.
+
+Ask:
+
+RAG
+Number of documents?
+Number of chunks?
+Embedding dimension?
+Retrieval latency?
+LLM latency?
+ML
+Dataset size?
+Features?
+Training time?
+Model size?
+Team
+Team size?
+Direct reports?
+Budget?
+
+People who built things usually remember the order of magnitude.
+
+10. The Ultimate Question
+
+After all these interviews, I think the strongest question you discovered is:
+
+"Why?"
+
+Not once.
+
+Five times.
+
+Example:
+
+Why LangGraph?
+Why that embedding?
+Why that chunk size?
+Why that architecture?
+Why that metric?
+
+Real seniors become increasingly precise.
+
+Weak candidates become increasingly vague.
+
+That pattern alone revealed more than any technology-specific question we discussed.
+
+do you think there are more aspects to consider? i mean, is it exhaustive such list or would you add some more?
+
+No.
+
+Actually, after all the interviews we've analyzed, I think the list is about 80% complete for evaluating a Senior Data Science Lead with GenAI responsibilities.
+
+The remaining 20% is where the truly exceptional candidates separate themselves from the merely competent ones.
+
+11. Business Impact
+
+This is one area where many technical interviewers fail.
+
+A Senior Lead is not hired to build embeddings.
+
+A Senior Lead is hired to create business value.
+
+Ask:
+
+Why was this project funded?
+What KPI improved?
+What ROI was achieved?
+What was the baseline?
+What would happen if the project disappeared tomorrow?
+
+A surprising number of candidates can explain:
+
+Pinecone
+LangGraph
+GPT-4
+
+But cannot explain:
+
+Why the company spent $500k on the project.
+
+12. Evaluation Frameworks
+
+This is huge.
+
+Many candidates build systems.
+
+Few know how to evaluate them.
+
+Ask:
+
+For RAG
+How did you measure retrieval quality?
+How did you measure answer quality?
+How did you evaluate hallucinations?
+Did you have golden datasets?
+Did you perform human evaluation?
+For Agents
+How did you know the agents improved anything?
+What metric justified multi-agent complexity?
+
+This is one of my favorite filters.
+
+13. Cost Awareness
+
+The best senior engineers know money.
+
+Ask:
+
+What was your monthly OpenAI bill?
+What was your inference cost?
+How much did Pinecone cost?
+Why didn't you self-host?
+
+If someone built a large enterprise system and has absolutely no idea of costs, that tells you something.
+
+14. Security and Compliance
+
+Especially for enterprise roles.
+
+Ask:
+
+How did you handle PII?
+Did documents leave the company boundary?
+How did you protect embeddings?
+What happened with GDPR?
+What happened with customer data?
+
+Many GenAI candidates completely collapse here.
+
+15. Failure Stories
+
+This is perhaps my favorite category.
+
+Ask:
+
+Tell me about a project that failed.
+
+Then:
+
+What did you learn?
+
+Strong candidates often become MORE credible here.
+
+Weak candidates often have:
+
+"Everything was successful."
+
+Which is suspicious.
+
+16. Tradeoff Thinking
+
+This is arguably the strongest seniority indicator.
+
+Present a dilemma:
+
+Example
+
+You have:
+
+50 ms latency target
+GPT-4 quality
+10 million documents
+limited budget
+
+What do you sacrifice?
+
+The answer matters less than the reasoning.
+
+17. Scaling Experience
+
+Ask:
+
+How many users?
+How many requests/day?
+How many documents?
+How many TBs?
+
+A lot of candidates have only worked on:
+
+PoCs,
+demos,
+internal pilots.
+
+The numbers reveal it.
+
+18. Vendor vs First-Principles Knowledge
+
+This is exactly where Ravi worried you.
+
+Ask:
+
+Instead of
+
+Why Pinecone?
+
+Ask:
+
+Explain approximate nearest neighbor search.
+
+Instead of
+
+Why LangGraph?
+
+Ask:
+
+Explain what problem stateful orchestration solves.
+
+You quickly discover whether they know:
+
+the product,
+or
+the underlying idea.
+19. Mentorship
+
+Senior Lead means developing others.
+
+Ask:
+
+How did you grow junior engineers?
+Tell me about a weak engineer you helped improve.
+What mistakes do juniors commonly make?
+
+You'd be surprised how many "leads" have never actually led.
+
+20. Technical Taste
+
+This is the hardest category.
+
+The very best candidates have opinions.
+
+Not dogma.
+
+Opinions.
+
+Ask:
+
+What technology is overhyped today?
+What is underrated?
+What would you never use again?
+What is your favorite vector database and why?
+
+Experts accumulate preferences through pain.
+
+People who only read blogs tend to answer:
+
+"It depends."
+
+for everything.
+
+The Three Questions I Would Never Remove
+
+After all the interviews we've gone through, if I could ask only three questions, they would be:
+
+1. What was the hardest production problem you personally solved?
+
+This reveals:
+
+ownership,
+depth,
+scars,
+seniority.
+2. Why did you choose X instead of Y?
+
+(Embeddings, chunking, vector DB, model, framework...)
+
+This reveals:
+
+tradeoff thinking.
+3. What exactly did YOU do?
+
+Not the team.
+
+Not the project.
+
+You.
+
+This single question has exposed more exaggeration in our discussions than all the technology questions combined.
+
+If I were building the "Alberto Interview Framework" from everything we've learned so far, I would score candidates in 12 dimensions:
+
+Technical Depth
+Technical Breadth
+Production Experience
+Ownership
+Leadership
+Business Impact
+Evaluation & Metrics
+Tradeoff Reasoning
+Scaling Experience
+Cost Awareness
+Security & Compliance
+Communication
+
+A genuine Senior Data Science Lead should score at least 7/10 in every category, and ideally 8+ in Ownership, Production Experience, and Tradeoff Reasoning. Those three categories have been the strongest predictors of candidate quality across the interviews you've conducted.
+
+

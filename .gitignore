@@ -216,3 +216,33 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# =============================================================================
+# HiFi-specific
+# =============================================================================
+
+# Data directories (large files, downloaded/generated locally)
+data/raw/
+data/processed/
+data/features/
+data/reference_strategies/
+data/evaluation/
+
+# Model weights (too large for git)
+models/
+*.gguf
+*.safetensors
+
+# Secrets and credentials
+secrets.yaml
+*.key
+credentials.json
+
+# LangFuse / observability local data
+langfuse-data/
+
+# Docker volumes
+docker/volumes/
+
+# OS
+.DS_Store
