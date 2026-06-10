@@ -1,7 +1,7 @@
 # HiFi Project Status
 
 **Last Updated:** 2026-06-10
-**Current Phase:** Phase 4 COMPLETE
+**Current Phase:** Phase 5 COMPLETE
 
 ---
 
@@ -26,7 +26,7 @@ HiFi is a fully local multi-agent financial intelligence platform. Read these fi
 | 2 | Deterministic Financial Engine | COMPLETE | plans/PHASE_02_PLAN.md | doc/bitacora/PHASE_02_DETERMINISTIC_ENGINE.md |
 | 3 | First Agent (Baseline) | COMPLETE | plans/PHASE_03_PLAN.md | doc/bitacora/PHASE_03_FIRST_AGENT.md |
 | 4 | Second Agent (First Ensemble) | COMPLETE | plans/PHASE_04_PLAN.md | doc/bitacora/PHASE_04_SECOND_AGENT.md |
-| 5 | Verification Layer | PLANNED | plans/PHASE_05_PLAN.md | -- |
+| 5 | Verification Layer | COMPLETE | plans/PHASE_05_PLAN.md | doc/bitacora/PHASE_05_VERIFICATION.md |
 | 6 | Observability (LangFuse) | NOT STARTED | -- | -- |
 | 7 | RAG Knowledge Systems | NOT STARTED | -- | -- |
 | 8 | Full Agent Population | NOT STARTED | -- | -- |
@@ -88,12 +88,23 @@ HiFi is a fully local multi-agent financial intelligence platform. Read these fi
   - `src/hifi/collective/schemas.py` -- EnsembleDecision (confidence-weighted vote output + diversity metrics), EnsembleOutput (full 2-agent envelope); P4-E2
   - `src/hifi/collective/voting.py` -- confidence_weighted_vote() implementing David §12.2.2; P4-E3
   - `src/hifi/collective/metrics.py` -- disagreement_entropy() §5.6.1, opinion_dispersion() §5.6.2, pairwise_diversity() §5.6.5, compute_ensemble_metrics(); P4-E3
+- **Verification layer (Phase 5):**
+  - `src/hifi/verification/schemas.py` -- NumericalClaim, VerificationResult, Contradiction, AgentVerificationReport (auto-computes HR/GR via model_validator), EnsembleVerificationReport; P5-E1
+  - `src/hifi/verification/extractor.py` -- FIELD_ALIAS_TABLE (160+ entries); _resolve_alias() progressive suffix stripping; extract_numerical_claims(); P5-E2
+  - `src/hifi/verification/verifier.py` -- verify_claim() (1%/0.01 dual tolerance), verify_agent(), detect_contradictions(), verify_ensemble(); P5-E3
+  - `src/hifi/verification/metrics.py` -- compute_verification_metrics() with alias_table_coverage; P5-E6
+  - `scripts/run_phase5_verification.py` -- baseline runner (no LLM required); saves phase5_verification.json; P5-E5
+  - `tests/fixtures/baseline/phase5_verification.json` -- Phase 5 baseline (AAPL/JPM/XOM, 2023-03-31)
+- **Baseline results (Phase 5, 2026-06-10):**
+  - Fundamental: HR=0.000, GR=1.000, alias_table_coverage=0.917
+  - Technical: HR=0.067, GR=0.667, alias_table_coverage=1.000
+  - 0 cross-agent contradictions; 0 triggered_by_disagreement
+  - DJ-019 confirmed: regex+alias sufficient (both agents coverage >= 0.90)
 - **Dependencies (production):** pydantic, pyyaml, numpy, pandas, pyarrow, yfinance, fredapi, mcp, quantstats, openai, langchain, langchain-openai, langgraph
 - **Dependencies (dev):** pytest, pytest-cov, ruff, mypy, vcrpy
 
 ### What Does Not Exist Yet
 
-- No verification layer (Phase 5)
 - No observability (Phase 6)
 - No RAG/knowledge systems (Phase 7)
 - No full TA indicators server in venvs/ta/ (Phase 8+ trigger: >6 indicators or >50 tickers)
@@ -153,10 +164,13 @@ HiFi is a fully local multi-agent financial intelligence platform. Read these fi
 
 | Metric | Value |
 |---|---|
-| Total tests | 463 (463 passing, 0 skipped) |
-| Tests passing | 463 |
-| Source packages | 15 (hifi.collective added in Phase 4) |
-| Lines of production code | ~5200 |
-| Lines of test code | ~7000 |
+| Total tests | 551 (551 passing, 0 skipped) |
+| Tests passing | 551 |
+| Source packages | 16 (hifi.verification added in Phase 5) |
+| Lines of production code | ~6000 |
+| Lines of test code | ~8500 |
 | Lint errors | 0 |
+| Baseline HR (fundamental) | 0.000 (Phase 5 baseline, 2026-06-10) |
+| Baseline HR (technical) | 0.067 (Phase 5 baseline, 2026-06-10) |
+| Alias table coverage | fundamental=0.917, technical=1.000 |
 | David sections addressed | 9/53 (~17%): §4.1, §4.3, §4.5, §6.2, §7.1 (substantially); §7.2, §8.2, §8.3, §10.1, §10.2, §10.3, §12.2, §5.6.1, §5.6.2, §5.6.5 (partial) |
