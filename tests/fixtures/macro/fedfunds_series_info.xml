@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<seriess realtime_start="2024-01-01" realtime_end="9999-12-31">
+  <series id="FEDFUNDS" realtime_start="1954-07-01" realtime_end="9999-12-31" title="Federal Funds Effective Rate" observation_start="1954-07-01" observation_end="2022-12-01" frequency="Monthly" frequency_short="M" units="Percent" units_short="%" seasonal_adjustment="Not Seasonally Adjusted" seasonal_adjustment_short="NSA" last_updated="2023-01-03 09:01:02-06" popularity="91" notes="Averages of daily figures."/>
+</seriess>

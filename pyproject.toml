@@ -12,6 +12,10 @@ authors = [
 dependencies = [
     "pyyaml>=6.0",
     "pydantic>=2.0",
+    "yfinance>=1.4.1",
+    "fredapi>=0.5.2",
+    "pandas>=3.0.3",
+    "pyarrow>=24.0.0",
 ]
 
 [project.optional-dependencies]
@@ -61,3 +65,8 @@ warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = false
 check_untyped_defs = true
+
+[dependency-groups]
+dev = [
+    "responses>=0.26.1",
+]

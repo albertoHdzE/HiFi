@@ -1,7 +1,7 @@
 # HiFi Project Status
 
 **Last Updated:** 2026-06-09
-**Current Phase:** Phase 0 COMPLETE, Phase 1 NOT STARTED
+**Current Phase:** Phase 0 COMPLETE, Phase 1 PLANNED (ready to implement)
 
 ---
 
@@ -22,7 +22,7 @@ HiFi is a fully local multi-agent financial intelligence platform. Read these fi
 | Phase | Name | Status | Plan | Bitacora |
 |---|---|---|---|---|
 | 0 | Project Infrastructure | COMPLETE | plans/PHASE_00_PLAN.md | doc/bitacora/PHASE_00_INFRASTRUCTURE.md |
-| 1 | Data Acquisition | NOT STARTED | -- | -- |
+| 1 | Data Acquisition | PLANNED | plans/PHASE_01_PLAN.md | -- |
 | 2 | Deterministic Financial Engine | NOT STARTED | -- | -- |
 | 3 | First Agent (Baseline) | NOT STARTED | -- | -- |
 | 4 | Second Agent (First Ensemble) | NOT STARTED | -- | -- |

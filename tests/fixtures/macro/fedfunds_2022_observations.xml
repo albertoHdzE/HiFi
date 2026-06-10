@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<observations realtime_start="2022-01-01" realtime_end="9999-12-31" observation_start="2022-01-01" observation_end="2022-12-31" units="lin" output_type="1" file_type="xml" order_by="observation_date" sort_order="asc" count="12" offset="0" limit="100000">
+  <observation realtime_start="2022-01-01" realtime_end="9999-12-31" date="2022-01-01" value="0.08"/>
+  <observation realtime_start="2022-02-01" realtime_end="9999-12-31" date="2022-02-01" value="0.08"/>
+  <observation realtime_start="2022-03-01" realtime_end="9999-12-31" date="2022-03-01" value="0.20"/>
+  <observation realtime_start="2022-04-01" realtime_end="9999-12-31" date="2022-04-01" value="0.33"/>
+  <observation realtime_start="2022-05-01" realtime_end="9999-12-31" date="2022-05-01" value="0.77"/>
+  <observation realtime_start="2022-06-01" realtime_end="9999-12-31" date="2022-06-01" value="1.21"/>
+  <observation realtime_start="2022-07-01" realtime_end="9999-12-31" date="2022-07-01" value="1.68"/>
+  <observation realtime_start="2022-08-01" realtime_end="9999-12-31" date="2022-08-01" value="2.33"/>
+  <observation realtime_start="2022-09-01" realtime_end="9999-12-31" date="2022-09-01" value="2.56"/>
+  <observation realtime_start="2022-10-01" realtime_end="9999-12-31" date="2022-10-01" value="3.08"/>
+  <observation realtime_start="2022-11-01" realtime_end="9999-12-31" date="2022-11-01" value="3.78"/>
+  <observation realtime_start="2022-12-01" realtime_end="9999-12-31" date="2022-12-01" value="4.10"/>
+</observations>

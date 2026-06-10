@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<seriess realtime_start="2024-01-01" realtime_end="9999-12-31">
+  <series id="CPIAUCSL" realtime_start="1947-01-01" realtime_end="9999-12-31" title="Consumer Price Index for All Urban Consumers: All Items in U.S. City Average" observation_start="1947-01-01" observation_end="2022-12-01" frequency="Monthly" frequency_short="M" units="Index 1982-1984=100" units_short="Index 1982-1984=100" seasonal_adjustment="Seasonally Adjusted" seasonal_adjustment_short="SA" last_updated="2023-01-12 09:02:01-06" popularity="88" notes="Measures changes in the price level of a weighted average market basket of consumer goods and services purchased by households."/>
+</seriess>
