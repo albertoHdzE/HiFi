@@ -4,12 +4,73 @@ All fixtures use deterministic seeds for reproducibility.
 No mocks are used -- synthetic data is generated with controlled randomness.
 """
 
+from datetime import date, datetime
 from pathlib import Path
 
 import numpy as np
 import pytest
 
 from hifi.config.loader import HiFiConfig, load_config
+
+# --- Raw fixture loader ---
+
+
+def read_raw_ohlcv_fixture(path: Path, ticker: str):
+    """
+    Load an OHLCVDataset from a raw yfinance-format parquet fixture.
+
+    The Phase 1 test fixtures are plain pandas DataFrames written directly
+    from yfinance (columns: Date, Open, High, Low, Close, Adj Close, Volume).
+    They do NOT have the HiFi dataset metadata block required by read_ohlcv().
+    This helper constructs an OHLCVDataset directly from the raw columns.
+    """
+    import math
+
+    import pyarrow.parquet as pq
+
+    from hifi.data.schemas import OHLCVBar, OHLCVDataset, ProvenanceRecord
+
+    table = pq.read_table(path)
+    df = table.to_pandas()
+
+    prov = ProvenanceRecord(
+        source="fixture",
+        fetched_at=datetime(2023, 4, 1, 0, 0, 0),
+    )
+
+    bars = []
+    for _, row in df.iterrows():
+        dt = row["Date"].date() if hasattr(row["Date"], "date") else row["Date"]
+        try:
+            o = float(row["Open"])
+            h = float(row["High"])
+            lv = float(row["Low"])
+            c = float(row["Close"])
+            adj = float(row["Adj Close"]) if "Adj Close" in row else None
+            vol = float(row.get("Volume", 0) or 0)
+        except (TypeError, ValueError):
+            continue
+        if any(math.isnan(x) for x in [o, h, lv, c]):
+            continue
+        if adj is not None and math.isnan(adj):
+            adj = None
+        try:
+            bars.append(OHLCVBar(
+                ticker=ticker, date=dt,
+                open=o, high=h, low=lv, close=c,
+                volume=vol, adjusted_close=adj, source="fixture",
+            ))
+        except Exception:
+            continue
+
+    dates = [b.date for b in bars]
+    return OHLCVDataset(
+        ticker=ticker, bars=bars, source="fixture",
+        fetched_at=datetime(2023, 4, 1, 0, 0, 0),
+        date_from=min(dates) if dates else date(2023, 1, 3),
+        date_to=max(dates) if dates else date(2023, 4, 1),
+        provenance=prov,
+    )
 
 # --- Paths ---
 

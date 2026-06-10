@@ -1,0 +1,239 @@
+{
+  "metadata": {
+    "phase": "3",
+    "model": "qwen2.5-coder-32b-instruct-mlx",
+    "prompt_version": "fundamental_v1",
+    "data_as_of": "2023-03-31",
+    "run_date": "2026-06-10",
+    "hifi_commit": "307c2a6"
+  },
+  "analyses": {
+    "AAPL": {
+      "signal": {
+        "ticker": "AAPL",
+        "as_of_date": "2023-03-31",
+        "decision": "Hold",
+        "confidence": 0.75,
+        "rationale": "Apple Inc. (AAPL) has a high P/E ratio of 87.71, which is at the maximum level seen in the past year and indicates that the stock may be overvalued relative to its earnings. The ROE of 0.592 suggests strong profitability, but the high valuation and lack of growth metrics make it difficult to justify a buy at this time.",
+        "key_concern": "The absence of revenue and earnings growth data introduces significant uncertainty about the company's future profitability.",
+        "data_gaps": [
+          "ev_ebitda",
+          "current_ratio",
+          "revenue_growth_yoy",
+          "earnings_growth_yoy",
+          "gross_margin",
+          "operating_margin",
+          "unemployment_rate",
+          "yield_10y",
+          "yield_2y",
+          "yield_curve_slope",
+          "vix",
+          "gdp_growth"
+        ],
+        "call_ids": [
+          "26fffa5d0e4d",
+          "ca334fdd8d6f",
+          "d642fa3f4531",
+          "14d8bb5b6255"
+        ],
+        "model_id": "qwen2.5-coder-32b-instruct-mlx",
+        "agent_type": "fundamental"
+      },
+      "financial_ratios": {
+        "pe": 87.71276271089594,
+        "pb": 46.376697189769494,
+        "ps": 20.059067552110896,
+        "ev_ebitda": null,
+        "roe": 0.592003473318598,
+        "roa": 0.08651264466599567,
+        "debt_equity": 5.731705873065993,
+        "current_ratio": null,
+        "call_id": "26fffa5d0e4d"
+      },
+      "growth_metrics": {
+        "revenue_growth_yoy": null,
+        "earnings_growth_yoy": null,
+        "gross_margin": null,
+        "operating_margin": null,
+        "net_margin": 0.2560561312460522,
+        "call_id": "ca334fdd8d6f"
+      },
+      "valuation_context": {
+        "current_pe": 87.71276271089594,
+        "pe_1y_min": 66.49999821439702,
+        "pe_1y_max": 87.71276271089594,
+        "pe_1y_percentile": 1.0,
+        "price_to_52w_high": 1.0,
+        "price_to_52w_low": 1.3189889483622035,
+        "call_id": "d642fa3f4531"
+      },
+      "macro_snapshot": {
+        "fed_funds_rate": 4.1,
+        "cpi_yoy": 3.2323028549168034,
+        "unemployment_rate": null,
+        "yield_10y": null,
+        "yield_2y": null,
+        "yield_curve_slope": null,
+        "vix": null,
+        "gdp_growth": null,
+        "call_id": "14d8bb5b6255"
+      },
+      "prompt_version": "fundamental_v1",
+      "latency_ms": 19423.6
+    },
+    "JPM": {
+      "signal": {
+        "ticker": "JPM",
+        "as_of_date": "2023-03-31",
+        "decision": "Hold",
+        "confidence": 0.65,
+        "rationale": "JPMorgan Chase has a P/E ratio of 31.78, which is within the recent one-year range of 30.47 to 35.07, indicating it is not overvalued or undervalued relative to its historical performance. However, the ROE of 0.0435 and ROA of 0.0034 suggest that the company is not generating strong returns on equity or assets, which could be a concern.",
+        "key_concern": "The company's low ROE and ROA indicate inefficiency in generating returns, which is a significant risk.",
+        "data_gaps": [
+          "ev_ebitda",
+          "current_ratio",
+          "revenue_growth_yoy",
+          "earnings_growth_yoy",
+          "gross_margin",
+          "operating_margin",
+          "unemployment_rate",
+          "yield_10y",
+          "yield_2y",
+          "yield_curve_slope",
+          "vix",
+          "gdp_growth"
+        ],
+        "call_ids": [
+          "f97622a86ea4",
+          "950b1b5eb3dd",
+          "44f9460b0ab0",
+          "14d8bb5b6255"
+        ],
+        "model_id": "qwen2.5-coder-32b-instruct-mlx",
+        "agent_type": "fundamental"
+      },
+      "financial_ratios": {
+        "pe": 31.782926233803355,
+        "pb": 1.3793103448275863,
+        "ps": 10.430519700644085,
+        "ev_ebitda": null,
+        "roe": 0.04352413793103448,
+        "roa": 0.0033709860708462584,
+        "debt_equity": 11.910344827586206,
+        "current_ratio": null,
+        "call_id": "f97622a86ea4"
+      },
+      "growth_metrics": {
+        "revenue_growth_yoy": null,
+        "earnings_growth_yoy": null,
+        "gross_margin": null,
+        "operating_margin": null,
+        "net_margin": 0.3291350491538241,
+        "call_id": "950b1b5eb3dd"
+      },
+      "valuation_context": {
+        "current_pe": 31.782926233803355,
+        "pe_1y_min": 30.465854551733997,
+        "pe_1y_max": 35.073171476038496,
+        "pe_1y_percentile": 0.2858652234495845,
+        "price_to_52w_high": 0.9061891153902923,
+        "price_to_52w_low": 1.0432310762802615,
+        "call_id": "44f9460b0ab0"
+      },
+      "macro_snapshot": {
+        "fed_funds_rate": 4.1,
+        "cpi_yoy": 3.2323028549168034,
+        "unemployment_rate": null,
+        "yield_10y": null,
+        "yield_2y": null,
+        "yield_curve_slope": null,
+        "vix": null,
+        "gdp_growth": null,
+        "call_id": "14d8bb5b6255"
+      },
+      "prompt_version": "fundamental_v1",
+      "latency_ms": 13461.5
+    },
+    "XOM": {
+      "signal": {
+        "ticker": "XOM",
+        "as_of_date": "2023-03-31",
+        "decision": "Hold",
+        "confidence": 0.65,
+        "rationale": "XOM's P/E ratio of 39.30 is in the middle of its 1-year range (35.78 to 42.71), indicating it is not overvalued or undervalued relative to recent history. However, the ROE of 0.0678 and ROA of 0.0304 suggest that the company is not generating strong returns on equity or assets, which could be a concern.",
+        "key_concern": "The lack of growth metrics such as revenue and earnings growth year-over-year, along with missing financial ratios like EV/EBITDA and current ratio, introduces significant uncertainty about the company's future performance and financial health.",
+        "data_gaps": [
+          "ev_ebitda",
+          "current_ratio",
+          "revenue_growth_yoy",
+          "earnings_growth_yoy",
+          "gross_margin",
+          "operating_margin",
+          "unemployment_rate",
+          "yield_10y",
+          "yield_2y",
+          "yield_curve_slope",
+          "vix",
+          "gdp_growth"
+        ],
+        "call_ids": [
+          "adce00b19ec8",
+          "516867136b4a",
+          "0b03ff3e5673",
+          "14d8bb5b6255"
+        ],
+        "model_id": "qwen2.5-coder-32b-instruct-mlx",
+        "agent_type": "fundamental"
+      },
+      "financial_ratios": {
+        "pe": 39.30466081079189,
+        "pb": 2.6100832260628675,
+        "ps": 5.082944411071577,
+        "ev_ebitda": null,
+        "roe": 0.06781470781897886,
+        "roa": 0.03037864353723058,
+        "debt_equity": 0.9702806432668751,
+        "current_ratio": null,
+        "call_id": "adce00b19ec8"
+      },
+      "growth_metrics": {
+        "revenue_growth_yoy": null,
+        "earnings_growth_yoy": null,
+        "gross_margin": null,
+        "operating_margin": null,
+        "net_margin": 0.1320641375167506,
+        "call_id": "516867136b4a"
+      },
+      "valuation_context": {
+        "current_pe": 39.30466081079189,
+        "pe_1y_min": 35.78494492397513,
+        "pe_1y_max": 42.71326099245351,
+        "pe_1y_percentile": 0.508018954682269,
+        "price_to_52w_high": 0.9201980812875924,
+        "price_to_52w_low": 1.0983574487621643,
+        "call_id": "0b03ff3e5673"
+      },
+      "macro_snapshot": {
+        "fed_funds_rate": 4.1,
+        "cpi_yoy": 3.2323028549168034,
+        "unemployment_rate": null,
+        "yield_10y": null,
+        "yield_2y": null,
+        "yield_curve_slope": null,
+        "vix": null,
+        "gdp_growth": null,
+        "call_id": "14d8bb5b6255"
+      },
+      "prompt_version": "fundamental_v1",
+      "latency_ms": 14039.3
+    }
+  },
+  "metrics": {
+    "compliance_rate": 1.0,
+    "hallucinated_numbers": 0,
+    "data_gaps_acknowledged": 0,
+    "mean_call_id_coverage": 1.0,
+    "mean_latency_ms": 15641.5,
+    "n_analyses": 3
+  }
+}

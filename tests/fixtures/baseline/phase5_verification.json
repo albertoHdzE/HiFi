@@ -1,0 +1,369 @@
+{
+  "metadata": {
+    "phase": "5",
+    "verified_from": "phase4_ensemble.json",
+    "run_date": "2026-06-10",
+    "hifi_commit": "307c2a6"
+  },
+  "reports": {
+    "AAPL": {
+      "ticker": "AAPL",
+      "as_of_date": "2023-03-31",
+      "fundamental_report": {
+        "ticker": "AAPL",
+        "as_of_date": "2023-03-31",
+        "agent_type": "fundamental",
+        "prompt_version": "fundamental_v1",
+        "results": [
+          {
+            "claim": {
+              "field_alias": "P/E ratio",
+              "canonical_field": "pe",
+              "value": 87.71,
+              "context_snippet": "Apple Inc. (AAPL) has a high P/E ratio of 87.71, which is at the maximum level seen in "
+            },
+            "status": "verified",
+            "tool_value": 87.71276271089594,
+            "tool_field": "financial_ratios",
+            "call_id_cited": true,
+            "tolerance_used": 0.8771276271089594
+          },
+          {
+            "claim": {
+              "field_alias": "ROE",
+              "canonical_field": "roe",
+              "value": 0.592,
+              "context_snippet": "be overvalued relative to its earnings. The ROE of 0.592 suggests strong profitability, but the "
+            },
+            "status": "verified",
+            "tool_value": 0.592003473318598,
+            "tool_field": "financial_ratios",
+            "call_id_cited": true,
+            "tolerance_used": 0.01
+          }
+        ],
+        "n_claims": 2,
+        "n_verified": 2,
+        "n_hallucinated": 0,
+        "n_unresolvable": 0,
+        "hallucination_rate": 0.0,
+        "grounding_rate": 1.0,
+        "flag_high_hr": false
+      },
+      "technical_report": {
+        "ticker": "AAPL",
+        "as_of_date": "2023-03-31",
+        "agent_type": "technical",
+        "prompt_version": "technical_v1",
+        "results": [
+          {
+            "claim": {
+              "field_alias": "Sharpe ratio",
+              "canonical_field": "sharpe_252d",
+              "value": 5.12,
+              "context_snippet": "ows exceptional long-term risk-adjusted performance with a Sharpe ratio of 5.12 and minimal max drawdown of only 6.45%,"
+            },
+            "status": "verified",
+            "tool_value": 5.124263740364779,
+            "tool_field": "risk_metrics",
+            "call_id_cited": true,
+            "tolerance_used": 0.051242637403647796
+          },
+          {
+            "claim": {
+              "field_alias": "RSI",
+              "canonical_field": "rsi",
+              "value": 70.48,
+              "context_snippet": "rong underlying trend quality. However, the RSI of 70.48 places the stock in overbought territor"
+            },
+            "status": "verified",
+            "tool_value": 70.48449977303599,
+            "tool_field": "technical_indicators",
+            "call_id_cited": true,
+            "tolerance_used": 0.7048449977303599
+          }
+        ],
+        "n_claims": 2,
+        "n_verified": 2,
+        "n_hallucinated": 0,
+        "n_unresolvable": 0,
+        "hallucination_rate": 0.0,
+        "grounding_rate": 1.0,
+        "flag_high_hr": false
+      },
+      "contradictions": [],
+      "triggered_by_disagreement": false,
+      "n_contradictions": 0,
+      "total_claims": 4,
+      "total_hallucinated": 0,
+      "ensemble_hallucination_rate": 0.0
+    },
+    "JPM": {
+      "ticker": "JPM",
+      "as_of_date": "2023-03-31",
+      "fundamental_report": {
+        "ticker": "JPM",
+        "as_of_date": "2023-03-31",
+        "agent_type": "fundamental",
+        "prompt_version": "fundamental_v1",
+        "results": [
+          {
+            "claim": {
+              "field_alias": "P/E ratio",
+              "canonical_field": "pe",
+              "value": 31.78,
+              "context_snippet": "JPMorgan Chase has a P/E ratio of 31.78, which is within the recent one-year ra"
+            },
+            "status": "verified",
+            "tool_value": 31.782926233803355,
+            "tool_field": "financial_ratios",
+            "call_id_cited": true,
+            "tolerance_used": 0.31782926233803355
+          },
+          {
+            "claim": {
+              "field_alias": "within the recent one-year range",
+              "canonical_field": null,
+              "value": 30.47,
+              "context_snippet": "hase has a P/E ratio of 31.78, which is within the recent one-year range of 30.47 to 35.07, indicating it is not overvalu"
+            },
+            "status": "unresolvable",
+            "tool_value": null,
+            "tool_field": null,
+            "call_id_cited": false,
+            "tolerance_used": 0.0
+          },
+          {
+            "claim": {
+              "field_alias": "ROE",
+              "canonical_field": "roe",
+              "value": 0.0435,
+              "context_snippet": "to its historical performance. However, the ROE of 0.0435 and ROA of 0.0034 suggest that the comp"
+            },
+            "status": "verified",
+            "tool_value": 0.04352413793103448,
+            "tool_field": "financial_ratios",
+            "call_id_cited": true,
+            "tolerance_used": 0.01
+          },
+          {
+            "claim": {
+              "field_alias": "ROA",
+              "canonical_field": "roa",
+              "value": 0.0034,
+              "context_snippet": "performance. However, the ROE of 0.0435 and ROA of 0.0034 suggest that the company is not generat"
+            },
+            "status": "verified",
+            "tool_value": 0.0033709860708462584,
+            "tool_field": "financial_ratios",
+            "call_id_cited": true,
+            "tolerance_used": 0.01
+          }
+        ],
+        "n_claims": 4,
+        "n_verified": 3,
+        "n_hallucinated": 0,
+        "n_unresolvable": 1,
+        "hallucination_rate": 0.0,
+        "grounding_rate": 1.0,
+        "flag_high_hr": false
+      },
+      "technical_report": {
+        "ticker": "JPM",
+        "as_of_date": "2023-03-31",
+        "agent_type": "technical",
+        "prompt_version": "technical_v1",
+        "results": [
+          {
+            "claim": {
+              "field_alias": "macd",
+              "canonical_field": "macd",
+              "value": -2.41,
+              "context_snippet": "The MACD crossover (macd of -2.41 above macd_signal of -2.70) with positi"
+            },
+            "status": "verified",
+            "tool_value": -2.4140078859064573,
+            "tool_field": "technical_indicators",
+            "call_id_cited": true,
+            "tolerance_used": 0.024140078859064575
+          },
+          {
+            "claim": {
+              "field_alias": "macd_signal",
+              "canonical_field": "macd_signal",
+              "value": -2.7,
+              "context_snippet": "The MACD crossover (macd of -2.41 above macd_signal of -2.70) with positive histogram (0.286) indica"
+            },
+            "status": "verified",
+            "tool_value": -2.7004121547977396,
+            "tool_field": "technical_indicators",
+            "call_id_cited": true,
+            "tolerance_used": 0.027004121547977395
+          },
+          {
+            "claim": {
+              "field_alias": "RSI",
+              "canonical_field": "rsi",
+              "value": 46.7,
+              "context_snippet": "s emerging short-term bullish momentum, while RSI of 46.70 suggests the stock is recovering from o"
+            },
+            "status": "verified",
+            "tool_value": 46.69755009563041,
+            "tool_field": "technical_indicators",
+            "call_id_cited": true,
+            "tolerance_used": 0.46697550095630413
+          },
+          {
+            "claim": {
+              "field_alias": "sharpe_252d",
+              "canonical_field": "sharpe_252d",
+              "value": -0.304,
+              "context_snippet": "ions without being overbought. However, the negative sharpe_252d of -0.304 indicates poor risk-adjusted returns ov"
+            },
+            "status": "verified",
+            "tool_value": -0.3035269352717916,
+            "tool_field": "risk_metrics",
+            "call_id_cited": true,
+            "tolerance_used": 0.01
+          },
+          {
+            "claim": {
+              "field_alias": "hist_vol_20d",
+              "canonical_field": "hist_vol_20d",
+              "value": 39.6,
+              "context_snippet": "sk-adjusted returns over the past year, and hist_vol_20d of 39.6% shows elevated near-term volatility th"
+            },
+            "status": "hallucinated",
+            "tool_value": 0.39623949215378246,
+            "tool_field": "risk_metrics",
+            "call_id_cited": true,
+            "tolerance_used": 0.01
+          }
+        ],
+        "n_claims": 5,
+        "n_verified": 4,
+        "n_hallucinated": 1,
+        "n_unresolvable": 0,
+        "hallucination_rate": 0.2,
+        "grounding_rate": 1.0,
+        "flag_high_hr": false
+      },
+      "contradictions": [],
+      "triggered_by_disagreement": false,
+      "n_contradictions": 0,
+      "total_claims": 9,
+      "total_hallucinated": 1,
+      "ensemble_hallucination_rate": 0.125
+    },
+    "XOM": {
+      "ticker": "XOM",
+      "as_of_date": "2023-03-31",
+      "fundamental_report": {
+        "ticker": "XOM",
+        "as_of_date": "2023-03-31",
+        "agent_type": "fundamental",
+        "prompt_version": "fundamental_v1",
+        "results": [
+          {
+            "claim": {
+              "field_alias": "P/E ratio",
+              "canonical_field": "pe",
+              "value": 39.3,
+              "context_snippet": "XOM's P/E ratio of 39.30 is in the middle of its 1-year range (3"
+            },
+            "status": "verified",
+            "tool_value": 39.30466081079189,
+            "tool_field": "financial_ratios",
+            "call_id_cited": true,
+            "tolerance_used": 0.39304660810791886
+          },
+          {
+            "claim": {
+              "field_alias": "ROE",
+              "canonical_field": "roe",
+              "value": 0.0678,
+              "context_snippet": "ed relative to recent history. However, the ROE of 0.0678 and ROA of 0.0304 suggest that the comp"
+            },
+            "status": "verified",
+            "tool_value": 0.06781470781897886,
+            "tool_field": "financial_ratios",
+            "call_id_cited": true,
+            "tolerance_used": 0.01
+          },
+          {
+            "claim": {
+              "field_alias": "ROA",
+              "canonical_field": "roa",
+              "value": 0.0304,
+              "context_snippet": "ent history. However, the ROE of 0.0678 and ROA of 0.0304 suggest that the company is not generat"
+            },
+            "status": "verified",
+            "tool_value": 0.03037864353723058,
+            "tool_field": "financial_ratios",
+            "call_id_cited": true,
+            "tolerance_used": 0.01
+          }
+        ],
+        "n_claims": 3,
+        "n_verified": 3,
+        "n_hallucinated": 0,
+        "n_unresolvable": 0,
+        "hallucination_rate": 0.0,
+        "grounding_rate": 1.0,
+        "flag_high_hr": false
+      },
+      "technical_report": {
+        "ticker": "XOM",
+        "as_of_date": "2023-03-31",
+        "agent_type": "technical",
+        "prompt_version": "technical_v1",
+        "results": [],
+        "n_claims": 0,
+        "n_verified": 0,
+        "n_hallucinated": 0,
+        "n_unresolvable": 0,
+        "hallucination_rate": 0.0,
+        "grounding_rate": 0.0,
+        "flag_high_hr": false
+      },
+      "contradictions": [],
+      "triggered_by_disagreement": false,
+      "n_contradictions": 0,
+      "total_claims": 3,
+      "total_hallucinated": 0,
+      "ensemble_hallucination_rate": 0.0
+    }
+  },
+  "metrics": {
+    "fundamental": {
+      "mean_hallucination_rate": 0.0,
+      "mean_grounding_rate": 1.0,
+      "mean_unresolvable_rate": 0.083333,
+      "alias_table_coverage": 0.916667,
+      "n_reports": 3,
+      "total_claims": 9,
+      "total_verified": 8,
+      "total_hallucinated": 0,
+      "total_unresolvable": 1,
+      "n_flagged_high_hr": 0
+    },
+    "technical": {
+      "mean_hallucination_rate": 0.066667,
+      "mean_grounding_rate": 0.666667,
+      "mean_unresolvable_rate": 0.0,
+      "alias_table_coverage": 1.0,
+      "n_reports": 3,
+      "total_claims": 7,
+      "total_verified": 6,
+      "total_hallucinated": 1,
+      "total_unresolvable": 0,
+      "n_flagged_high_hr": 0
+    },
+    "ensemble": {
+      "mean_ensemble_hallucination_rate": 0.041667,
+      "total_contradictions": 0,
+      "n_triggered_by_disagreement": 0,
+      "n_tickers": 3
+    }
+  }
+}

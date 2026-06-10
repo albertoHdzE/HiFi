@@ -400,7 +400,26 @@ Agents call these servers through standardized MCP tool interfaces. They never c
 
 **Rationale:** This architecture makes every computation auditable. When an agent claims "AAPL's P/E is 28.3," the verification layer can confirm this by calling the same MCP server independently. The agent cannot fabricate a number that survives verification.
 
-**Open Question:** What is the performance overhead of MCP inter-process communication for latency-sensitive operations? At what point does the overhead justify embedding computations directly rather than routing through MCP? This must be measured empirically.
+**Extended role: dependency isolation boundary.**
+
+The MCP subprocess boundary has a second function beyond capability separation: it
+serves as a hard dependency isolation layer. Because MCP servers run as child processes
+communicating over stdio JSON-RPC, the main process never imports the child's Python
+packages. This means each MCP server can carry its own virtual environment with its
+own Python version and dependency set, entirely decoupled from the main project stack.
+
+In practice: a computation library that is incompatible with the main environment's
+pandas version (e.g., pandas-ta requires pandas<2.0; the main stack runs pandas 3.x)
+can be deployed as an MCP server in `venvs/ta/` with a pinned older pandas. The agent
+layer receives the same typed MCP result regardless. This is not a workaround — it is
+the natural expression of the modularity principle (§4.6) applied to dependency
+management. In Phase 15 (containerization), each such venv maps directly to a Docker
+service with its own base image, making the isolation explicit in the deployment layer.
+
+**Open Question (OQ-A01, updated):** What is the JSON serialization overhead of passing
+OHLCV arrays across the MCP subprocess boundary at scale (hundreds of stocks, 252-bar
+windows)? If significant, binary encoding (msgpack or Apache Arrow IPC over stdio)
+is the mitigation without changing the MCP interface. To be measured at Phase 8.
 
 ---
 
@@ -442,14 +461,23 @@ Agents call these servers through standardized MCP tool interfaces. They never c
 - **Versioning:** Every dataset release is content-hashed and immutable
 - **Lineage:** Every feature traces to its raw source through documented transformations
 
-**Technology Candidates:**
+**Technology Decisions:**
 
-| Component | Options | Decision Status |
-|---|---|---|
-| Storage | Parquet, DuckDB, SQLite | Open |
-| Versioning | DVC, custom content-hashing | Open |
-| Feature computation | Pandas, Polars | Open |
-| Orchestration | Prefect, custom DAG | Open |
+| Component | Decision | Decision ID | Notes |
+|---|---|---|---|
+| Storage format | Parquet (pyarrow engine) | DJ-007 | Schema metadata embedded in file; one file per dataset |
+| Versioning | Custom SHA-256 content hashing + JSON registry | DJ-008 | Hash detects data revisions; JSON registry for Phase 1 scale |
+| Data acquisition | yfinance (market), fredapi (macro) | DJ-008 | Free, no API key for OHLCV; FRED key required |
+| Intermediate computation | pandas (Phase 1-2); Polars deferred | DJ-008 | yfinance returns pandas natively; Polars re-evaluated at Phase 3+ |
+| Technical indicators (Phase 2) | Custom numpy, 6 indicators | DJ-010 | All TA libraries incompatible with pandas 3.x; 40-line custom sufficient for Phase 2 |
+| Technical indicators (Phase 8+) | MCP server in dedicated venv (venvs/ta/) | DJ-010 | MCP subprocess boundary = dependency isolation boundary; any TA library in isolated env; maps to Docker service in Phase 15 |
+| Risk and portfolio metrics | QuantStats | DJ-011 | Sharpe, drawdown, VaR, tear sheets; Pyfolio rejected (deprecated since 2021) |
+| Fundamental analytics (deep) | FinanceToolkit | DJ-012 (deferred) | Deferred to Phase 7+; insufficient data depth in Phase 1-2 |
+| Orchestration | Prefect, custom DAG | Open | Evaluated at Phase 3 |
+
+**Resolved Open Question (DJ-007, DJ-008):** Storage is Parquet. Versioning is
+content-hashing. DuckDB remains an option for analytical queries at Phase 3+ if
+Parquet I/O becomes a bottleneck. The decision is revisited when measured, not assumed.
 
 **Open Question:** Is DuckDB sufficient for the scale of data HiFi handles (decades of daily data for S&P 500 constituents), or is a more specialized time-series store warranted? The answer depends on measured query performance, not architectural preference.
 
@@ -1527,7 +1555,74 @@ This section records architectural decisions that require explicit justification
 - **Alternatives Considered:** Single golden dataset (rejected: epistemologically unsound)
 - **Status:** Accepted
 
-*Additional entries to be added as decisions are made during implementation.*
+### DJ-006: Python Environment Manager
+
+- **Decision:** uv (version 0.10.10+)
+- **Rationale:** Fastest dependency resolver in the Python ecosystem; native lock file for reproducible installs; handles both virtual environments and package management; excellent Apple Silicon support; compatible with pyproject.toml.
+- **Alternatives Considered:** poetry (slower resolver, heavier tooling), conda (Anaconda licensing concerns, different ecosystem), pip + venv (no lock file, no dependency resolver)
+- **Status:** Accepted (Phase 0)
+
+### DJ-007: Primary Storage Format
+
+- **Decision:** Parquet with pyarrow engine
+- **Rationale:** Columnar format preserves all numeric types exactly (date32, float64); schema metadata embedded in file header makes each file self-describing; standard format readable by any Parquet-compatible tool; pyarrow is already a pandas dependency.
+- **Alternatives Considered:** DuckDB (powerful for analytics but adds query layer before data is validated), SQLite (row-oriented, less efficient for OHLCV column access), CSV (no type preservation)
+- **Notes:** DuckDB remains a candidate for Phase 3+ analytical queries over many files. The decision is re-evaluated when measured against actual query patterns, not assumed.
+- **Status:** Accepted (Phase 0 planning, Phase 1 implementation)
+
+### DJ-008: Phase 1 Data Acquisition Stack
+
+- **Decision:** yfinance for market data, fredapi for macro data, pandas for intermediate computation, pyarrow for Parquet I/O, responses library for HTTP fixture replay in tests
+- **Rationale:**
+  - yfinance: free, no API key for OHLCV history, reliable for US equities back to 2015, returns pandas DataFrame natively
+  - fredapi: official Python client for FRED; handles authentication, rate limiting, and series metadata cleanly
+  - pandas over polars: yfinance returns pandas natively; converting to polars at ingestion adds a transformation step before data is validated; all data is normalised to HiFi's own Pydantic schemas (library-neutral) so the switch to polars for downstream computation remains open
+  - responses library over vcrpy: simpler cassette format, HTTP-level interception works for both yfinance and fredapi without modifying production code
+- **Alternatives Considered:** Alpaca for market data (requires account, paper trading focus); polars at ingestion (deferred); vcrpy for fixture replay (heavier, less readable cassette format)
+- **Status:** Accepted (Phase 1)
+
+### DJ-009: MCP Transport Protocol
+
+- **Decision:** stdio transport for Phase 2 MCP server
+- **Rationale:** HiFi is a single-machine local system in Phases 2-14. stdio transport requires no sockets, no authentication, and no service discovery. Agent frameworks (LangGraph, LlamaIndex) natively support subprocess MCP servers via stdio pipes. The bottleneck in tool calls is disk I/O and computation, not transport protocol overhead.
+- **Alternatives Considered:** SSE (requires HTTP server setup, unnecessary complexity for single-machine); HTTP (same); Unix domain sockets (no ecosystem support in MCP clients)
+- **Notes:** SSE or HTTP transport is evaluated at Phase 15 (containerization) where multi-container deployments may require network transport.
+- **Status:** Accepted (Phase 2)
+
+### DJ-010: Technical Indicator Library and Isolation Architecture
+
+- **Decision (Phase 2):** Custom numpy for 6 indicators (SMA, EMA, RSI, MACD, Bollinger, ATR). Zero new dependencies.
+- **Decision (Phase 8+):** MCP server in a dedicated virtual environment (`venvs/ta/`). Not a deferred library selection — a chosen architecture.
+- **Rationale (Phase 2):** All evaluated TA libraries have blockers against `pandas>=3.x`: pandas-ta calls `DataFrame.append()` removed in pandas 2.0; `ta` (bukosabino) is unmaintained since 2022; TA-Lib requires a C build. The 6 indicators needed in Phase 2 are ~40 lines of numpy/pandas code, each citing its primary source (Wilder 1978, Appel 1979, Bollinger 1992). Elementary functions; not a TA library from scratch.
+- **Rationale (Phase 8+):** The compatibility problem (pandas-ta vs. pandas 3.x) reveals the correct general solution: the MCP subprocess boundary is already a process boundary. Extending it with a dedicated virtual environment decouples the TA library's dependency set from the main stack permanently. `venvs/ta/bin/python -m hifi.mcp.indicators_server` runs with pinned pandas<2.0 and any TA library; the main process receives JSON-RPC results and is agnostic to the child's environment. This architecture:
+  - Eliminates cross-dependency conflicts permanently
+  - Allows pandas-ta, TA-Lib, and any future library to coexist in separate venvs
+  - Maps directly to Phase 15 containerization (each venv becomes a Docker service)
+  - Preserves reproducibility through per-venv lockfiles
+  - Is invisible to the agent layer — agents see only new MCP tools, not the isolation
+- **At scale (hundreds of stocks, sector rotation, portfolio construction):** A full TA library is genuinely superior to 6 custom functions. The venv isolation architecture makes this transition cost-free: add `venvs/ta/`, implement `indicators_server.py`, expose new MCP tools. No changes to agents, verification, or observability layers.
+- **Alternatives Considered:**
+  - pandas-ta in main env: rejected — pandas 3.x incompatibility
+  - ta (bukosabino) in main env: rejected — unmaintained since 2022
+  - TA-Lib in main env: rejected — C build required, fragile on arm64/macOS
+  - Pin pandas<2.0 in main env: rejected — regresses Phase 1+ data stack, wrong direction
+- **Status:** Phase 2 accepted (custom numpy). Phase 8+ architecture chosen and documented.
+
+### DJ-011: Risk and Portfolio Metrics Library
+
+- **Decision:** QuantStats (version pinned in lockfile)
+- **Rationale:** QuantStats (`quantstats.stats`) provides the full set of risk metrics needed in Phase 2 (Sharpe, Sortino, max drawdown, VaR, annualized volatility, beta) through a pandas-based API. Critically, it generates standardized performance tear sheets that are directly useful in Phase 10 (Evaluation & Backtesting) — adopting QuantStats in Phase 2 gives Phase 10 professional-grade analytics at no additional integration cost. This is the "vertical slice" principle from the Protocol applied to library selection.
+- **Alternatives Considered:**
+  - Pyfolio: **Explicitly rejected and excluded from all phases.** Maintained by Quantopian (shutdown 2020); last meaningful release approximately 2021; known incompatibilities with modern pandas; no active maintenance or security updates. Using a deprecated library in an open-source research project and academic capstone submission is not acceptable.
+  - Custom numpy implementation: rejected — same reasoning as DJ-010.
+- **Status:** Accepted (Phase 2)
+
+### DJ-012: FinanceToolkit — Deferred to Phase 7+
+
+- **Decision:** Do not use FinanceToolkit in Phases 1-6; re-evaluate at Phase 7
+- **Rationale:** FinanceToolkit provides deep fundamental analysis (Piotroski F-Score, Altman Z-Score, full DuPont decomposition, DCF inputs, historical quarterly ratios). These capabilities become valuable when multi-period quarterly data is available from SEC EDGAR (Phase 7+). In Phases 1-2, the FundamentalsSnapshot from yfinance contains only one period's summary data; using FinanceToolkit's full capability is not possible, and integrating it around our Parquet data model is unresolved. A custom implementation covering the required Phase 2 ratios (~80 lines) is simpler and sufficient.
+- **Re-evaluation trigger:** When SEC EDGAR quarterly data is ingested in Phase 7, evaluate whether FinanceToolkit's fundamental analytics justify the integration cost over extending the custom fundamental engine.
+- **Status:** Deferred (Phase 2); re-evaluate at Phase 7
 
 ---
 

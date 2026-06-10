@@ -1,6 +1,6 @@
 # Phase 1: Data Acquisition -- Epic Plan
 
-**Status:** PLANNED
+**Status:** COMPLETE
 **David Sections:** 7.1 (Data Acquisition Layer), 8.2 (Dataset Family A -- Market Observations partial)
 **Learning Guide Topics:** 10.2 (Data Engineering), 7.1 (Quantitative Analysis foundations)
 **Protocol Reference:** HIFI_PROTOCOL_V1.md Phase 1
@@ -64,14 +64,14 @@ These requirements are encoded in the schema, not left to convention.
 
 | Ticket | Description | Status |
 |---|---|---|
-| P1-E1-T1 | Define OHLCVBar: single price bar with provenance fields | TODO |
-| P1-E1-T2 | Define OHLCVDataset: collection of bars for one ticker + metadata | TODO |
-| P1-E1-T3 | Define FundamentalsSnapshot: quarterly financial statement data | TODO |
-| P1-E1-T4 | Define MacroIndicator and MacroDataset: macro time-series | TODO |
-| P1-E1-T5 | Define ProvenanceRecord: source, timestamp, parameters, hash | TODO |
-| P1-E1-T6 | Unit tests: schema validation accepts valid data | TODO |
-| P1-E1-T7 | Unit tests: schema validation rejects invalid data (negative price, missing field) | TODO |
-| P1-E1-T8 | Unit tests: provenance record produces stable content hash | TODO |
+| P1-E1-T1 | Define OHLCVBar: single price bar with provenance fields | DONE |
+| P1-E1-T2 | Define OHLCVDataset: collection of bars for one ticker + metadata | DONE |
+| P1-E1-T3 | Define FundamentalsSnapshot: quarterly financial statement data | DONE |
+| P1-E1-T4 | Define MacroIndicator and MacroDataset: macro time-series | DONE |
+| P1-E1-T5 | Define ProvenanceRecord: source, timestamp, parameters, hash | DONE |
+| P1-E1-T6 | Unit tests: schema validation accepts valid data | DONE |
+| P1-E1-T7 | Unit tests: schema validation rejects invalid data (negative price, missing field) | DONE |
+| P1-E1-T8 | Unit tests: provenance record produces stable content hash | DONE |
 
 **Files to create:**
 - `src/hifi/data/schemas.py` -- all Pydantic schemas
@@ -101,15 +101,15 @@ serious API testing.
 
 | Ticket | Description | Status |
 |---|---|---|
-| P1-E2-T1 | Implement `MarketDataFetcher`: wraps yfinance, returns OHLCVDataset | TODO |
-| P1-E2-T2 | Implement `FundamentalsFetcher`: wraps yfinance info/financials, returns FundamentalsSnapshot | TODO |
-| P1-E2-T3 | Write `scripts/record_fixtures.py`: fetches real data and saves as fixtures for testing | TODO |
-| P1-E2-T4 | Record fixtures for 3 representative tickers (AAPL, JPM, XOM) across 2 date ranges | TODO |
-| P1-E2-T5 | Unit tests: fetcher normalises yfinance output to OHLCVDataset schema | TODO |
-| P1-E2-T6 | Unit tests: fetcher handles missing data gracefully (gaps returned as NaN, logged) | TODO |
-| P1-E2-T7 | Unit tests: fetcher attaches correct provenance metadata | TODO |
-| P1-E2-T8 | Integration tests: full fetch for one ticker using recorded fixture | TODO |
-| P1-E2-T9 | Integration tests: Parquet write/read round-trip preserves all values exactly | TODO |
+| P1-E2-T1 | Implement `MarketDataFetcher`: wraps yfinance, returns OHLCVDataset | DONE |
+| P1-E2-T2 | Implement `FundamentalsFetcher`: wraps yfinance info/financials, returns FundamentalsSnapshot | DONE |
+| P1-E2-T3 | Write `scripts/record_fixtures.py`: fetches real data and saves as fixtures for testing | DONE |
+| P1-E2-T4 | Record fixtures for 3 representative tickers (AAPL, JPM, XOM) across 2 date ranges | DONE |
+| P1-E2-T5 | Unit tests: fetcher normalises yfinance output to OHLCVDataset schema | DONE |
+| P1-E2-T6 | Unit tests: fetcher handles missing data gracefully (gaps returned as NaN, logged) | DONE |
+| P1-E2-T7 | Unit tests: fetcher attaches correct provenance metadata | DONE |
+| P1-E2-T8 | Integration tests: full fetch for one ticker using recorded fixture | DONE |
+| P1-E2-T9 | Integration tests: Parquet write/read round-trip preserves all values exactly | DONE |
 
 **Files to create:**
 - `src/hifi/data/market.py` -- MarketDataFetcher, FundamentalsFetcher
@@ -145,15 +145,15 @@ minimal set that drives macro-regime classification in Phase 10.
 
 | Ticket | Description | Status |
 |---|---|---|
-| P1-E3-T1 | Implement `MacroDataFetcher`: wraps fredapi, returns MacroDataset | TODO |
-| P1-E3-T2 | Handle FRED data alignment: convert to daily frequency by forward-filling (documented assumption) | TODO |
-| P1-E3-T3 | Write FRED fixture recorder in `scripts/record_fixtures.py` (extend existing) | TODO |
-| P1-E3-T4 | Record fixtures for all 7 indicators | TODO |
-| P1-E3-T5 | Unit tests: fetcher normalises FRED output to MacroDataset schema | TODO |
-| P1-E3-T6 | Unit tests: forward-fill logic is deterministic and does not bleed future values | TODO |
-| P1-E3-T7 | Unit tests: provenance metadata is attached correctly | TODO |
-| P1-E3-T8 | Integration tests: full fetch for FEDFUNDS using recorded fixture | TODO |
-| P1-E3-T9 | Integration tests: Parquet write/read round-trip preserves all values | TODO |
+| P1-E3-T1 | Implement `MacroDataFetcher`: wraps fredapi, returns MacroDataset | DONE |
+| P1-E3-T2 | Handle FRED data alignment: convert to daily frequency by forward-filling (documented assumption) | DONE |
+| P1-E3-T3 | Write FRED fixture recorder in `scripts/record_fixtures.py` (extend existing) | DONE |
+| P1-E3-T4 | Record fixtures for all 7 indicators | DONE |
+| P1-E3-T5 | Unit tests: fetcher normalises FRED output to MacroDataset schema | DONE |
+| P1-E3-T6 | Unit tests: forward-fill logic is deterministic and does not bleed future values | DONE |
+| P1-E3-T7 | Unit tests: provenance metadata is attached correctly | DONE |
+| P1-E3-T8 | Integration tests: full fetch for FEDFUNDS using recorded fixture | DONE |
+| P1-E3-T9 | Integration tests: Parquet write/read round-trip preserves all values | DONE |
 
 **Files to create:**
 - `src/hifi/data/macro.py` -- MacroDataFetcher
@@ -186,16 +186,16 @@ not when we are debugging Phase 10 results.
 
 | Ticket | Description | Status |
 |---|---|---|
-| P1-E4-T1 | Implement `DataQualityChecker`: takes OHLCVDataset, returns QualityReport | TODO |
-| P1-E4-T2 | Check: completeness -- % of expected trading days with data | TODO |
-| P1-E4-T3 | Check: gap detection -- identify contiguous missing periods > N days | TODO |
-| P1-E4-T4 | Check: price sanity -- no negative prices, no zero volume, no single-day moves > 50% | TODO |
-| P1-E4-T5 | Check: OHLCV relationships -- high >= max(open,close), low <= min(open,close) for every bar | TODO |
-| P1-E4-T6 | Check: corporate action consistency -- detect suspicious price discontinuities (likely unadjusted) | TODO |
-| P1-E4-T7 | Implement `QualityReport`: structured summary with per-ticker metrics | TODO |
-| P1-E4-T8 | Unit tests: quality checker detects known defects in synthetic bad data | TODO |
-| P1-E4-T9 | Unit tests: quality checker passes clean synthetic data | TODO |
-| P1-E4-T10 | Integration test (holistic): run quality check on all 10 tickers, report passes threshold | TODO |
+| P1-E4-T1 | Implement `DataQualityChecker`: takes OHLCVDataset, returns QualityReport | DONE |
+| P1-E4-T2 | Check: completeness -- % of expected trading days with data | DONE |
+| P1-E4-T3 | Check: gap detection -- identify contiguous missing periods > N days | DONE |
+| P1-E4-T4 | Check: price sanity -- no negative prices, no zero volume, no single-day moves > 50% | DONE |
+| P1-E4-T5 | Check: OHLCV relationships -- high >= max(open,close), low <= min(open,close) for every bar | DONE |
+| P1-E4-T6 | Check: corporate action consistency -- detect suspicious price discontinuities (likely unadjusted) | DONE |
+| P1-E4-T7 | Implement `QualityReport`: structured summary with per-ticker metrics | DONE |
+| P1-E4-T8 | Unit tests: quality checker detects known defects in synthetic bad data | DONE |
+| P1-E4-T9 | Unit tests: quality checker passes clean synthetic data | DONE |
+| P1-E4-T10 | Integration test (holistic): run quality check on all 10 tickers, report passes threshold | DONE |
 
 **Files to create:**
 - `src/hifi/data/quality.py` -- DataQualityChecker, QualityReport
@@ -224,15 +224,15 @@ integrity check on the file itself.
 
 | Ticket | Description | Status |
 |---|---|---|
-| P1-E5-T1 | Implement `content_hash(path)`: SHA-256 hash of a Parquet file | TODO |
-| P1-E5-T2 | Implement `DatasetRegistry`: JSON-backed registry of all downloaded datasets | TODO |
-| P1-E5-T3 | Registry records: ticker, source, date range, download timestamp, file path, content hash | TODO |
-| P1-E5-T4 | Registry supports: register, lookup by ticker+source, verify integrity (re-hash and compare) | TODO |
-| P1-E5-T5 | Integrate registry into MarketDataFetcher and MacroDataFetcher | TODO |
-| P1-E5-T6 | Unit tests: hash is stable for identical content | TODO |
-| P1-E5-T7 | Unit tests: hash changes when content changes | TODO |
-| P1-E5-T8 | Unit tests: registry stores and retrieves entries correctly | TODO |
-| P1-E5-T9 | Unit tests: integrity check detects file tampering | TODO |
+| P1-E5-T1 | Implement `content_hash(path)`: SHA-256 hash of a Parquet file | DONE |
+| P1-E5-T2 | Implement `DatasetRegistry`: JSON-backed registry of all downloaded datasets | DONE |
+| P1-E5-T3 | Registry records: ticker, source, date range, download timestamp, file path, content hash | DONE |
+| P1-E5-T4 | Registry supports: register, lookup by ticker+source, verify integrity (re-hash and compare) | DONE |
+| P1-E5-T5 | Integrate registry into MarketDataFetcher and MacroDataFetcher | DONE |
+| P1-E5-T6 | Unit tests: hash is stable for identical content | DONE |
+| P1-E5-T7 | Unit tests: hash changes when content changes | DONE |
+| P1-E5-T8 | Unit tests: registry stores and retrieves entries correctly | DONE |
+| P1-E5-T9 | Unit tests: integrity check detects file tampering | DONE |
 
 **Files to create:**
 - `src/hifi/data/versioning.py` -- content_hash, DatasetRegistry

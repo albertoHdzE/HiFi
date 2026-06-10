@@ -16,6 +16,12 @@ dependencies = [
     "fredapi>=0.5.2",
     "pandas>=3.0.3",
     "pyarrow>=24.0.0",
+    "mcp>=1.0",
+    "quantstats>=0.0.62",
+    "openai>=1.0",
+    "langchain>=0.3",
+    "langchain-openai>=0.2",
+    "langgraph>=0.2",
 ]
 
 [project.optional-dependencies]
@@ -69,4 +75,5 @@ check_untyped_defs = true
 [dependency-groups]
 dev = [
     "responses>=0.26.1",
+    "vcrpy>=6.0",
 ]
