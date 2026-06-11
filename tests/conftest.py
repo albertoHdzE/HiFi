@@ -4,6 +4,7 @@ All fixtures use deterministic seeds for reproducibility.
 No mocks are used -- synthetic data is generated with controlled randomness.
 """
 
+import os
 from datetime import date, datetime
 from pathlib import Path
 
@@ -11,6 +12,21 @@ import numpy as np
 import pytest
 
 from hifi.config.loader import HiFiConfig, load_config
+
+# ---------------------------------------------------------------------------
+# LangFuse isolation (DJ-025)
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture(scope="session", autouse=True)
+def disable_langfuse():
+    """Disable LangFuse for all tests (DJ-025).
+
+    Session-scoped autouse fixture that sets LANGFUSE_ENABLED=false so that
+    get_tracer() always returns NoOpTracer throughout the test suite.
+    No live LangFuse server is required to run any test.
+    """
+    os.environ["LANGFUSE_ENABLED"] = "false"
 
 # --- Raw fixture loader ---
 
