@@ -27,7 +27,7 @@ HiFi is a fully local multi-agent financial intelligence platform. Read these fi
 | 3 | First Agent (Baseline) | COMPLETE | plans/PHASE_03_PLAN.md | doc/bitacora/PHASE_03_FIRST_AGENT.md |
 | 4 | Second Agent (First Ensemble) | COMPLETE | plans/PHASE_04_PLAN.md | doc/bitacora/PHASE_04_SECOND_AGENT.md |
 | 5 | Verification Layer | COMPLETE | plans/PHASE_05_PLAN.md | doc/bitacora/PHASE_05_VERIFICATION.md |
-| 6 | Observability (LangFuse) | NOT STARTED | -- | -- |
+| 6 | Observability (LangFuse) | PLANNED | plans/PHASE_06_PLAN.md | -- |
 | 7 | RAG Knowledge Systems | NOT STARTED | -- | -- |
 | 8 | Full Agent Population | NOT STARTED | -- | -- |
 | 9 | Collective Decision Engine | NOT STARTED | -- | -- |
