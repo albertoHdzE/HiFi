@@ -7,6 +7,11 @@ required for ensemble theory to apply.
 
 Sequential execution is intentional for Phase 4 (2 agents). Phase 9 will
 parallelize agent runs; the additional complexity is not justified at this scale.
+
+Phase 6 addition: run_ensemble() creates a parent LangFuse trace, passes the
+tracer to both agents, and logs verification scores on the trace after calling
+verify_ensemble(). The full pipeline is observable end-to-end without any changes
+to agent logic or LangGraph state schemas (DJ-023, DJ-024).
 """
 
 from __future__ import annotations
@@ -17,6 +22,13 @@ from hifi.agents.fundamental_agent import run_analysis
 from hifi.agents.technical_agent import run_technical_analysis
 from hifi.collective.schemas import EnsembleOutput
 from hifi.collective.voting import confidence_weighted_vote
+from hifi.observability.tracing import (
+    AbstractTracer,
+    get_tracer,
+    log_verification_scores,
+    trace_context,
+)
+from hifi.verification.verifier import verify_ensemble
 
 
 def run_ensemble(
@@ -24,9 +36,10 @@ def run_ensemble(
     as_of_date: str,
     snapshot_json: str,
     data_dir: str | None = None,
+    tracer: AbstractTracer | None = None,
 ) -> EnsembleOutput:
     """
-    Run both agents independently and aggregate their outputs.
+    Run both agents independently, aggregate their outputs, and verify.
 
     Parameters
     ----------
@@ -39,6 +52,11 @@ def run_ensemble(
         The Technical Agent does not receive this.
     data_dir : str | None
         Path to the data root directory. Defaults to HIFI_DATA_DIR env var.
+    tracer : AbstractTracer | None
+        Observability tracer. Defaults to get_tracer(). When LANGFUSE_ENABLED=true
+        and credentials are set, this creates a parent LangFuse trace that covers
+        both agent runs and the verification step. When disabled, NoOpTracer is
+        used and behaviour is identical to pre-Phase-6.
 
     Returns
     -------
@@ -47,22 +65,30 @@ def run_ensemble(
         Agents share no state during reasoning -- independence is enforced by
         the function call boundary.
     """
+    _tracer = tracer if tracer is not None else get_tracer()
+    trace_id = _tracer.start_trace(
+        "run_ensemble", ticker=ticker, as_of_date=as_of_date
+    )
+
     start = time.monotonic()
 
-    # Step 1: Fundamental Agent (uses snapshot_json + MCP fundamentals tools)
-    fundamental = run_analysis(
-        ticker=ticker,
-        as_of_date=as_of_date,
-        snapshot_json=snapshot_json,
-        data_dir=data_dir,
-    )
+    with trace_context(trace_id):
+        # Step 1: Fundamental Agent (uses snapshot_json + MCP fundamentals tools)
+        fundamental = run_analysis(
+            ticker=ticker,
+            as_of_date=as_of_date,
+            snapshot_json=snapshot_json,
+            data_dir=data_dir,
+            tracer=_tracer,
+        )
 
-    # Step 2: Technical Agent (uses only price-derived MCP tools; no snapshot)
-    technical = run_technical_analysis(
-        ticker=ticker,
-        as_of_date=as_of_date,
-        data_dir=data_dir,
-    )
+        # Step 2: Technical Agent (uses only price-derived MCP tools; no snapshot)
+        technical = run_technical_analysis(
+            ticker=ticker,
+            as_of_date=as_of_date,
+            data_dir=data_dir,
+            tracer=_tracer,
+        )
 
     # Step 3: Collect valid signals and aggregate
     valid_signals = [
@@ -74,7 +100,7 @@ def run_ensemble(
 
     latency_ms = round((time.monotonic() - start) * 1000, 1)
 
-    return EnsembleOutput(
+    output = EnsembleOutput(
         ticker=ticker,
         as_of_date=as_of_date,
         fundamental_analysis=fundamental,
@@ -82,3 +108,11 @@ def run_ensemble(
         ensemble_decision=decision,
         latency_ms=latency_ms,
     )
+
+    # Step 4: Verify ensemble output and log scores (DJ-024)
+    verification = verify_ensemble(output)
+    log_verification_scores(_tracer, trace_id, verification, decision)
+
+    _tracer.flush()
+
+    return output
