@@ -48,6 +48,7 @@ from hifi.agents.lm_client import make_llm
 from hifi.agents.mcp_client import call_tool
 from hifi.agents.schemas import AgentSignal, FundamentalAnalysis
 from hifi.data.schemas import FundamentalsSnapshot
+from hifi.observability.tracing import AbstractTracer, get_tracer, trace_context
 
 logger = logging.getLogger(__name__)
 
@@ -349,6 +350,7 @@ def run_analysis(
     as_of_date: str,
     snapshot_json: str,
     data_dir: str | None = None,
+    tracer: AbstractTracer | None = None,
 ) -> FundamentalAnalysis:
     """
     Run the Fundamental Analyst Agent for one ticker on one date.
@@ -363,6 +365,10 @@ def run_analysis(
         JSON-serialised FundamentalsSnapshot (from Phase 1 data acquisition).
     data_dir : str | None
         Path to the data root directory. Defaults to HIFI_DATA_DIR env var.
+    tracer : AbstractTracer | None
+        Observability tracer. Defaults to get_tracer() (NoOpTracer when
+        LANGFUSE_ENABLED=false; LangFuseTracer otherwise). Pass an explicit
+        tracer from run_ensemble() to share the parent trace context.
 
     Returns
     -------
@@ -371,6 +377,13 @@ def run_analysis(
         On parse failure: signal is None and error is set in the state dict
         (the FundamentalAnalysis is constructed from whatever state is available).
     """
+    _tracer = tracer if tracer is not None else get_tracer()
+    trace_id = _tracer.start_trace(
+        "fundamental_agent", ticker=ticker, as_of_date=as_of_date
+    )
+    handler = _tracer.get_callback_handler(trace_id)
+    config = {"callbacks": [handler]} if handler is not None else {}
+
     start = time.monotonic()
     graph = build_fundamental_graph()
 
@@ -387,7 +400,10 @@ def run_analysis(
         "start_time": start,
     }
 
-    final_state = graph.invoke(initial_state)
+    with trace_context(trace_id):
+        final_state = graph.invoke(initial_state, config=config)
+
+    _tracer.flush()
     latency_ms = (time.monotonic() - start) * 1000
 
     tool_results = final_state.get("tool_results") or {}

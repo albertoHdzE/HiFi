@@ -34,6 +34,7 @@ from typing_extensions import TypedDict
 from hifi.agents.lm_client import make_llm
 from hifi.agents.mcp_client import call_tool
 from hifi.agents.schemas import AgentSignal, TechnicalAnalysis
+from hifi.observability.tracing import AbstractTracer, get_tracer, trace_context
 
 logger = logging.getLogger(__name__)
 
@@ -318,6 +319,7 @@ def run_technical_analysis(
     ticker: str,
     as_of_date: str,
     data_dir: str | None = None,
+    tracer: AbstractTracer | None = None,
 ) -> TechnicalAnalysis:
     """
     Run the Technical Analyst Agent for one ticker on one date.
@@ -330,6 +332,10 @@ def run_technical_analysis(
         ISO 8601 analysis date (e.g. "2023-03-31").
     data_dir : str | None
         Path to the data root directory. Defaults to HIFI_DATA_DIR env var.
+    tracer : AbstractTracer | None
+        Observability tracer. Defaults to get_tracer() (NoOpTracer when
+        LANGFUSE_ENABLED=false; LangFuseTracer otherwise). Pass an explicit
+        tracer from run_ensemble() to share the parent trace context.
 
     Returns
     -------
@@ -338,6 +344,13 @@ def run_technical_analysis(
         tool results for every field in the rationale to be traced back to a
         specific deterministic computation.
     """
+    _tracer = tracer if tracer is not None else get_tracer()
+    trace_id = _tracer.start_trace(
+        "technical_agent", ticker=ticker, as_of_date=as_of_date
+    )
+    handler = _tracer.get_callback_handler(trace_id)
+    config = {"callbacks": [handler]} if handler is not None else {}
+
     start = time.monotonic()
     graph = build_technical_graph()
 
@@ -354,7 +367,10 @@ def run_technical_analysis(
         "start_time": start,
     }
 
-    final_state = graph.invoke(initial_state)
+    with trace_context(trace_id):
+        final_state = graph.invoke(initial_state, config=config)
+
+    _tracer.flush()
     latency_ms = (time.monotonic() - start) * 1000
 
     tool_results = final_state.get("tool_results") or {}
