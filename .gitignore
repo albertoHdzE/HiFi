@@ -241,6 +241,9 @@ credentials.json
 # LangFuse / observability local data
 langfuse-data/
 
+# LangFuse local secrets (copy from .env.example -- never commit)
+docker/langfuse/.env
+
 # Docker volumes
 docker/volumes/
 
