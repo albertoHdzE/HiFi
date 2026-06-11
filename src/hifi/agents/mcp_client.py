@@ -32,6 +32,8 @@ import sys
 import uuid
 from typing import Any
 
+from hifi.observability.tracing import _current_trace_id, get_tracer
+
 logger = logging.getLogger(__name__)
 
 # JSON-RPC version used by the MCP protocol
@@ -49,6 +51,10 @@ def call_tool(
 
     Starts the server as a subprocess, sends the JSON-RPC initialize + tools/call
     sequence, reads the response, and terminates the subprocess.
+
+    When an active trace context exists (set by trace_context() in run_analysis()
+    or run_ensemble()), each call is wrapped in a LangFuse child span that captures
+    the tool name, arguments, result, and call_id for audit trail linkage (DJ-023).
 
     Parameters
     ----------
@@ -73,6 +79,27 @@ def call_tool(
     RuntimeError
         If the subprocess fails to start or returns a malformed JSON-RPC response.
     """
+    trace_id = _current_trace_id.get()
+    if trace_id is None:
+        return _call_subprocess(tool_name, params, server_module, data_dir)
+
+    tracer = get_tracer()
+    with tracer.span(trace_id, f"mcp_{tool_name}", input=params) as span_ctx:
+        result = _call_subprocess(tool_name, params, server_module, data_dir)
+        span_ctx.output = result
+        call_id = result.get("call_id") if isinstance(result, dict) else None
+        if call_id:
+            span_ctx.metadata = {"call_id": call_id}
+    return result
+
+
+def _call_subprocess(
+    tool_name: str,
+    params: dict[str, Any],
+    server_module: str,
+    data_dir: str | None,
+) -> dict[str, Any]:
+    """Execute one MCP tool call as a subprocess (implementation detail)."""
     env = os.environ.copy()
     if data_dir is not None:
         env["HIFI_DATA_DIR"] = data_dir
