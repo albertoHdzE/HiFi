@@ -28,7 +28,7 @@ HiFi is a fully local multi-agent financial intelligence platform. Read these fi
 | 4 | Second Agent (First Ensemble) | COMPLETE | plans/PHASE_04_PLAN.md | doc/bitacora/PHASE_04_SECOND_AGENT.md |
 | 5 | Verification Layer | COMPLETE | plans/PHASE_05_PLAN.md | doc/bitacora/PHASE_05_VERIFICATION.md |
 | 6 | Observability (LangFuse) | COMPLETE | plans/PHASE_06_PLAN.md | doc/bitacora/PHASE_06_OBSERVABILITY.md |
-| 7 | RAG Knowledge Systems | NOT STARTED | -- | -- |
+| 7 | RAG Knowledge Systems | PLANNED | plans/PHASE_07_PLAN.md | -- |
 | 8 | Full Agent Population | NOT STARTED | -- | -- |
 | 9 | Collective Decision Engine | NOT STARTED | -- | -- |
 | 10 | Evaluation & Backtesting | NOT STARTED | -- | -- |
@@ -140,9 +140,12 @@ HiFi is a fully local multi-agent financial intelligence platform. Read these fi
 | Local inference | LM Studio (DJ-013) | Phase 3 DONE |
 | Baseline model | qwen2.5-coder-32b-instruct-mlx (DJ-014) | Phase 3 DONE |
 | Agent orchestration | LangGraph (DJ-015) | Phase 3 DONE |
-| Vector store | Chroma vs. Qdrant vs. LanceDB | Phase 7 |
-| Embedding model | nomic-embed vs. BGE vs. others | Phase 7 |
-| Observability | LangFuse (self-hosted) | Phase 6 |
+| Vector store | LanceDB (DJ-026) | Phase 7 pre-planning DONE |
+| Embedding model (baseline) | nomic-embed-text-v1.5 (DJ-027); OQ-M03 open | Phase 7 pre-planning DONE |
+| Document sources | SEC EDGAR 10-K/10-Q/8-K (DJ-028); earnings calls Phase 8 | Phase 7 pre-planning DONE |
+| Knowledge package path | src/hifi/knowledge/ (DJ-029) | Phase 7 pre-planning DONE |
+| Observability | LangFuse (self-hosted, DJ-022) | Phase 6 DONE |
+| FinanceToolkit | Deferred to Phase 10+ (DJ-012 updated) | Phase 7 pre-planning DONE |
 
 ---
 

@@ -472,8 +472,12 @@ is the mitigation without changing the MCP interface. To be measured at Phase 8.
 | Technical indicators (Phase 2) | Custom numpy, 6 indicators | DJ-010 | All TA libraries incompatible with pandas 3.x; 40-line custom sufficient for Phase 2 |
 | Technical indicators (Phase 8+) | MCP server in dedicated venv (venvs/ta/) | DJ-010 | MCP subprocess boundary = dependency isolation boundary; any TA library in isolated env; maps to Docker service in Phase 15 |
 | Risk and portfolio metrics | QuantStats | DJ-011 | Sharpe, drawdown, VaR, tear sheets; Pyfolio rejected (deprecated since 2021) |
-| Fundamental analytics (deep) | FinanceToolkit | DJ-012 (deferred) | Deferred to Phase 7+; insufficient data depth in Phase 1-2 |
+| Fundamental analytics (deep) | FinanceToolkit | DJ-012 (deferred) | Deferred to Phase 10+; Phase 7 EDGAR ingestion is unstructured text for RAG, not structured XBRL for computation |
 | Orchestration | Prefect, custom DAG | Open | Evaluated at Phase 3 |
+| Vector store (Phase 7+) | LanceDB | DJ-026 | Arrow-native columnar format; consistent with Parquet data layer; embedded mode, no server process |
+| Embedding model (Phase 7+) | nomic-embed-text-v1.5 | DJ-027 | Already in LM Studio; 8192-token context; matryoshka variable dimensionality; OQ-M03 to be answered empirically |
+| Document sources (Phase 7) | SEC EDGAR 10-K, 10-Q, 8-K | DJ-028 | Free, authoritative, no API key; fixture-recordable; earnings call transcripts deferred to Phase 8 |
+| Knowledge package path | src/hifi/knowledge/ | DJ-029 | Consistent with established src/hifi/* convention; Protocol draft used src/knowledge/ (corrected) |
 
 **Resolved Open Question (DJ-007, DJ-008):** Storage is Parquet. Versioning is
 content-hashing. DuckDB remains an option for analytical queries at Phase 3+ if
@@ -1617,12 +1621,55 @@ This section records architectural decisions that require explicit justification
   - Custom numpy implementation: rejected — same reasoning as DJ-010.
 - **Status:** Accepted (Phase 2)
 
-### DJ-012: FinanceToolkit — Deferred to Phase 7+
+### DJ-012: FinanceToolkit — Deferred to Phase 10+
 
-- **Decision:** Do not use FinanceToolkit in Phases 1-6; re-evaluate at Phase 7
-- **Rationale:** FinanceToolkit provides deep fundamental analysis (Piotroski F-Score, Altman Z-Score, full DuPont decomposition, DCF inputs, historical quarterly ratios). These capabilities become valuable when multi-period quarterly data is available from SEC EDGAR (Phase 7+). In Phases 1-2, the FundamentalsSnapshot from yfinance contains only one period's summary data; using FinanceToolkit's full capability is not possible, and integrating it around our Parquet data model is unresolved. A custom implementation covering the required Phase 2 ratios (~80 lines) is simpler and sufficient.
-- **Re-evaluation trigger:** When SEC EDGAR quarterly data is ingested in Phase 7, evaluate whether FinanceToolkit's fundamental analytics justify the integration cost over extending the custom fundamental engine.
-- **Status:** Deferred (Phase 2); re-evaluate at Phase 7
+- **Decision:** Do not use FinanceToolkit in Phases 1-9; re-evaluate at Phase 10
+- **Rationale:** FinanceToolkit provides deep fundamental analysis (Piotroski F-Score, Altman Z-Score, full DuPont decomposition, DCF inputs, historical quarterly ratios). These capabilities become valuable when multi-period quarterly data is available from SEC EDGAR as structured input. In Phases 1-2, the FundamentalsSnapshot from yfinance contains only one period's summary data. Phase 7 does ingest SEC EDGAR documents, but as unstructured text for RAG retrieval — not as structured XBRL tables for computation. FinanceToolkit requires parsed, structured quarterly financial statements, which is a different and heavier engineering task. A custom implementation covering the required Phase 2 ratios (~80 lines) remains simpler and sufficient through Phase 9.
+- **Re-evaluation trigger (updated 2026-06-11):** When structured XBRL data from SEC EDGAR is parsed into multi-period financial tables for backtesting (Phase 10+), evaluate whether FinanceToolkit's analytics (Piotroski, Altman, DuPont) justify integration. The original trigger ("SEC EDGAR quarterly data is ingested") was too broad — Phase 7 EDGAR ingestion is unstructured text for RAG, not structured computation input.
+- **Alternatives Considered:** Ingesting EDGAR as structured XBRL in Phase 7 (rejected — out of scope; adds complexity without benefit to the RAG measurement objective)
+- **Status:** Deferred (Phase 2 decision, re-evaluation trigger updated Phase 7 pre-planning); re-evaluate at Phase 10
+
+### DJ-026: Vector Store — LanceDB
+
+- **Date:** 2026-06-11 (Phase 7 pre-planning)
+- **Decision:** LanceDB as the vector store for Phase 7+ knowledge systems
+- **Rationale:** The principle that governs storage architecture in HiFi is columnar, Arrow-native, self-describing format — established in DJ-007 (Parquet/pyarrow). LanceDB extends this principle to embeddings: the Lance format is columnar and Arrow-native, exactly as Parquet is for OHLCV data. This is not a coincidental match — it reflects a coherent epistemological stance: all persistent data in HiFi (market prices, macro series, embeddings) lives in the same columnar-Arrow paradigm. Benefits: embedded mode (no server process during development, consistent with DJ-009 stdio principle), native pyarrow integration (already a dependency), hybrid search support (dense vector + full-text with tantivy), Python package install (no system dependencies). Phase 15 containerization is a clean `COPY` of the Lance directory into a container.
+- **Alternatives Considered:**
+  - Chroma: Python-native, popular in LangChain ecosystem, DuckDB+Parquet backend (Arrow-compatible), but breaks Arrow consistency (Chroma wraps Parquet rather than being Arrow-native). API has changed significantly across versions (0.3 → 0.4 → 0.5). Phase 15 migration to server mode introduces client-server asymmetry.
+  - Qdrant (local mode): Rust-based, excellent performance, Docker-native. Superior filtering and hybrid search. But brings Rust/C dependencies and is heavier than needed for Phase 7 scale (3 tickers). Phase 15 transition is clean (Qdrant server already exists), but this advantage does not justify the current overhead.
+  - pgvector: Reuses existing Postgres (already running for LangFuse). But mixing concerns — LangFuse application DB and embedding store in the same Postgres instance is architecturally unclean and creates a cross-concern operational dependency.
+  - FAISS: Pure vector search, no metadata filtering, in-memory only (no durability without manual serialization). Insufficient for HiFi's multi-document retrieval with metadata filtering by ticker, period, filing type.
+- **Status:** Accepted (Phase 7)
+
+### DJ-027: Embedding Model — nomic-embed-text-v1.5 as Phase 7 Baseline
+
+- **Date:** 2026-06-11 (Phase 7 pre-planning)
+- **Decision:** Use nomic-embed-text-v1.5 as the starting model for Phase 7 retrieval experiments; treat OQ-M03 as empirically open
+- **Rationale:** nomic-embed-text-v1.5 is already loaded in LM Studio (zero additional setup), supports 8192-token context (critical for long 10-K sections), and uses matryoshka representation learning (variable output dimensionality: 64/128/256/512/768 — allows trading retrieval quality for storage/speed in LanceDB). This is the natural Phase 7 starting point. OQ-M03 (which embedding model is best for financial text?) remains open: the Phase 7 chunking experiments (DJ-030) will measure Precision@5 under nomic-embed-text-v1.5 and establish the baseline. If Precision@5 < 0.6 on the manually crafted financial query set, evaluate BGE-M3 as the alternative before accepting the result.
+- **Alternatives Considered:**
+  - BGE-M3: Multi-lingual, dense/sparse/colbert retrieval, excellent MTEB score. Not currently in LM Studio; would require additional download and LM Studio setup. Deferred: evaluate only if nomic-embed-text-v1.5 Precision@5 falls below threshold.
+  - FinBERT-based embeddings: Domain-specific for finance, but optimised for sentiment classification rather than semantic retrieval. Smaller context window. Not appropriate for 10-K retrieval.
+  - OpenAI text-embedding-3: Requires internet connectivity and per-token cost. Excluded by local-first mandate.
+- **Status:** Accepted as Phase 7 baseline; OQ-M03 resolution deferred to Phase 7 empirical results (DJ-031)
+
+### DJ-028: Document Sources — SEC EDGAR (10-K, 10-Q, 8-K); Earnings Calls Deferred
+
+- **Date:** 2026-06-11 (Phase 7 pre-planning)
+- **Decision:** Phase 7 document corpus: SEC EDGAR 10-K annual reports, 10-Q quarterly reports, 8-K current reports (earnings announcements) for AAPL, JPM, XOM at Q1 2023. Earnings call transcripts deferred to Phase 8.
+- **Rationale:** SEC EDGAR (data.sec.gov) provides free, authoritative, machine-readable access to all mandatory SEC filings. No API key required (User-Agent header identification only). Rate limit: 10 req/s. The EDGAR full-text search API and submissions endpoint make filing retrieval deterministic and fixture-recordable — consistent with the project's fixture replay philosophy (DJ-008). By restricting to our 3 existing baseline tickers (AAPL, JPM, XOM) at the same Q1 2023 period as Phase 5, the RAG improvement measurement is directly comparable to the Phase 5 baseline HR/GR metrics. This is the scientifically correct approach: same stocks, same period, same verification framework — RAG is the only variable. Earnings call transcripts are not machine-readable on EDGAR (8-K exhibits reference transcripts, but they are HTML press releases, not clean transcript text). Scraping third-party transcript providers (Motley Fool, Seeking Alpha) is fragile and not reproducible. Deferring to Phase 8 allows a principled decision when free transcript sources are evaluated.
+- **Alternatives Considered:**
+  - Earnings call transcripts via web scraping: rejected — fragile, not reproducible, copyright ambiguous for academic publication
+  - Financial news (Reuters, Bloomberg, Yahoo Finance): Medium priority per Protocol; deferred to Phase 8 along with transcripts
+  - Alpha Vantage transcript endpoint: limited free tier (5 calls/min); evaluated at Phase 8
+- **Status:** Accepted (Phase 7). Phase 8 to evaluate earnings call transcripts and news.
+
+### DJ-029: Knowledge Package Path — src/hifi/knowledge/
+
+- **Date:** 2026-06-11 (Phase 7 pre-planning)
+- **Decision:** Knowledge system modules live at `src/hifi/knowledge/`; knowledge MCP server at `src/hifi/mcp/knowledge_server.py`
+- **Rationale:** The entire codebase uses the `src/hifi/` package namespace: `src/hifi/data/`, `src/hifi/engines/`, `src/hifi/agents/`, `src/hifi/collective/`, `src/hifi/verification/`, `src/hifi/observability/`. The Protocol draft used `src/knowledge/` and `src/mcp/` (top-level, outside the `hifi` package) — an artifact of the aspirational spec being written before the package structure was established. Correcting this in the Phase 7 plan ensures import consistency (`from hifi.knowledge import ...`) and keeps the package self-contained as a single installable unit.
+- **Alternatives Considered:** `src/knowledge/` as written in Protocol draft (rejected — breaks package convention, creates a second installable package, inconsistent with all existing modules)
+- **Status:** Accepted (Phase 7); PROTOCOL.md Phase 7 deliverables updated accordingly
 
 ---
 

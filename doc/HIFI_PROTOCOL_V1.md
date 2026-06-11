@@ -542,19 +542,22 @@ Add retrieval-augmented generation so agents can access information beyond what 
 
 ### Deliverables
 
-- `src/knowledge/document_ingestion.py` — Parse and chunk financial documents
-- `src/knowledge/embeddings.py` — Embed chunks using local embedding model
-- `src/knowledge/vector_store.py` — Store and query embeddings
-- `src/knowledge/retrieval.py` — Retrieve relevant context for agent queries
-- `src/mcp/knowledge_server.py` — MCP server exposing retrieval as a tool
+- `src/hifi/knowledge/document_ingestion.py` — Parse and chunk SEC EDGAR filings (10-K, 10-Q, 8-K)
+- `src/hifi/knowledge/embeddings.py` — Embed chunks using nomic-embed-text-v1.5 via LM Studio (DJ-027)
+- `src/hifi/knowledge/vector_store.py` — Store and query embeddings in LanceDB (DJ-026)
+- `src/hifi/knowledge/retrieval.py` — Retrieve relevant context for agent queries; measure Precision@5
+- `src/hifi/mcp/knowledge_server.py` — MCP server exposing retrieval as a tool (DJ-029)
+- `scripts/record_sec_fixtures.py` — One-time SEC EDGAR fixture recorder for test replay (consistent with DJ-008 fixture philosophy)
 
 **Document types for Phase 7:**
 
-| Source | Format | Priority |
-|---|---|---|
-| Earnings call transcripts | Text | High — rich qualitative information |
-| SEC 10-K/10-Q filings | HTML/Text | High — authoritative financial data |
-| Financial news | Text | Medium — recency and sentiment |
+| Source | Format | Priority | Status |
+|---|---|---|---|
+| SEC 10-K annual reports | HTML/Text | High — authoritative annual financials | Phase 7 (DJ-028) |
+| SEC 10-Q quarterly reports | HTML/Text | High — quarterly period data | Phase 7 (DJ-028) |
+| SEC 8-K earnings releases | HTML/Text | High — earnings announcements | Phase 7 (DJ-028) |
+| Earnings call transcripts | Text | High — rich qualitative information | Deferred Phase 8 (DJ-028) |
+| Financial news | Text | Medium — recency and sentiment | Deferred Phase 8 |
 
 **Chunking experiments:**
 
@@ -584,13 +587,20 @@ Measure retrieval precision@5 for each on a set of 20 manually crafted test quer
 - OQ-K01: Optimal chunking strategy (empirical answer from experiment)
 - OQ-M03: Best embedding model for financial text (empirical answer)
 
-### Decision Journal Entries
+### Pre-Phase Decisions (Resolved 2026-06-11)
 
-**DJ-012: Chunk size selection** — Record tested configurations, precision@5 for each, selected configuration and why.
+The following decisions were made before Phase 7 planning to ensure architectural consistency:
 
-**DJ-013: Embedding model** — Record candidates evaluated, quality metric, latency, selected model and why.
+- **DJ-026 (Vector store):** LanceDB — Arrow-native columnar format consistent with Parquet data layer; embedded mode; no server process. See DAVID.md §17.
+- **DJ-027 (Embedding model baseline):** nomic-embed-text-v1.5 — already in LM Studio; 8192-token context; matryoshka dimensionality. OQ-M03 to be answered empirically. See DAVID.md §17.
+- **DJ-028 (Document sources):** SEC EDGAR (10-K, 10-Q, 8-K) for AAPL/JPM/XOM at Q1 2023; earnings call transcripts deferred to Phase 8. See DAVID.md §17.
+- **DJ-029 (Package path):** `src/hifi/knowledge/` — corrects Protocol draft which used `src/knowledge/`. See DAVID.md §17.
 
-**DJ-014: Vector database** — Record candidates (Chroma, Qdrant, LanceDB, pgvector), selection criteria, choice and why.
+### Decision Journal Entries (Within-Phase Empirical)
+
+**DJ-030: Chunk size configuration** — Record the 3 tested configurations (see Chunking Experiments table), Precision@5 for each, selected configuration and rationale. This resolves OQ-K01.
+
+**DJ-031: Embedding model final selection** — Record Precision@5 under nomic-embed-text-v1.5 (DJ-027 baseline). If Precision@5 >= 0.6 on the 20-query financial test set, accept nomic-embed-text-v1.5. If below threshold, evaluate BGE-M3 and record comparison. This resolves OQ-M03.
 
 ### Notes for Educative Journal
 
