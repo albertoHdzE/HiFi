@@ -227,6 +227,14 @@ data/processed/
 data/features/
 data/reference_strategies/
 data/evaluation/
+data/knowledge/
+
+# Isolated virtual environments (content managed by setup scripts; only requirements.txt committed)
+venvs/*/bin/
+venvs/*/lib/
+venvs/*/include/
+venvs/*/pyvenv.cfg
+venvs/*/.python-version
 
 # Model weights (too large for git)
 models/

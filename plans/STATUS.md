@@ -1,7 +1,7 @@
 # HiFi Project Status
 
 **Last Updated:** 2026-06-11
-**Current Phase:** Phase 6 COMPLETE
+**Current Phase:** Phase 7 COMPLETE
 
 ---
 
@@ -28,7 +28,7 @@ HiFi is a fully local multi-agent financial intelligence platform. Read these fi
 | 4 | Second Agent (First Ensemble) | COMPLETE | plans/PHASE_04_PLAN.md | doc/bitacora/PHASE_04_SECOND_AGENT.md |
 | 5 | Verification Layer | COMPLETE | plans/PHASE_05_PLAN.md | doc/bitacora/PHASE_05_VERIFICATION.md |
 | 6 | Observability (LangFuse) | COMPLETE | plans/PHASE_06_PLAN.md | doc/bitacora/PHASE_06_OBSERVABILITY.md |
-| 7 | RAG Knowledge Systems | PLANNED | plans/PHASE_07_PLAN.md | -- |
+| 7 | RAG Knowledge Systems | COMPLETE | plans/PHASE_07_PLAN.md | doc/bitacora/PHASE_07_RAG.md |
 | 8 | Full Agent Population | NOT STARTED | -- | -- |
 | 9 | Collective Decision Engine | NOT STARTED | -- | -- |
 | 10 | Evaluation & Backtesting | NOT STARTED | -- | -- |
@@ -103,9 +103,26 @@ HiFi is a fully local multi-agent financial intelligence platform. Read these fi
 - **Dependencies (production):** pydantic, pyyaml, numpy, pandas, pyarrow, yfinance, fredapi, mcp, quantstats, openai, langchain, langchain-openai, langgraph
 - **Dependencies (dev):** pytest, pytest-cov, ruff, mypy, vcrpy
 
+- **RAG knowledge layer (Phase 7):**
+  - `src/hifi/knowledge/schemas.py` -- FilingDocument, DocumentChunk (make_chunk_id), EvaluationQuery
+  - `src/hifi/knowledge/document_ingestion.py` -- DocumentIngestionPipeline (configs A/B/C)
+  - `src/hifi/knowledge/embeddings.py` -- EmbeddingModel (OpenAI-compatible, LM Studio)
+  - `src/hifi/knowledge/vector_store.py` -- KnowledgeStore (LanceDB 0.33.0; DJ-026)
+  - `src/hifi/knowledge/retrieval.py` -- KnowledgeRetriever, evaluate_precision_at_k
+  - `src/hifi/data/edgar.py` -- EdgarFetcher (10-K/10-Q/8-K), TICKER_CIKS; DJ-028
+  - `src/hifi/mcp/knowledge_server.py` -- FastMCP retrieve_context tool; fail-open singleton
+  - `src/hifi/agents/prompts/fundamental_v2.md` -- RAG-enabled prompt with {retrieved_context}
+  - `src/hifi/agents/prompts/technical_v2.md` -- RAG-enabled prompt with {retrieved_context}
+  - `src/hifi/agents/fundamental_agent.py` -- retrieve_context_node, use_rag param, v1/v2 selection
+  - `src/hifi/agents/technical_agent.py` -- same RAG augmentation pattern
+  - `src/hifi/agents/ensemble_runner.py` -- use_rag forwarded to both agents
+  - `scripts/record_sec_fixtures.py` -- one-time EDGAR fixture recorder (requires internet)
+  - `scripts/run_phase7_rag_baseline.py` -- RAG baseline runner (requires LM Studio + SEC fixtures)
+  - `tests/fixtures/retrieval/evaluation_queries.json` -- 20 labelled queries (Q01-Q20)
+
 ### What Does Not Exist Yet
 
-- No RAG/knowledge systems (Phase 7)
+- No live RAG baseline fixture (requires LM Studio + internet; see scripts/run_phase7_rag_baseline.py)
 - No full TA indicators server in venvs/ta/ (Phase 8+ trigger: >6 indicators or >50 tickers)
 - No multi-agent population (Phase 8+)
 
@@ -166,11 +183,11 @@ HiFi is a fully local multi-agent financial intelligence platform. Read these fi
 
 | Metric | Value |
 |---|---|
-| Total tests | 582 (582 passing, 0 skipped) |
-| Tests passing | 582 |
-| Source packages | 17 (hifi.observability added in Phase 6) |
-| Lines of production code | ~6800 |
-| Lines of test code | ~9800 |
+| Total tests | 596 (596 passing, 0 skipped) |
+| Tests passing | 596 |
+| Source packages | 18 (hifi.knowledge added in Phase 7) |
+| Lines of production code | ~8500 |
+| Lines of test code | ~11500 |
 | Lint errors | 0 |
 | Baseline HR (fundamental) | 0.000 (Phase 5 baseline, 2026-06-10) |
 | Baseline HR (technical) | 0.067 (Phase 5 baseline, 2026-06-10) |

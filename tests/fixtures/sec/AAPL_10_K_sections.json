@@ -1,0 +1,13 @@
+{
+  "ticker": "AAPL",
+  "cik": "0000320193",
+  "filing_type": "10-K",
+  "accession_number": "0000320193-22-000108",
+  "period_of_report": "2022-09-24",
+  "filed_date": "2022-10-28",
+  "sections": {
+    "Full Text": "EX-21.1\n3\na10-kexhibit21109242022.htm\nEX-21.1\n\nDocument\n\nExhibit 21.1\nSubsidiaries of\nApple Inc.*\n\nJurisdiction\nof Incorporation\nApple Asia LimitedHong Kong\nApple Asia LLCDelaware, U.S.\nApple Canada Inc.Canada\nApple Computer Trading (Shanghai) Co., Ltd.China\nApple Distribution International LimitedIreland\nApple India Private LimitedIndia\nApple Insurance Company, Inc.Arizona, U.S.\nApple Japan, Inc.Japan\nApple Korea LimitedSouth Korea\nApple Operations Europe LimitedIreland\nApple Operations International LimitedIreland\nApple Operations LimitedIreland\nApple Operations Mexico, S.A. de C.V.Mexico\nApple Pty LimitedAustralia\nApple Sales International LimitedIreland\nApple South Asia (Thailand) LimitedThailand\nApple Vietnam Limited Liability CompanyVietnam\nBraeburn Capital, Inc.Nevada, U.S.\niTunes K.K.Japan\n*Pursuant to Item 601(b)(21)(ii) of Regulation S-K, the names of other subsidiaries of Apple Inc. are omitted because, considered in the aggregate, they would not constitute a significant subsidiary as of the end of the year covered by this report."
+  },
+  "fetched_at": "2026-06-12T01:14:22.776349+00:00",
+  "source_url": "https://www.sec.gov/Archives/edgar/data/320193/000032019322000108/a10-kexhibit21109242022.htm"
+}

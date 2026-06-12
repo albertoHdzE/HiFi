@@ -1,0 +1,162 @@
+[
+  {
+    "query_id": "Q01",
+    "query": "What did Apple management say about iPhone demand and pricing in the most recent quarter?",
+    "ticker": "AAPL",
+    "relevant_section": "MD&A",
+    "relevant_filing_type": "10-Q",
+    "notes": "iPhone segment revenue and pricing commentary"
+  },
+  {
+    "query_id": "Q02",
+    "query": "What are Apple's primary risk factors related to international sales and foreign currency?",
+    "ticker": "AAPL",
+    "relevant_section": "Risk Factors",
+    "relevant_filing_type": "10-K",
+    "notes": "FX risk and international revenue exposure"
+  },
+  {
+    "query_id": "Q03",
+    "query": "How did Apple describe its gross margin trend and the factors affecting it?",
+    "ticker": "AAPL",
+    "relevant_section": "MD&A",
+    "relevant_filing_type": "10-K",
+    "notes": "Gross margin discussion in annual MD&A"
+  },
+  {
+    "query_id": "Q04",
+    "query": "What were the key highlights from Apple's most recent earnings announcement?",
+    "ticker": "AAPL",
+    "relevant_section": "Earnings Release",
+    "relevant_filing_type": "8-K",
+    "notes": "8-K earnings press release highlights"
+  },
+  {
+    "query_id": "Q05",
+    "query": "What is Apple's business strategy with respect to services revenue?",
+    "ticker": "AAPL",
+    "relevant_section": "Business",
+    "relevant_filing_type": "10-K",
+    "notes": "Services segment strategy in Item 1"
+  },
+  {
+    "query_id": "Q06",
+    "query": "How did JPMorgan describe its credit loss provisions in the most recent period?",
+    "ticker": "JPM",
+    "relevant_section": "MD&A",
+    "relevant_filing_type": "10-Q",
+    "notes": "Credit loss provision and allowance discussion"
+  },
+  {
+    "query_id": "Q07",
+    "query": "What are JPMorgan's principal risk factors related to credit and market risk?",
+    "ticker": "JPM",
+    "relevant_section": "Risk Factors",
+    "relevant_filing_type": "10-K",
+    "notes": "Credit and market risk factor disclosures"
+  },
+  {
+    "query_id": "Q08",
+    "query": "What did JPMorgan management say about net interest income and interest rate sensitivity?",
+    "ticker": "JPM",
+    "relevant_section": "Earnings Release",
+    "relevant_filing_type": "8-K",
+    "notes": "NII commentary in earnings press release"
+  },
+  {
+    "query_id": "Q09",
+    "query": "How did JPMorgan describe its capital position and CET1 ratio?",
+    "ticker": "JPM",
+    "relevant_section": "MD&A",
+    "relevant_filing_type": "10-Q",
+    "notes": "CET1 and capital adequacy discussion"
+  },
+  {
+    "query_id": "Q10",
+    "query": "What are JPMorgan's business lines and how did each perform?",
+    "ticker": "JPM",
+    "relevant_section": "Business",
+    "relevant_filing_type": "10-K",
+    "notes": "Business segment descriptions in Item 1"
+  },
+  {
+    "query_id": "Q11",
+    "query": "What did ExxonMobil say about its capital expenditure plans and investment priorities?",
+    "ticker": "XOM",
+    "relevant_section": "Earnings Release",
+    "relevant_filing_type": "8-K",
+    "notes": "Capex guidance in earnings announcement"
+  },
+  {
+    "query_id": "Q12",
+    "query": "What are ExxonMobil's risk factors related to energy transition and regulatory changes?",
+    "ticker": "XOM",
+    "relevant_section": "Risk Factors",
+    "relevant_filing_type": "10-K",
+    "notes": "ESG and energy transition risk disclosures"
+  },
+  {
+    "query_id": "Q13",
+    "query": "How did ExxonMobil describe its upstream production performance and outlook?",
+    "ticker": "XOM",
+    "relevant_section": "MD&A",
+    "relevant_filing_type": "10-Q",
+    "notes": "Upstream segment production discussion"
+  },
+  {
+    "query_id": "Q14",
+    "query": "What is ExxonMobil's strategy for reducing carbon emissions and energy transition?",
+    "ticker": "XOM",
+    "relevant_section": "Business",
+    "relevant_filing_type": "10-K",
+    "notes": "Low-carbon strategy in Item 1 Business section"
+  },
+  {
+    "query_id": "Q15",
+    "query": "How did ExxonMobil explain changes in its refining margin and downstream segment?",
+    "ticker": "XOM",
+    "relevant_section": "MD&A",
+    "relevant_filing_type": "10-Q",
+    "notes": "Downstream/refining margin discussion"
+  },
+  {
+    "query_id": "Q16",
+    "query": "What liquidity and capital resources did Apple disclose?",
+    "ticker": "AAPL",
+    "relevant_section": "MD&A",
+    "relevant_filing_type": "10-Q",
+    "notes": "Liquidity section within MD&A"
+  },
+  {
+    "query_id": "Q17",
+    "query": "What macroeconomic conditions did JPMorgan's management identify as key risks?",
+    "ticker": "JPM",
+    "relevant_section": "Risk Factors",
+    "relevant_filing_type": "10-K",
+    "notes": "Macro risk factor disclosures"
+  },
+  {
+    "query_id": "Q18",
+    "query": "What were ExxonMobil's key financial results according to its earnings release?",
+    "ticker": "XOM",
+    "relevant_section": "Earnings Release",
+    "relevant_filing_type": "8-K",
+    "notes": "Financial highlights in 8-K press release"
+  },
+  {
+    "query_id": "Q19",
+    "query": "How did Apple describe its research and development spending and priorities?",
+    "ticker": "AAPL",
+    "relevant_section": "Business",
+    "relevant_filing_type": "10-K",
+    "notes": "R&D strategy in Item 1"
+  },
+  {
+    "query_id": "Q20",
+    "query": "What did JPMorgan say about its investment banking pipeline and deal activity?",
+    "ticker": "JPM",
+    "relevant_section": "Earnings Release",
+    "relevant_filing_type": "8-K",
+    "notes": "Investment banking commentary in earnings release"
+  }
+]

@@ -1,0 +1,561 @@
+{
+  "metadata": {
+    "phase": "7",
+    "rag_enabled": true,
+    "chunking_config": "A",
+    "data_as_of": "2023-03-31",
+    "run_date": "2026-06-11",
+    "hifi_commit": "c23b68d"
+  },
+  "outputs": {
+    "AAPL": {
+      "ticker": "AAPL",
+      "as_of_date": "2023-03-31",
+      "fundamental_analysis": {
+        "signal": {
+          "ticker": "AAPL",
+          "as_of_date": "2023-03-31",
+          "decision": "Hold",
+          "confidence": 0.65,
+          "rationale": "The net margin of 25.6% indicates strong profitability, but the absence of revenue and earnings growth data makes it difficult to assess recent performance. The shareholder vote results show strong support for management and executive compensation, but the rejection of several shareholder proposals suggests some investor dissatisfaction.",
+          "key_concern": "The unavailability of revenue and earnings growth data makes it challenging to evaluate the company's recent financial performance.",
+          "data_gaps": [
+            "revenue_growth_yoy",
+            "earnings_growth_yoy",
+            "gross_margin",
+            "operating_margin"
+          ],
+          "call_ids": [
+            "26fffa5d0e4d",
+            "ca334fdd8d6f",
+            "d642fa3f4531",
+            "14d8bb5b6255"
+          ],
+          "model_id": "qwen2.5-coder-32b-instruct-mlx",
+          "agent_type": "fundamental"
+        },
+        "financial_ratios": {
+          "error": "TICKER_NOT_FOUND",
+          "detail": "No data for AAPL",
+          "call_id": "26fffa5d0e4d"
+        },
+        "growth_metrics": {
+          "revenue_growth_yoy": null,
+          "earnings_growth_yoy": null,
+          "gross_margin": null,
+          "operating_margin": null,
+          "net_margin": 0.2560561312460522,
+          "call_id": "ca334fdd8d6f"
+        },
+        "valuation_context": {
+          "error": "TICKER_NOT_FOUND",
+          "detail": "No data for AAPL",
+          "call_id": "d642fa3f4531"
+        },
+        "macro_snapshot": {
+          "error": "NO_MACRO_DATA",
+          "detail": "No macro parquet files in /Users/alberto/Documents/projects/HiFi/data/macro",
+          "call_id": "14d8bb5b6255"
+        },
+        "prompt_version": "fundamental_v2",
+        "latency_ms": 30949.7
+      },
+      "technical_analysis": {
+        "signal": {
+          "ticker": "AAPL",
+          "as_of_date": "2023-03-31",
+          "decision": "Hold",
+          "confidence": 0.3,
+          "rationale": "Technical indicator data is unavailable for AAPL as of 2023-03-31 - both technical indicators and risk metrics returned 'TICKER_NOT_FOUND' errors. Without RSI, MACD, Bollinger Bands, ATR, or Sharpe ratio values, no quantitative technical assessment can be made. The only available context is from SEC filings dated 2023-03-10, which document shareholder meeting results and debt instruments but contain no price or trading data.",
+          "key_concern": "No technical indicator data available for analysis - all MCP tool calls returned TICKER_NOT_FOUND errors",
+          "data_gaps": [],
+          "call_ids": [
+            "6282053396d8",
+            "4526581f7977"
+          ],
+          "model_id": "mlx-qwen3.5-35b-a3b-claude-4.6-opus-reasoning-distilled",
+          "agent_type": "technical"
+        },
+        "technical_indicators": {
+          "error": "TICKER_NOT_FOUND",
+          "detail": "No data for AAPL",
+          "call_id": "6282053396d8"
+        },
+        "risk_metrics": {
+          "error": "TICKER_NOT_FOUND",
+          "detail": "No data for AAPL",
+          "call_id": "4526581f7977"
+        },
+        "time_horizon": "medium-term",
+        "prompt_version": "technical_v2",
+        "latency_ms": 24019.3
+      },
+      "ensemble_decision": {
+        "collective_decision": "Hold",
+        "collective_confidence": 1.0,
+        "n_valid_signals": 2,
+        "agreement": true,
+        "disagreement_entropy": 0.0,
+        "opinion_dispersion": 0.175,
+        "agent_decisions": [
+          "Hold",
+          "Hold"
+        ],
+        "agent_confidences": [
+          0.65,
+          0.3
+        ],
+        "winning_score": 0.95,
+        "total_score": 0.95
+      },
+      "latency_ms": 54969.2
+    },
+    "JPM": {
+      "ticker": "JPM",
+      "as_of_date": "2023-03-31",
+      "fundamental_analysis": {
+        "signal": {
+          "ticker": "JPM",
+          "as_of_date": "2023-03-31",
+          "decision": "Hold",
+          "confidence": 0.6,
+          "rationale": "The net margin of 32.91% indicates strong profitability, but the absence of revenue and earnings growth data makes it difficult to assess momentum. Additionally, the 10-K MD&A section highlights that JPMorgan Chase's annual pre-tax pre-provision income has been negative, which is a significant concern.",
+          "key_concern": "Negative annual pre-tax pre-provision income, indicating operational challenges.",
+          "data_gaps": [
+            "revenue_growth_yoy",
+            "earnings_growth_yoy",
+            "gross_margin",
+            "operating_margin"
+          ],
+          "call_ids": [
+            "f97622a86ea4",
+            "950b1b5eb3dd",
+            "44f9460b0ab0",
+            "14d8bb5b6255"
+          ],
+          "model_id": "qwen2.5-coder-32b-instruct-mlx",
+          "agent_type": "fundamental"
+        },
+        "financial_ratios": {
+          "error": "TICKER_NOT_FOUND",
+          "detail": "No data for JPM",
+          "call_id": "f97622a86ea4"
+        },
+        "growth_metrics": {
+          "revenue_growth_yoy": null,
+          "earnings_growth_yoy": null,
+          "gross_margin": null,
+          "operating_margin": null,
+          "net_margin": 0.3291350491538241,
+          "call_id": "950b1b5eb3dd"
+        },
+        "valuation_context": {
+          "error": "TICKER_NOT_FOUND",
+          "detail": "No data for JPM",
+          "call_id": "44f9460b0ab0"
+        },
+        "macro_snapshot": {
+          "error": "NO_MACRO_DATA",
+          "detail": "No macro parquet files in /Users/alberto/Documents/projects/HiFi/data/macro",
+          "call_id": "14d8bb5b6255"
+        },
+        "prompt_version": "fundamental_v2",
+        "latency_ms": 28025.2
+      },
+      "technical_analysis": {
+        "signal": {
+          "ticker": "JPM",
+          "as_of_date": "2023-03-31",
+          "decision": "Hold",
+          "confidence": 0.15,
+          "rationale": "No technical indicator data is available for JPM as of 2023-03-31 - both Technical Indicators and Risk Metrics MCP calls returned 'TICKER_NOT_FOUND' errors. Without RSI, MACD, Bollinger Bands, ATR, or Sharpe ratio values, no technical analysis can be performed. The only available context is from SEC filings indicating JPMorgan Chase's compensation structure and a March 1, 2023 announcement about LIBOR replacement with CME Term SOFR.",
+          "key_concern": "Complete absence of technical indicator data prevents any meaningful risk assessment or momentum analysis",
+          "data_gaps": [],
+          "call_ids": [
+            "2b97d648b579",
+            "bbe2bddab56e"
+          ],
+          "model_id": "mlx-qwen3.5-35b-a3b-claude-4.6-opus-reasoning-distilled",
+          "agent_type": "technical"
+        },
+        "technical_indicators": {
+          "error": "TICKER_NOT_FOUND",
+          "detail": "No data for JPM",
+          "call_id": "2b97d648b579"
+        },
+        "risk_metrics": {
+          "error": "TICKER_NOT_FOUND",
+          "detail": "No data for JPM",
+          "call_id": "bbe2bddab56e"
+        },
+        "time_horizon": "medium-term",
+        "prompt_version": "technical_v2",
+        "latency_ms": 23457.5
+      },
+      "ensemble_decision": {
+        "collective_decision": "Hold",
+        "collective_confidence": 1.0,
+        "n_valid_signals": 2,
+        "agreement": true,
+        "disagreement_entropy": 0.0,
+        "opinion_dispersion": 0.225,
+        "agent_decisions": [
+          "Hold",
+          "Hold"
+        ],
+        "agent_confidences": [
+          0.6,
+          0.15
+        ],
+        "winning_score": 0.75,
+        "total_score": 0.75
+      },
+      "latency_ms": 51482.9
+    },
+    "XOM": {
+      "ticker": "XOM",
+      "as_of_date": "2023-03-31",
+      "fundamental_analysis": {
+        "signal": {
+          "ticker": "XOM",
+          "as_of_date": "2023-03-31",
+          "decision": "Hold",
+          "confidence": 0.65,
+          "rationale": "Exxon Mobil Corporation reported a net margin of 13.21% as of 2023-03-31, indicating strong profitability. However, key growth metrics such as revenue and earnings growth year-over-year are unavailable, which introduces uncertainty. The company's internal controls over financial reporting have been certified by the CEO as reliable, per the 10-K filing.",
+          "key_concern": "The absence of revenue and earnings growth data makes it difficult to assess the company's momentum and future prospects.",
+          "data_gaps": [
+            "revenue_growth_yoy",
+            "earnings_growth_yoy",
+            "gross_margin",
+            "operating_margin"
+          ],
+          "call_ids": [
+            "adce00b19ec8",
+            "516867136b4a",
+            "0b03ff3e5673",
+            "14d8bb5b6255"
+          ],
+          "model_id": "qwen2.5-coder-32b-instruct-mlx",
+          "agent_type": "fundamental"
+        },
+        "financial_ratios": {
+          "error": "TICKER_NOT_FOUND",
+          "detail": "No data for XOM",
+          "call_id": "adce00b19ec8"
+        },
+        "growth_metrics": {
+          "revenue_growth_yoy": null,
+          "earnings_growth_yoy": null,
+          "gross_margin": null,
+          "operating_margin": null,
+          "net_margin": 0.1320641375167506,
+          "call_id": "516867136b4a"
+        },
+        "valuation_context": {
+          "error": "TICKER_NOT_FOUND",
+          "detail": "No data for XOM",
+          "call_id": "0b03ff3e5673"
+        },
+        "macro_snapshot": {
+          "error": "NO_MACRO_DATA",
+          "detail": "No macro parquet files in /Users/alberto/Documents/projects/HiFi/data/macro",
+          "call_id": "14d8bb5b6255"
+        },
+        "prompt_version": "fundamental_v2",
+        "latency_ms": 30344.4
+      },
+      "technical_analysis": {
+        "signal": {
+          "ticker": "XOM",
+          "as_of_date": "2023-03-31",
+          "decision": "Hold",
+          "confidence": 0.0,
+          "rationale": "Technical analysis cannot be performed as MCP tools returned 'TICKER_NOT_FOUND' errors for both Technical Indicators and Risk Metrics. No RSI, MACD, Bollinger Bands, ATR, or Sharpe ratio values are available for XOM. Without numerical indicator data, no technical thesis can be constructed.",
+          "key_concern": "Complete absence of technical indicator data prevents any meaningful analysis",
+          "data_gaps": [],
+          "call_ids": [
+            "8283b67fdeaa",
+            "a966076a5489"
+          ],
+          "model_id": "mlx-qwen3.5-35b-a3b-claude-4.6-opus-reasoning-distilled",
+          "agent_type": "technical"
+        },
+        "technical_indicators": {
+          "error": "TICKER_NOT_FOUND",
+          "detail": "No data for XOM",
+          "call_id": "8283b67fdeaa"
+        },
+        "risk_metrics": {
+          "error": "TICKER_NOT_FOUND",
+          "detail": "No data for XOM",
+          "call_id": "a966076a5489"
+        },
+        "time_horizon": "short-term",
+        "prompt_version": "technical_v2",
+        "latency_ms": 23673.1
+      },
+      "ensemble_decision": {
+        "collective_decision": "Hold",
+        "collective_confidence": 1.0,
+        "n_valid_signals": 2,
+        "agreement": true,
+        "disagreement_entropy": 0.0,
+        "opinion_dispersion": 0.325,
+        "agent_decisions": [
+          "Hold",
+          "Hold"
+        ],
+        "agent_confidences": [
+          0.65,
+          0.0
+        ],
+        "winning_score": 0.65,
+        "total_score": 0.65
+      },
+      "latency_ms": 54017.7
+    }
+  },
+  "verification": {
+    "AAPL": {
+      "ticker": "AAPL",
+      "as_of_date": "2023-03-31",
+      "fundamental_report": {
+        "ticker": "AAPL",
+        "as_of_date": "2023-03-31",
+        "agent_type": "fundamental",
+        "prompt_version": "fundamental_v2",
+        "results": [
+          {
+            "claim": {
+              "field_alias": "net margin",
+              "canonical_field": "net_margin",
+              "value": 25.6,
+              "context_snippet": "The net margin of 25.6% indicates strong profitability, but th"
+            },
+            "status": "hallucinated",
+            "tool_value": 0.2560561312460522,
+            "tool_field": "growth_metrics",
+            "call_id_cited": true,
+            "tolerance_used": 0.01
+          }
+        ],
+        "n_claims": 1,
+        "n_verified": 0,
+        "n_hallucinated": 1,
+        "n_unresolvable": 0,
+        "hallucination_rate": 1.0,
+        "grounding_rate": 0.0,
+        "flag_high_hr": true
+      },
+      "technical_report": {
+        "ticker": "AAPL",
+        "as_of_date": "2023-03-31",
+        "agent_type": "technical",
+        "prompt_version": "technical_v2",
+        "results": [
+          {
+            "claim": {
+              "field_alias": "is unavailable for AAPL as",
+              "canonical_field": null,
+              "value": 2023.0,
+              "context_snippet": "Technical indicator data is unavailable for AAPL as of 2023-03-31 - both technical indicators and r"
+            },
+            "status": "unresolvable",
+            "tool_value": null,
+            "tool_field": null,
+            "call_id_cited": false,
+            "tolerance_used": 0.0
+          }
+        ],
+        "n_claims": 1,
+        "n_verified": 0,
+        "n_hallucinated": 0,
+        "n_unresolvable": 1,
+        "hallucination_rate": 0.0,
+        "grounding_rate": 0.0,
+        "flag_high_hr": false
+      },
+      "contradictions": [],
+      "triggered_by_disagreement": false,
+      "n_contradictions": 0,
+      "total_claims": 2,
+      "total_hallucinated": 1,
+      "ensemble_hallucination_rate": 1.0
+    },
+    "JPM": {
+      "ticker": "JPM",
+      "as_of_date": "2023-03-31",
+      "fundamental_report": {
+        "ticker": "JPM",
+        "as_of_date": "2023-03-31",
+        "agent_type": "fundamental",
+        "prompt_version": "fundamental_v2",
+        "results": [
+          {
+            "claim": {
+              "field_alias": "net margin",
+              "canonical_field": "net_margin",
+              "value": 32.91,
+              "context_snippet": "The net margin of 32.91% indicates strong profitability, but th"
+            },
+            "status": "hallucinated",
+            "tool_value": 0.3291350491538241,
+            "tool_field": "growth_metrics",
+            "call_id_cited": true,
+            "tolerance_used": 0.01
+          }
+        ],
+        "n_claims": 1,
+        "n_verified": 0,
+        "n_hallucinated": 1,
+        "n_unresolvable": 0,
+        "hallucination_rate": 1.0,
+        "grounding_rate": 0.0,
+        "flag_high_hr": true
+      },
+      "technical_report": {
+        "ticker": "JPM",
+        "as_of_date": "2023-03-31",
+        "agent_type": "technical",
+        "prompt_version": "technical_v2",
+        "results": [
+          {
+            "claim": {
+              "field_alias": "is available for JPM as",
+              "canonical_field": null,
+              "value": 2023.0,
+              "context_snippet": "No technical indicator data is available for JPM as of 2023-03-31 - both Technical Indicators and R"
+            },
+            "status": "unresolvable",
+            "tool_value": null,
+            "tool_field": null,
+            "call_id_cited": false,
+            "tolerance_used": 0.0
+          }
+        ],
+        "n_claims": 1,
+        "n_verified": 0,
+        "n_hallucinated": 0,
+        "n_unresolvable": 1,
+        "hallucination_rate": 0.0,
+        "grounding_rate": 0.0,
+        "flag_high_hr": false
+      },
+      "contradictions": [],
+      "triggered_by_disagreement": false,
+      "n_contradictions": 0,
+      "total_claims": 2,
+      "total_hallucinated": 1,
+      "ensemble_hallucination_rate": 1.0
+    },
+    "XOM": {
+      "ticker": "XOM",
+      "as_of_date": "2023-03-31",
+      "fundamental_report": {
+        "ticker": "XOM",
+        "as_of_date": "2023-03-31",
+        "agent_type": "fundamental",
+        "prompt_version": "fundamental_v2",
+        "results": [
+          {
+            "claim": {
+              "field_alias": "net margin",
+              "canonical_field": "net_margin",
+              "value": 13.21,
+              "context_snippet": "Exxon Mobil Corporation reported a net margin of 13.21% as of 2023-03-31, indicating strong pr"
+            },
+            "status": "hallucinated",
+            "tool_value": 0.1320641375167506,
+            "tool_field": "growth_metrics",
+            "call_id_cited": true,
+            "tolerance_used": 0.01
+          },
+          {
+            "claim": {
+              "field_alias": "as",
+              "canonical_field": null,
+              "value": 2023.0,
+              "context_snippet": "oration reported a net margin of 13.21% as of 2023-03-31, indicating strong profitability."
+            },
+            "status": "unresolvable",
+            "tool_value": null,
+            "tool_field": null,
+            "call_id_cited": false,
+            "tolerance_used": 0.0
+          }
+        ],
+        "n_claims": 2,
+        "n_verified": 0,
+        "n_hallucinated": 1,
+        "n_unresolvable": 1,
+        "hallucination_rate": 1.0,
+        "grounding_rate": 0.0,
+        "flag_high_hr": true
+      },
+      "technical_report": {
+        "ticker": "XOM",
+        "as_of_date": "2023-03-31",
+        "agent_type": "technical",
+        "prompt_version": "technical_v2",
+        "results": [],
+        "n_claims": 0,
+        "n_verified": 0,
+        "n_hallucinated": 0,
+        "n_unresolvable": 0,
+        "hallucination_rate": 0.0,
+        "grounding_rate": 0.0,
+        "flag_high_hr": false
+      },
+      "contradictions": [],
+      "triggered_by_disagreement": false,
+      "n_contradictions": 0,
+      "total_claims": 2,
+      "total_hallucinated": 1,
+      "ensemble_hallucination_rate": 1.0
+    }
+  },
+  "metrics": {
+    "fundamental": {
+      "mean_hallucination_rate": 1.0,
+      "mean_grounding_rate": 0.0,
+      "mean_unresolvable_rate": 0.166667,
+      "alias_table_coverage": 0.833333,
+      "n_reports": 3,
+      "total_claims": 4,
+      "total_verified": 0,
+      "total_hallucinated": 3,
+      "total_unresolvable": 1,
+      "n_flagged_high_hr": 3
+    },
+    "technical": {
+      "mean_hallucination_rate": 0.0,
+      "mean_grounding_rate": 0.0,
+      "mean_unresolvable_rate": 0.666667,
+      "alias_table_coverage": 0.333333,
+      "n_reports": 3,
+      "total_claims": 2,
+      "total_verified": 0,
+      "total_hallucinated": 0,
+      "total_unresolvable": 2,
+      "n_flagged_high_hr": 0
+    },
+    "ensemble": {
+      "fundamental_compliance_rate": 1.0,
+      "technical_compliance_rate": 1.0,
+      "ensemble_agreement_rate": 1.0,
+      "mean_disagreement_entropy": 0.0,
+      "mean_opinion_dispersion": 0.241667,
+      "pairwise_diversity": 0.0,
+      "mean_total_latency_ms": 53489.9,
+      "n_tickers": 3,
+      "mean_ensemble_hallucination_rate": 1.0,
+      "total_contradictions": 0
+    }
+  },
+  "delta_vs_phase5": {
+    "fundamental_hr": 1.0,
+    "technical_hr": -0.066667,
+    "fundamental_gr": -1.0,
+    "technical_gr": -0.666667
+  }
+}

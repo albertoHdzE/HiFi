@@ -53,7 +53,9 @@ from hifi.observability.tracing import AbstractTracer, get_tracer, trace_context
 logger = logging.getLogger(__name__)
 
 _PROMPT_VERSION = "fundamental_v1"
+_PROMPT_V2_VERSION = "fundamental_v2"
 _PROMPT_PATH = Path(__file__).parent / "prompts" / f"{_PROMPT_VERSION}.md"
+_PROMPT_V2_PATH = Path(__file__).parent / "prompts" / f"{_PROMPT_V2_VERSION}.md"
 _RETRY_MSG = (
     "Your previous response was not valid JSON or was missing required fields. "
     "Produce ONLY the JSON object with the fields: "
@@ -73,6 +75,7 @@ class FundamentalistState(TypedDict, total=False):
     snapshot_json: str            # serialised FundamentalsSnapshot
     data_dir: str                 # HIFI_DATA_DIR for MCP server subprocess
     tool_results: dict            # populated by call_mcp_tools_node
+    retrieved_context: str        # SEC filing passages (empty if use_rag=False)
     llm_response: str             # raw LLM output (last attempt)
     signal: AgentSignal | None
     error: str | None
@@ -85,9 +88,18 @@ class FundamentalistState(TypedDict, total=False):
 
 
 def _load_prompt_template() -> tuple[str, str]:
-    """Return (system_text, user_template) from the prompt markdown file."""
+    """Return (system_text, user_template) from the v1 prompt markdown file."""
     raw = _PROMPT_PATH.read_text(encoding="utf-8")
     # Split on "## User" -- first block is system, second is user template
+    parts = raw.split("## User", maxsplit=1)
+    system_block = parts[0].replace("## System", "").strip()
+    user_block = parts[1].strip() if len(parts) > 1 else ""
+    return system_block, user_block
+
+
+def _load_v2_prompt_template() -> tuple[str, str]:
+    """Return (system_text, user_template) from the v2 (RAG-enabled) prompt markdown file."""
+    raw = _PROMPT_V2_PATH.read_text(encoding="utf-8")
     parts = raw.split("## User", maxsplit=1)
     system_block = parts[0].replace("## System", "").strip()
     user_block = parts[1].strip() if len(parts) > 1 else ""
@@ -211,16 +223,50 @@ def call_mcp_tools_node(state: FundamentalistState) -> dict:
     }
 
 
+def retrieve_context_node(state: FundamentalistState) -> dict:
+    """
+    Retrieve relevant SEC filing passages from the knowledge store.
+
+    Calls the knowledge MCP server's retrieve_context tool. On any failure
+    (server unavailable, store empty, network error) returns "" so the graph
+    continues with v1 prompt. This is the fail-open RAG pattern.
+    """
+    ticker = state["ticker"]
+    data_dir = state.get("data_dir") or os.environ.get("HIFI_DATA_DIR", "data")
+    try:
+        result = call_tool(
+            "retrieve_context",
+            {"query": f"financial analysis {ticker}", "ticker": ticker, "top_k": 5},
+            data_dir=data_dir,
+            server_module="hifi.mcp.knowledge_server",
+        )
+        passages = result.get("passages", [])
+        if passages:
+            lines = []
+            for p in passages:
+                lines.append(
+                    f"[{p['rank']}] {ticker} / {p['filing_type']} / {p['section']} / {p['period']}"
+                )
+                lines.append(p["text"])
+                lines.append("---")
+            context = "\n".join(lines)
+        else:
+            context = ""
+    except Exception as exc:
+        logger.warning("retrieve_context_node failed for %s: %s", ticker, exc)
+        context = ""
+    return {"retrieved_context": context}
+
+
 def generate_analysis_node(state: FundamentalistState) -> dict:
     """
     Fill the prompt template and call the LM Studio model.
 
-    Returns the raw LLM response string. One retry is attempted if the response
-    cannot be parsed in parse_output_node (the retry logic is in parse_output_node
-    to avoid duplicating the LLM call here).
+    Selects v2 (RAG-enabled) prompt when retrieved_context is non-empty;
+    falls back to v1 otherwise. Returns the raw LLM response string.
     """
     tool_results = state["tool_results"]
-    system_text, user_template = _load_prompt_template()
+    retrieved_context = state.get("retrieved_context", "")
 
     # Build data_gaps: fields with None values across all tool results
     data_gaps: list[str] = []
@@ -230,15 +276,29 @@ def generate_analysis_node(state: FundamentalistState) -> dict:
                 data_gaps.append(k)
     data_gaps_list = ", ".join(data_gaps) if data_gaps else "none"
 
-    user_text = user_template.format(
-        ticker=state["ticker"],
-        as_of_date=state["as_of_date"],
-        financial_ratios=json.dumps(tool_results["financial_ratios"], indent=2),
-        growth_metrics=json.dumps(tool_results["growth_metrics"], indent=2),
-        valuation_context=json.dumps(tool_results["valuation_context"], indent=2),
-        macro_snapshot=json.dumps(tool_results["macro_snapshot"], indent=2),
-        data_gaps_list=data_gaps_list,
-    )
+    if retrieved_context:
+        system_text, user_template = _load_v2_prompt_template()
+        user_text = user_template.format(
+            ticker=state["ticker"],
+            as_of_date=state["as_of_date"],
+            financial_ratios=json.dumps(tool_results["financial_ratios"], indent=2),
+            growth_metrics=json.dumps(tool_results["growth_metrics"], indent=2),
+            valuation_context=json.dumps(tool_results["valuation_context"], indent=2),
+            macro_snapshot=json.dumps(tool_results["macro_snapshot"], indent=2),
+            data_gaps_list=data_gaps_list,
+            retrieved_context=retrieved_context,
+        )
+    else:
+        system_text, user_template = _load_prompt_template()
+        user_text = user_template.format(
+            ticker=state["ticker"],
+            as_of_date=state["as_of_date"],
+            financial_ratios=json.dumps(tool_results["financial_ratios"], indent=2),
+            growth_metrics=json.dumps(tool_results["growth_metrics"], indent=2),
+            valuation_context=json.dumps(tool_results["valuation_context"], indent=2),
+            macro_snapshot=json.dumps(tool_results["macro_snapshot"], indent=2),
+            data_gaps_list=data_gaps_list,
+        )
 
     llm = make_llm()
     messages = [SystemMessage(content=system_text), HumanMessage(content=user_text)]
@@ -312,11 +372,16 @@ def _should_abort(state: FundamentalistState) -> str:
     return "abort" if state.get("error") else "continue"
 
 
-def build_fundamental_graph():
+def build_fundamental_graph(use_rag: bool = False):
     """
     Build and compile the Fundamental Analyst LangGraph.
 
-    Returns a compiled graph. Call graph.invoke(initial_state) to run.
+    When use_rag=True the graph includes retrieve_context_node between
+    call_mcp_tools and generate_analysis:
+        load_snapshot -> call_mcp_tools -> retrieve_context -> generate_analysis -> parse_output
+
+    When use_rag=False (default) the graph is identical to Phase 6:
+        load_snapshot -> call_mcp_tools -> generate_analysis -> parse_output
     """
     from langgraph.graph import END, StateGraph
 
@@ -333,7 +398,14 @@ def build_fundamental_graph():
         _should_abort,
         {"continue": "call_mcp_tools", "abort": END},
     )
-    builder.add_edge("call_mcp_tools", "generate_analysis")
+
+    if use_rag:
+        builder.add_node("retrieve_context", retrieve_context_node)
+        builder.add_edge("call_mcp_tools", "retrieve_context")
+        builder.add_edge("retrieve_context", "generate_analysis")
+    else:
+        builder.add_edge("call_mcp_tools", "generate_analysis")
+
     builder.add_edge("generate_analysis", "parse_output")
     builder.add_edge("parse_output", END)
 
@@ -351,6 +423,7 @@ def run_analysis(
     snapshot_json: str,
     data_dir: str | None = None,
     tracer: AbstractTracer | None = None,
+    use_rag: bool = False,
 ) -> FundamentalAnalysis:
     """
     Run the Fundamental Analyst Agent for one ticker on one date.
@@ -385,7 +458,7 @@ def run_analysis(
     config = {"callbacks": [handler]} if handler is not None else {}
 
     start = time.monotonic()
-    graph = build_fundamental_graph()
+    graph = build_fundamental_graph(use_rag=use_rag)
 
     effective_data_dir = data_dir or os.environ.get("HIFI_DATA_DIR", "data")
     initial_state: FundamentalistState = {
@@ -394,6 +467,7 @@ def run_analysis(
         "snapshot_json": snapshot_json,
         "data_dir": effective_data_dir,
         "tool_results": {},
+        "retrieved_context": "",
         "llm_response": "",
         "signal": None,
         "error": None,
@@ -407,6 +481,8 @@ def run_analysis(
     latency_ms = (time.monotonic() - start) * 1000
 
     tool_results = final_state.get("tool_results") or {}
+    retrieved_context = final_state.get("retrieved_context", "")
+    used_prompt_version = _PROMPT_V2_VERSION if retrieved_context else _PROMPT_VERSION
 
     return FundamentalAnalysis(
         signal=final_state.get("signal"),
@@ -414,6 +490,6 @@ def run_analysis(
         growth_metrics=tool_results.get("growth_metrics", {}),
         valuation_context=tool_results.get("valuation_context", {}),
         macro_snapshot=tool_results.get("macro_snapshot", {}),
-        prompt_version=_PROMPT_VERSION,
+        prompt_version=used_prompt_version,
         latency_ms=round(latency_ms, 1),
     )

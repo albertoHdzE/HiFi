@@ -37,6 +37,7 @@ def run_ensemble(
     snapshot_json: str,
     data_dir: str | None = None,
     tracer: AbstractTracer | None = None,
+    use_rag: bool = False,
 ) -> EnsembleOutput:
     """
     Run both agents independently, aggregate their outputs, and verify.
@@ -57,6 +58,10 @@ def run_ensemble(
         and credentials are set, this creates a parent LangFuse trace that covers
         both agent runs and the verification step. When disabled, NoOpTracer is
         used and behaviour is identical to pre-Phase-6.
+    use_rag : bool
+        When True, both agents include a retrieve_context step that queries the
+        knowledge MCP server for SEC filing passages. Fail-open: if the server
+        is unavailable the agents fall back to v1 prompts transparently.
 
     Returns
     -------
@@ -80,6 +85,7 @@ def run_ensemble(
             snapshot_json=snapshot_json,
             data_dir=data_dir,
             tracer=_tracer,
+            use_rag=use_rag,
         )
 
         # Step 2: Technical Agent (uses only price-derived MCP tools; no snapshot)
@@ -88,6 +94,7 @@ def run_ensemble(
             as_of_date=as_of_date,
             data_dir=data_dir,
             tracer=_tracer,
+            use_rag=use_rag,
         )
 
     # Step 3: Collect valid signals and aggregate

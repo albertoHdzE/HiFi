@@ -39,7 +39,9 @@ from hifi.observability.tracing import AbstractTracer, get_tracer, trace_context
 logger = logging.getLogger(__name__)
 
 _PROMPT_VERSION = "technical_v1"
+_PROMPT_V2_VERSION = "technical_v2"
 _PROMPT_PATH = Path(__file__).parent / "prompts" / f"{_PROMPT_VERSION}.md"
+_PROMPT_V2_PATH = Path(__file__).parent / "prompts" / f"{_PROMPT_V2_VERSION}.md"
 _DEFAULT_TECHNICAL_MODEL = "mlx-qwen3.5-35b-a3b-claude-4.6-opus-reasoning-distilled"
 _RETRY_MSG = (
     "Your previous response was not valid JSON or was missing required fields. "
@@ -60,6 +62,7 @@ class TechnicalAnalystState(TypedDict, total=False):
     as_of_date: str            # ISO 8601
     data_dir: str              # HIFI_DATA_DIR for MCP server subprocess
     tool_results: dict         # populated by call_mcp_tools_node
+    retrieved_context: str     # SEC filing passages (empty if use_rag=False)
     llm_response: str          # raw LLM output (last attempt)
     signal: AgentSignal | None
     time_horizon: str | None   # "short-term" | "medium-term" | "long-term"
@@ -78,8 +81,17 @@ def _technical_model() -> str:
 
 
 def _load_prompt_template() -> tuple[str, str]:
-    """Return (system_text, user_template) from the prompt markdown file."""
+    """Return (system_text, user_template) from the v1 prompt markdown file."""
     raw = _PROMPT_PATH.read_text(encoding="utf-8")
+    parts = raw.split("## User", maxsplit=1)
+    system_block = parts[0].replace("## System", "").strip()
+    user_block = parts[1].strip() if len(parts) > 1 else ""
+    return system_block, user_block
+
+
+def _load_v2_prompt_template() -> tuple[str, str]:
+    """Return (system_text, user_template) from the v2 (RAG-enabled) prompt markdown file."""
+    raw = _PROMPT_V2_PATH.read_text(encoding="utf-8")
     parts = raw.split("## User", maxsplit=1)
     system_block = parts[0].replace("## System", "").strip()
     user_block = parts[1].strip() if len(parts) > 1 else ""
@@ -179,14 +191,48 @@ def call_mcp_tools_node(state: TechnicalAnalystState) -> dict:
     }
 
 
+def retrieve_context_node(state: TechnicalAnalystState) -> dict:
+    """
+    Retrieve relevant SEC filing passages from the knowledge store.
+
+    Fail-open: any error returns "" so the graph continues with v1 prompt.
+    """
+    ticker = state["ticker"]
+    data_dir = state.get("data_dir") or os.environ.get("HIFI_DATA_DIR", "data")
+    try:
+        result = call_tool(
+            "retrieve_context",
+            {"query": f"financial analysis {ticker}", "ticker": ticker, "top_k": 5},
+            data_dir=data_dir,
+            server_module="hifi.mcp.knowledge_server",
+        )
+        passages = result.get("passages", [])
+        if passages:
+            lines = []
+            for p in passages:
+                lines.append(
+                    f"[{p['rank']}] {ticker} / {p['filing_type']} / {p['section']} / {p['period']}"
+                )
+                lines.append(p["text"])
+                lines.append("---")
+            context = "\n".join(lines)
+        else:
+            context = ""
+    except Exception as exc:
+        logger.warning("retrieve_context_node failed for %s: %s", ticker, exc)
+        context = ""
+    return {"retrieved_context": context}
+
+
 def generate_analysis_node(state: TechnicalAnalystState) -> dict:
     """
     Fill the technical prompt template and call the LM Studio model.
 
-    Returns the raw LLM response string.
+    Selects v2 (RAG-enabled) prompt when retrieved_context is non-empty;
+    falls back to v1 otherwise.
     """
     tool_results = state["tool_results"]
-    system_text, user_template = _load_prompt_template()
+    retrieved_context = state.get("retrieved_context", "")
 
     # Build data_gaps: fields with None values across all tool results
     data_gaps: list[str] = []
@@ -196,13 +242,25 @@ def generate_analysis_node(state: TechnicalAnalystState) -> dict:
                 data_gaps.append(k)
     data_gaps_list = ", ".join(data_gaps) if data_gaps else "none"
 
-    user_text = user_template.format(
-        ticker=state["ticker"],
-        as_of_date=state["as_of_date"],
-        technical_indicators=json.dumps(tool_results["technical_indicators"], indent=2),
-        risk_metrics=json.dumps(tool_results["risk_metrics"], indent=2),
-        data_gaps_list=data_gaps_list,
-    )
+    if retrieved_context:
+        system_text, user_template = _load_v2_prompt_template()
+        user_text = user_template.format(
+            ticker=state["ticker"],
+            as_of_date=state["as_of_date"],
+            technical_indicators=json.dumps(tool_results["technical_indicators"], indent=2),
+            risk_metrics=json.dumps(tool_results["risk_metrics"], indent=2),
+            data_gaps_list=data_gaps_list,
+            retrieved_context=retrieved_context,
+        )
+    else:
+        system_text, user_template = _load_prompt_template()
+        user_text = user_template.format(
+            ticker=state["ticker"],
+            as_of_date=state["as_of_date"],
+            technical_indicators=json.dumps(tool_results["technical_indicators"], indent=2),
+            risk_metrics=json.dumps(tool_results["risk_metrics"], indent=2),
+            data_gaps_list=data_gaps_list,
+        )
 
     llm = make_llm(_technical_model(), max_tokens=4096)
     messages = [SystemMessage(content=system_text), HumanMessage(content=user_text)]
@@ -283,12 +341,14 @@ def _should_abort(state: TechnicalAnalystState) -> str:
     return "abort" if state.get("error") else "continue"
 
 
-def build_technical_graph():
+def build_technical_graph(use_rag: bool = False):
     """
     Build and compile the Technical Analyst LangGraph.
 
-    Graph: call_mcp_tools -> generate_analysis -> parse_output -> END
-    No load_snapshot node (Technical Agent needs no FundamentalsSnapshot).
+    When use_rag=True:
+        call_mcp_tools -> retrieve_context -> generate_analysis -> parse_output -> END
+    When use_rag=False (default, Phase 6-compatible):
+        call_mcp_tools -> generate_analysis -> parse_output -> END
     """
     from langgraph.graph import END, StateGraph
 
@@ -302,8 +362,13 @@ def build_technical_graph():
     builder.add_conditional_edges(
         "call_mcp_tools",
         _should_abort,
-        {"continue": "generate_analysis", "abort": END},
+        {"continue": "retrieve_context" if use_rag else "generate_analysis", "abort": END},
     )
+
+    if use_rag:
+        builder.add_node("retrieve_context", retrieve_context_node)
+        builder.add_edge("retrieve_context", "generate_analysis")
+
     builder.add_edge("generate_analysis", "parse_output")
     builder.add_edge("parse_output", END)
 
@@ -320,6 +385,7 @@ def run_technical_analysis(
     as_of_date: str,
     data_dir: str | None = None,
     tracer: AbstractTracer | None = None,
+    use_rag: bool = False,
 ) -> TechnicalAnalysis:
     """
     Run the Technical Analyst Agent for one ticker on one date.
@@ -352,7 +418,7 @@ def run_technical_analysis(
     config = {"callbacks": [handler]} if handler is not None else {}
 
     start = time.monotonic()
-    graph = build_technical_graph()
+    graph = build_technical_graph(use_rag=use_rag)
 
     effective_data_dir = data_dir or os.environ.get("HIFI_DATA_DIR", "data")
     initial_state: TechnicalAnalystState = {
@@ -360,6 +426,7 @@ def run_technical_analysis(
         "as_of_date": as_of_date,
         "data_dir": effective_data_dir,
         "tool_results": {},
+        "retrieved_context": "",
         "llm_response": "",
         "signal": None,
         "time_horizon": None,
@@ -374,12 +441,14 @@ def run_technical_analysis(
     latency_ms = (time.monotonic() - start) * 1000
 
     tool_results = final_state.get("tool_results") or {}
+    retrieved_context = final_state.get("retrieved_context", "")
+    used_prompt_version = _PROMPT_V2_VERSION if retrieved_context else _PROMPT_VERSION
 
     return TechnicalAnalysis(
         signal=final_state.get("signal"),
         technical_indicators=tool_results.get("technical_indicators", {}),
         risk_metrics=tool_results.get("risk_metrics", {}),
         time_horizon=final_state.get("time_horizon"),
-        prompt_version=_PROMPT_VERSION,
+        prompt_version=used_prompt_version,
         latency_ms=round(latency_ms, 1),
     )

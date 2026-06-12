@@ -4,6 +4,7 @@ DOCKER_ENV_FILE     := docker/langfuse/.env
 .PHONY: help install test lint lint-fix \
 	langfuse-setup langfuse-start langfuse-stop langfuse-restart \
 	langfuse-clean langfuse-status langfuse-logs langfuse-seed \
+	sec-fixtures \
 	baseline-phase3 baseline-phase4 baseline-phase5 baseline-phase6 baseline-phase7
 
 .DEFAULT_GOAL := help
@@ -89,6 +90,10 @@ baseline-phase6: ## Seed LangFuse with Phase 6 tracing baseline (requires live i
 	uv run python scripts/check_env.py --check langfuse
 	uv run python scripts/run_phase6_tracing.py
 
-baseline-phase7: ## Generate Phase 7 RAG baseline (requires LM Studio + knowledge store)
+sec-fixtures: ## Record SEC EDGAR fixtures for Phase 7 tests (requires internet, idempotent)
+	uv run python scripts/record_sec_fixtures.py
+
+baseline-phase7: ## Generate Phase 7 RAG baseline (requires internet + LM Studio)
+	uv run python scripts/check_env.py --check sec-fixtures || make sec-fixtures
 	uv run python scripts/check_env.py --check lm-studio
 	uv run python scripts/run_phase7_rag_baseline.py

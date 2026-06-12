@@ -74,11 +74,45 @@ def check_phase5_fixture() -> list[str]:
     return []
 
 
+def check_sec_fixtures() -> list[str]:
+    """Verify SEC EDGAR fixture files exist in tests/fixtures/sec/.
+
+    Expects at least 9 files (3 tickers x 3 filing types) recorded by
+    scripts/record_sec_fixtures.py.
+    """
+    sec_dir = PROJECT_ROOT / "tests" / "fixtures" / "sec"
+    if not sec_dir.exists():
+        return [
+            f"SEC fixtures directory not found: {sec_dir}",
+            "Run first (requires internet): make sec-fixtures",
+        ]
+    files = list(sec_dir.glob("*.json"))
+    if len(files) < 9:
+        return [
+            f"SEC fixtures incomplete: found {len(files)}/9 files in {sec_dir}",
+            "Run first (requires internet): make sec-fixtures",
+        ]
+    return []
+
+
+def check_phase7_fixture() -> list[str]:
+    """Verify the Phase 7 RAG baseline fixture exists."""
+    path = PROJECT_ROOT / "tests" / "fixtures" / "baseline" / "phase7_rag_baseline.json"
+    if not path.exists():
+        return [
+            f"Phase 7 fixture not found: {path}",
+            "Generate it first: make baseline-phase7",
+        ]
+    return []
+
+
 _CHECKS = {
     "langfuse": check_langfuse,
     "lm-studio": check_lm_studio,
     "phase4-fixture": check_phase4_fixture,
     "phase5-fixture": check_phase5_fixture,
+    "sec-fixtures": check_sec_fixtures,
+    "phase7-fixture": check_phase7_fixture,
 }
 
 

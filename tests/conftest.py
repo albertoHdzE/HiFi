@@ -4,6 +4,7 @@ All fixtures use deterministic seeds for reproducibility.
 No mocks are used -- synthetic data is generated with controlled randomness.
 """
 
+import hashlib
 import os
 from datetime import date, datetime
 from pathlib import Path
@@ -12,6 +13,44 @@ import numpy as np
 import pytest
 
 from hifi.config.loader import HiFiConfig, load_config
+
+# ---------------------------------------------------------------------------
+# DeterministicEmbeddingModel (P7-E3)
+# ---------------------------------------------------------------------------
+
+
+class DeterministicEmbeddingModel:
+    """
+    Produces stable unit-norm fake embeddings from text via SHA-256 seed.
+
+    No external dependencies or LM Studio required. Used in all Phase 7
+    tests that do not require live embeddings. Satisfies the "no mocks —
+    deterministic synthetic generators (seeded numpy)" project principle.
+
+    Each input text gets a unique, reproducible embedding derived from its
+    SHA-256 hash. Embeddings are unit-normalised (consistent with cosine
+    similarity search in LanceDB).
+    """
+
+    def __init__(self, dimensions: int = 768) -> None:
+        self.dimensions = dimensions
+
+    def embed(self, texts: list[str]) -> list[list[float]]:
+        """Return one deterministic unit-norm vector per input text."""
+        results: list[list[float]] = []
+        for text in texts:
+            seed = int(hashlib.sha256(text.encode()).hexdigest()[:8], 16)
+            rng = np.random.default_rng(seed)
+            vec = rng.standard_normal(self.dimensions)
+            norm = np.linalg.norm(vec)
+            if norm > 0:
+                vec = vec / norm
+            results.append(vec.tolist())
+        return results
+
+    def embed_one(self, text: str) -> list[float]:
+        """Convenience wrapper for single text."""
+        return self.embed([text])[0]
 
 # ---------------------------------------------------------------------------
 # LangFuse isolation (DJ-025)
