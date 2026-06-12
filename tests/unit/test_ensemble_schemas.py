@@ -166,3 +166,275 @@ def test_ensemble_output_serialises_to_json():
     assert loaded["ticker"] == "AAPL"
     assert loaded["ensemble_decision"]["collective_decision"] == "Buy"
     assert loaded["technical_analysis"]["time_horizon"] == "medium-term"
+
+
+def test_ensemble_output_phase8_fields_default_none():
+    """Phase 8 fields default to None for backward compat (DJ-038)."""
+    output = EnsembleOutput(
+        ticker="AAPL",
+        as_of_date="2023-03-31",
+        fundamental_analysis=_make_fundamental_analysis(),
+        technical_analysis=_make_technical_analysis(),
+        ensemble_decision=_make_ensemble_decision(),
+        latency_ms=2200.0,
+    )
+    assert output.risk_analysis is None
+    assert output.macro_analysis is None
+    assert output.sentiment_analysis is None
+    assert output.contrarian_analysis is None
+
+
+def test_ensemble_output_with_phase8_fields_json_safe():
+    """EnsembleOutput with all Phase 8 fields populated is JSON-safe."""
+    from hifi.agents.schemas import (
+        ContrarianAnalysis,
+        MacroAnalysis,
+        RiskAnalysis,
+        SentimentAnalysis,
+    )
+
+    risk_sig = _make_signal("Hold", 0.60, "risk")
+    ra = RiskAnalysis(
+        signal=risk_sig,
+        risk_assessment="Moderate volatility.",
+        prompt_version="risk_v1",
+    )
+
+    macro_sig = _make_signal("Hold", 0.55, "macro")
+    ma = MacroAnalysis(
+        signal=macro_sig,
+        regime_assessment="Late-cycle",
+        rationale="Rates at 4.75%.",
+        prompt_version="macro_v1",
+    )
+
+    sent_sig = _make_signal("Buy", 0.65, "sentiment")
+    sa = SentimentAnalysis(
+        signal=sent_sig,
+        sentiment_summary="Cautiously optimistic MD&A tone.",
+        notable_signals=["services growth highlighted"],
+        prompt_version="sentiment_v1",
+    )
+
+    ca = ContrarianAnalysis(
+        alternative_thesis="Bear case: services may decelerate.",
+        risk_scenario="Consumer pullback reduces revenue 10%.",
+        counterargument="Consensus ignores macro tightening risk.",
+        confidence=0.40,
+        prompt_version="contrarian_v1",
+    )
+
+    output = EnsembleOutput(
+        ticker="AAPL",
+        as_of_date="2023-03-31",
+        fundamental_analysis=_make_fundamental_analysis(),
+        technical_analysis=_make_technical_analysis(),
+        ensemble_decision=_make_ensemble_decision(),
+        latency_ms=5000.0,
+        risk_analysis=ra,
+        macro_analysis=ma,
+        sentiment_analysis=sa,
+        contrarian_analysis=ca,
+    )
+    dumped = output.model_dump()
+    json_str = json.dumps(dumped)
+    loaded = json.loads(json_str)
+    assert loaded["risk_analysis"]["risk_assessment"] == "Moderate volatility."
+    assert loaded["macro_analysis"]["regime_assessment"] == "Late-cycle"
+    assert loaded["sentiment_analysis"]["sentiment_summary"] == "Cautiously optimistic MD&A tone."
+    assert loaded["contrarian_analysis"]["confidence"] == pytest.approx(0.40)
+
+
+# ---------------------------------------------------------------------------
+# Phase 9 schema extension tests (P9-E0)
+# ---------------------------------------------------------------------------
+
+
+def test_ensemble_decision_default_contrarian_fields():
+    """Phase 9 contrarian fields have backward-compatible defaults."""
+    d = _make_ensemble_decision()
+    assert d.contrarian_confidence_discount == pytest.approx(1.0)
+    assert d.review_flagged is False
+
+
+def test_ensemble_decision_explicit_contrarian_fields_round_trip():
+    """EnsembleDecision with non-default contrarian fields serialises correctly."""
+    d = EnsembleDecision(
+        collective_decision="Buy",
+        collective_confidence=0.54,    # discounted: was 0.72, discount=0.75
+        n_valid_signals=2,
+        agreement=False,
+        disagreement_entropy=1.0,
+        opinion_dispersion=0.1,
+        agent_decisions=["Buy", "Sell"],
+        agent_confidences=[0.8, 0.6],
+        winning_score=0.8,
+        total_score=1.4,
+        contrarian_confidence_discount=0.75,
+        review_flagged=False,
+    )
+    dumped = json.loads(d.model_dump_json())
+    assert dumped["contrarian_confidence_discount"] == pytest.approx(0.75)
+    assert dumped["review_flagged"] is False
+
+
+def test_ensemble_decision_review_flagged_true_round_trip():
+    d = _make_ensemble_decision()
+    d2 = EnsembleDecision(
+        **{**d.model_dump(), "review_flagged": True, "contrarian_confidence_discount": 0.65}
+    )
+    assert d2.review_flagged is True
+    assert json.loads(d2.model_dump_json())["review_flagged"] is True
+
+
+def test_ensemble_decision_contrarian_discount_out_of_range_raises():
+    """contrarian_confidence_discount must be in [0, 1]."""
+    with pytest.raises(ValueError):
+        EnsembleDecision(
+            collective_decision="Buy",
+            collective_confidence=0.8,
+            n_valid_signals=1,
+            agreement=True,
+            disagreement_entropy=0.0,
+            opinion_dispersion=0.0,
+            agent_decisions=["Buy"],
+            agent_confidences=[0.8],
+            winning_score=0.8,
+            total_score=0.8,
+            contrarian_confidence_discount=1.5,  # invalid
+        )
+
+
+def test_ensemble_output_phase9_fields_default_empty():
+    """Phase 9 EnsembleOutput fields default to empty list/dict/string."""
+    output = EnsembleOutput(
+        ticker="AAPL",
+        as_of_date="2023-03-31",
+        fundamental_analysis=_make_fundamental_analysis(),
+        technical_analysis=_make_technical_analysis(),
+        ensemble_decision=_make_ensemble_decision(),
+        latency_ms=2200.0,
+    )
+    assert output.signals == []
+    assert output.aggregation_method == "confidence_weighted"
+    assert output.method_comparison == {}
+
+
+def test_ensemble_output_with_signals_and_method_comparison_json_safe():
+    """EnsembleOutput with all Phase 9 fields populated is JSON-safe."""
+
+    decision = _make_ensemble_decision()
+    sig = _make_signal()
+    method_comparison = {
+        "majority": decision,
+        "confidence_weighted": decision,
+        "performance_weighted": decision,
+        "contrarian_adjusted": decision,
+    }
+    output = EnsembleOutput(
+        ticker="AAPL",
+        as_of_date="2023-03-31",
+        fundamental_analysis=_make_fundamental_analysis(),
+        technical_analysis=_make_technical_analysis(),
+        ensemble_decision=decision,
+        latency_ms=2200.0,
+        signals=[sig],
+        aggregation_method="confidence_weighted",
+        method_comparison=method_comparison,
+    )
+    dumped = json.loads(output.model_dump_json())
+    assert len(dumped["signals"]) == 1
+    assert dumped["aggregation_method"] == "confidence_weighted"
+    assert set(dumped["method_comparison"].keys()) == {
+        "majority", "confidence_weighted", "performance_weighted", "contrarian_adjusted"
+    }
+
+
+def test_ensemble_output_json_roundtrip_lossless():
+    """model_dump_json → model_validate_json is lossless for Phase 9 fields."""
+    sig = _make_signal()
+    decision = _make_ensemble_decision()
+    output = EnsembleOutput(
+        ticker="JPM",
+        as_of_date="2022-12-31",
+        fundamental_analysis=_make_fundamental_analysis(),
+        technical_analysis=_make_technical_analysis(),
+        ensemble_decision=decision,
+        latency_ms=3100.0,
+        signals=[sig],
+        aggregation_method="confidence_weighted",
+        method_comparison={"confidence_weighted": decision},
+    )
+    restored = EnsembleOutput.model_validate_json(output.model_dump_json())
+    assert restored.ticker == "JPM"
+    assert len(restored.signals) == 1
+    assert restored.signals[0].agent_type == sig.agent_type
+    assert "confidence_weighted" in restored.method_comparison
+
+
+# ---------------------------------------------------------------------------
+# DecisionRecord and AgentPerformanceHistory tests (P9-E0-T3)
+# ---------------------------------------------------------------------------
+
+
+def test_decision_record_valid():
+    from hifi.collective.schemas import DecisionRecord
+
+    r = DecisionRecord(
+        ticker="AAPL",
+        analysis_date="2022-03-31",
+        agent_type="fundamental",
+        decision="Buy",
+        confidence=0.75,
+    )
+    assert r.horizon_days == 60  # default
+    assert r.outcome_correct is None
+    assert r.forward_return is None
+
+
+def test_decision_record_invalid_decision_raises():
+    from hifi.collective.schemas import DecisionRecord
+
+    with pytest.raises(ValueError):
+        DecisionRecord(
+            ticker="AAPL",
+            analysis_date="2022-03-31",
+            agent_type="fundamental",
+            decision="StrongBuy",  # invalid
+            confidence=0.9,
+        )
+
+
+def test_decision_record_confidence_out_of_range_raises():
+    from hifi.collective.schemas import DecisionRecord
+
+    with pytest.raises(ValueError):
+        DecisionRecord(
+            ticker="AAPL",
+            analysis_date="2022-03-31",
+            agent_type="technical",
+            decision="Hold",
+            confidence=1.5,  # invalid
+        )
+
+
+def test_agent_performance_history_n_labeled_auto_computed():
+    from hifi.collective.schemas import AgentPerformanceHistory, DecisionRecord
+
+    records = [
+        DecisionRecord(ticker="AAPL", analysis_date="2022-03-31",
+                       agent_type="fundamental", decision="Buy", confidence=0.8,
+                       outcome_correct=True),
+        DecisionRecord(ticker="AAPL", analysis_date="2022-06-30",
+                       agent_type="fundamental", decision="Hold", confidence=0.6,
+                       outcome_correct=False),
+        DecisionRecord(ticker="AAPL", analysis_date="2022-09-30",
+                       agent_type="fundamental", decision="Sell", confidence=0.7),
+    ]
+    history = AgentPerformanceHistory(
+        records=records,
+        weights={"fundamental": 0.5},
+        last_updated="2024-01-01",
+        n_labeled=999,  # will be overridden by model_validator
+    )
+    assert history.n_labeled == 2   # only 2 records have outcome_correct not None

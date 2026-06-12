@@ -1,0 +1,1281 @@
+{
+  "metadata": {
+    "phase": "9",
+    "as_of": "2023-03-31",
+    "run_date": "2026-06-12",
+    "hifi_commit": "0e78dbd"
+  },
+  "outputs": {
+    "AAPL": {
+      "ticker": "AAPL",
+      "as_of_date": "2023-03-31",
+      "fundamental_analysis": {
+        "signal": {
+          "ticker": "AAPL",
+          "as_of_date": "2023-03-31",
+          "decision": "Hold",
+          "confidence": 0.65,
+          "rationale": "Apple Inc. (AAPL) has a high P/E ratio of 87.71, which is above the one-year median but within its historical range. The ROE of 0.592 indicates strong profitability, and the net margin of 0.256 is also robust. However, key growth metrics such as revenue and earnings growth are unavailable, introducing uncertainty.",
+          "key_concern": "The absence of recent revenue and earnings growth data makes it difficult to assess the sustainability of AAPL's profitability.",
+          "data_gaps": [
+            "ev_ebitda",
+            "current_ratio",
+            "revenue_growth_yoy",
+            "earnings_growth_yoy",
+            "gross_margin",
+            "operating_margin"
+          ],
+          "call_ids": [
+            "26fffa5d0e4d",
+            "ca334fdd8d6f",
+            "d642fa3f4531",
+            "14d8bb5b6255"
+          ],
+          "model_id": "qwen2.5-coder-32b-instruct-mlx",
+          "agent_type": "fundamental"
+        },
+        "financial_ratios": {
+          "pe": 87.71276271089594,
+          "pb": 46.376697189769494,
+          "ps": 20.059067552110896,
+          "ev_ebitda": null,
+          "roe": 0.592003473318598,
+          "roa": 0.08651264466599567,
+          "debt_equity": 5.731705873065993,
+          "current_ratio": null,
+          "call_id": "26fffa5d0e4d"
+        },
+        "growth_metrics": {
+          "revenue_growth_yoy": null,
+          "earnings_growth_yoy": null,
+          "gross_margin": null,
+          "operating_margin": null,
+          "net_margin": 0.2560561312460522,
+          "call_id": "ca334fdd8d6f"
+        },
+        "valuation_context": {
+          "current_pe": 87.71276271089594,
+          "pe_1y_min": 66.49999821439702,
+          "pe_1y_max": 94.91489491564163,
+          "pe_1y_percentile": 0.7465367451281207,
+          "price_to_52w_high": 0.9241201055835674,
+          "price_to_52w_low": 1.3189889483622035,
+          "call_id": "d642fa3f4531"
+        },
+        "macro_snapshot": {
+          "error": "NO_MACRO_DATA",
+          "detail": "No macro parquet files in /Users/alberto/Documents/projects/HiFi/data/macro",
+          "call_id": "14d8bb5b6255"
+        },
+        "prompt_version": "fundamental_v1",
+        "latency_ms": 23146.8
+      },
+      "technical_analysis": {
+        "signal": {
+          "ticker": "AAPL",
+          "as_of_date": "2023-03-31",
+          "decision": "Hold",
+          "confidence": 0.65,
+          "rationale": "Short-term momentum is bullish with RSI at 69.7 (healthy upward momentum approaching overbought) and MACD crossing above signal at 3.42 vs 2.83 with positive histogram of 0.59. However, the negative Sharpe ratio of -0.027 and max drawdown near 30% (0.296) indicate poor risk-adjusted returns and elevated downside risk over the past year.",
+          "key_concern": "Negative Sharpe ratio of -0.027 indicates the position has not generated adequate risk-adjusted returns despite recent price appreciation.",
+          "data_gaps": [
+            "beta"
+          ],
+          "call_ids": [
+            "6282053396d8",
+            "4526581f7977"
+          ],
+          "model_id": "mlx-qwen3.5-35b-a3b-claude-4.6-opus-reasoning-distilled",
+          "agent_type": "technical"
+        },
+        "technical_indicators": {
+          "sma": 153.72627029418945,
+          "ema": 154.5138340478016,
+          "rsi": 69.69714397225866,
+          "macd": 3.4163836342771106,
+          "macd_signal": 2.8313826038601517,
+          "macd_hist": 0.5850010304169588,
+          "bb_upper": 162.3535989912151,
+          "bb_mid": 153.72627029418945,
+          "bb_lower": 145.0989415971638,
+          "atr": 4.453857532651845,
+          "call_id": "6282053396d8"
+        },
+        "risk_metrics": {
+          "hist_vol_20d": 0.19555368441093063,
+          "hist_vol_60d": 0.2313027481345694,
+          "hist_vol_252d": 0.34692674569751814,
+          "beta": null,
+          "max_drawdown_252d": 0.29620271763837247,
+          "sharpe_252d": -0.026568269805446364,
+          "var_95_20d": 0.015787791186291256,
+          "call_id": "4526581f7977"
+        },
+        "time_horizon": "short-term",
+        "prompt_version": "technical_v1",
+        "latency_ms": 31182.2
+      },
+      "ensemble_decision": {
+        "collective_decision": "Hold",
+        "collective_confidence": 1.0,
+        "n_valid_signals": 5,
+        "agreement": true,
+        "disagreement_entropy": 0.0,
+        "opinion_dispersion": 0.176,
+        "agent_decisions": [
+          "Hold",
+          "Hold",
+          "Hold",
+          "Hold",
+          "Hold"
+        ],
+        "agent_confidences": [
+          0.65,
+          0.65,
+          0.65,
+          0.1,
+          0.65
+        ],
+        "winning_score": 2.7,
+        "total_score": 2.7,
+        "contrarian_confidence_discount": 1.0,
+        "review_flagged": false
+      },
+      "latency_ms": 151997.2,
+      "risk_analysis": {
+        "signal": {
+          "ticker": "AAPL",
+          "as_of_date": "2023-03-31",
+          "decision": "Hold",
+          "confidence": 0.65,
+          "rationale": "AAPL exhibits moderate risk with a 20-day historical volatility of 0.1956 and a 252-day volatility of 0.347, indicating a relatively high long-term risk level. The max drawdown of 0.296 suggests some tail risk, while the Sharpe ratio is negative (-0.026), indicating underperformance relative to a risk-free asset. Value at Risk (95% for 20 days) is low at 0.016, suggesting a small probability of significant loss.",
+          "key_concern": "The negative Sharpe ratio and elevated 252-day volatility highlight a need for careful consideration given the current market conditions.",
+          "data_gaps": [
+            "beta"
+          ],
+          "call_ids": [
+            "4526581f7977"
+          ],
+          "model_id": "google/gemma-3-4b",
+          "agent_type": "risk"
+        },
+        "risk_assessment": "The portfolio demonstrates a moderate volatility regime with a significant long-term risk profile due to the high 252-day volatility and a negative Sharpe ratio. The drawdown is relatively shallow, but the overall risk profile warrants caution.",
+        "recommended_position_size": 0.05,
+        "risk_metrics": {
+          "hist_vol_20d": 0.19555368441093063,
+          "hist_vol_60d": 0.2313027481345694,
+          "hist_vol_252d": 0.34692674569751814,
+          "beta": null,
+          "max_drawdown_252d": 0.29620271763837247,
+          "sharpe_252d": -0.026568269805446364,
+          "var_95_20d": 0.015787791186291256,
+          "call_id": "4526581f7977"
+        },
+        "prompt_version": "risk_v1",
+        "latency_ms": 10416.3
+      },
+      "macro_analysis": {
+        "signal": {
+          "ticker": "AAPL",
+          "as_of_date": "2023-03-31",
+          "decision": "Hold",
+          "confidence": 0.1,
+          "rationale": "No macroeconomic data is available for the assessment date of 2023-03-31. The system returned error 'NO_MACRO_DATA' indicating that no macro parquet files exist in the expected data directory. Without values for fed_funds_rate, cpi_yoy, unemployment_rate, yield_curve_slope, vix, or gdp_growth, no informed macro-based investment decision can be made.",
+          "key_concern": "The complete absence of macroeconomic data prevents any meaningful regime assessment or equity outlook analysis.",
+          "data_gaps": [],
+          "call_ids": [
+            "14d8bb5b6255"
+          ],
+          "model_id": "qwen3.5-27b-claude-4.6-opus-reasoning-distilled-qx64-hi-mlx",
+          "agent_type": "macro"
+        },
+        "regime_assessment": "Unknown - insufficient data",
+        "rationale": "Unable to determine regime classification without the required macroeconomic indicators; any assessment would require speculation contrary to my operational guidelines.",
+        "macro_snapshot": {
+          "error": "NO_MACRO_DATA",
+          "detail": "No macro parquet files in /Users/alberto/Documents/projects/HiFi/data/macro",
+          "call_id": "14d8bb5b6255"
+        },
+        "prompt_version": "macro_v1",
+        "latency_ms": 27301.2
+      },
+      "sentiment_analysis": {
+        "signal": {
+          "ticker": "AAPL",
+          "as_of_date": "2023-03-31",
+          "decision": "Hold",
+          "confidence": 0.65,
+          "rationale": "The filings do not contain specific forward guidance or management tone signals that indicate a clear bullish or bearish stance. The majority of the provided passages are procedural and do not offer insights into management's outlook or risk factors.",
+          "key_concern": "The filings lack specific forward-looking statements and detailed qualitative disclosures that would provide insight into management's expectations or risk assessments.",
+          "data_gaps": [],
+          "call_ids": [],
+          "model_id": "qwen2.5-coder-32b-instruct-mlx",
+          "agent_type": "sentiment"
+        },
+        "sentiment_summary": "The sentiment is neutral as there are no specific forward guidance statements or qualitative risk signals that indicate a clear bullish or bearish tone from management.",
+        "notable_signals": [
+          "The filings primarily contain procedural information about the Annual Meeting of Shareholders and voting results, without any specific forward guidance or risk disclosures.",
+          "There are no indications of new products, market expansion, competitive wins, or increased risk factors that would signal a change in management's tone."
+        ],
+        "prompt_version": "sentiment_v1",
+        "latency_ms": 36452.9
+      },
+      "contrarian_analysis": {
+        "alternative_thesis": "The consensus is dangerously overconfident (1.0) despite having zero visibility on Apple's growth trajectory\u2014no revenue or earnings data exists to justify a P/E of 87.71, while negative Sharpe ratios across technical and risk agents confirm the stock has underperformed on a risk-adjusted basis over the past year.",
+        "risk_scenario": "If the Fed maintains higher-for-longer rates through 2023-2024 and Apple's services growth decelerates below 10% (from historical ~15-20%), the P/E could compress from 87.71 to historical averages of 25-30, resulting in a 60-70% downside. Estimated probability: 45%",
+        "counterargument": "The consensus treats the high P/E as 'within historical range' without acknowledging that no growth data exists to validate this valuation\u2014this is a critical blind spot. The negative Sharpe ratio (-0.027) appearing in both technical and risk analyses signals the stock has been delivering poor returns relative to its volatility, yet this is underweighted in a 'Hold' recommendation. The complete absence of macro data (0.1 confidence) means the consensus has no visibility on interest rate regime, which is particularly dangerous for a high-multiple stock like AAPL.",
+        "confidence": 0.72,
+        "prompt_version": "contrarian_v1",
+        "latency_ms": 23488.2
+      },
+      "signals": [
+        {
+          "ticker": "AAPL",
+          "as_of_date": "2023-03-31",
+          "decision": "Hold",
+          "confidence": 0.65,
+          "rationale": "Apple Inc. (AAPL) has a high P/E ratio of 87.71, which is above the one-year median but within its historical range. The ROE of 0.592 indicates strong profitability, and the net margin of 0.256 is also robust. However, key growth metrics such as revenue and earnings growth are unavailable, introducing uncertainty.",
+          "key_concern": "The absence of recent revenue and earnings growth data makes it difficult to assess the sustainability of AAPL's profitability.",
+          "data_gaps": [
+            "ev_ebitda",
+            "current_ratio",
+            "revenue_growth_yoy",
+            "earnings_growth_yoy",
+            "gross_margin",
+            "operating_margin"
+          ],
+          "call_ids": [
+            "26fffa5d0e4d",
+            "ca334fdd8d6f",
+            "d642fa3f4531",
+            "14d8bb5b6255"
+          ],
+          "model_id": "qwen2.5-coder-32b-instruct-mlx",
+          "agent_type": "fundamental"
+        },
+        {
+          "ticker": "AAPL",
+          "as_of_date": "2023-03-31",
+          "decision": "Hold",
+          "confidence": 0.65,
+          "rationale": "Short-term momentum is bullish with RSI at 69.7 (healthy upward momentum approaching overbought) and MACD crossing above signal at 3.42 vs 2.83 with positive histogram of 0.59. However, the negative Sharpe ratio of -0.027 and max drawdown near 30% (0.296) indicate poor risk-adjusted returns and elevated downside risk over the past year.",
+          "key_concern": "Negative Sharpe ratio of -0.027 indicates the position has not generated adequate risk-adjusted returns despite recent price appreciation.",
+          "data_gaps": [
+            "beta"
+          ],
+          "call_ids": [
+            "6282053396d8",
+            "4526581f7977"
+          ],
+          "model_id": "mlx-qwen3.5-35b-a3b-claude-4.6-opus-reasoning-distilled",
+          "agent_type": "technical"
+        },
+        {
+          "ticker": "AAPL",
+          "as_of_date": "2023-03-31",
+          "decision": "Hold",
+          "confidence": 0.65,
+          "rationale": "AAPL exhibits moderate risk with a 20-day historical volatility of 0.1956 and a 252-day volatility of 0.347, indicating a relatively high long-term risk level. The max drawdown of 0.296 suggests some tail risk, while the Sharpe ratio is negative (-0.026), indicating underperformance relative to a risk-free asset. Value at Risk (95% for 20 days) is low at 0.016, suggesting a small probability of significant loss.",
+          "key_concern": "The negative Sharpe ratio and elevated 252-day volatility highlight a need for careful consideration given the current market conditions.",
+          "data_gaps": [
+            "beta"
+          ],
+          "call_ids": [
+            "4526581f7977"
+          ],
+          "model_id": "google/gemma-3-4b",
+          "agent_type": "risk"
+        },
+        {
+          "ticker": "AAPL",
+          "as_of_date": "2023-03-31",
+          "decision": "Hold",
+          "confidence": 0.1,
+          "rationale": "No macroeconomic data is available for the assessment date of 2023-03-31. The system returned error 'NO_MACRO_DATA' indicating that no macro parquet files exist in the expected data directory. Without values for fed_funds_rate, cpi_yoy, unemployment_rate, yield_curve_slope, vix, or gdp_growth, no informed macro-based investment decision can be made.",
+          "key_concern": "The complete absence of macroeconomic data prevents any meaningful regime assessment or equity outlook analysis.",
+          "data_gaps": [],
+          "call_ids": [
+            "14d8bb5b6255"
+          ],
+          "model_id": "qwen3.5-27b-claude-4.6-opus-reasoning-distilled-qx64-hi-mlx",
+          "agent_type": "macro"
+        },
+        {
+          "ticker": "AAPL",
+          "as_of_date": "2023-03-31",
+          "decision": "Hold",
+          "confidence": 0.65,
+          "rationale": "The filings do not contain specific forward guidance or management tone signals that indicate a clear bullish or bearish stance. The majority of the provided passages are procedural and do not offer insights into management's outlook or risk factors.",
+          "key_concern": "The filings lack specific forward-looking statements and detailed qualitative disclosures that would provide insight into management's expectations or risk assessments.",
+          "data_gaps": [],
+          "call_ids": [],
+          "model_id": "qwen2.5-coder-32b-instruct-mlx",
+          "agent_type": "sentiment"
+        }
+      ],
+      "aggregation_method": "confidence_weighted",
+      "method_comparison": {
+        "majority": {
+          "collective_decision": "Hold",
+          "collective_confidence": 1.0,
+          "n_valid_signals": 5,
+          "agreement": true,
+          "disagreement_entropy": 0.0,
+          "opinion_dispersion": 0.176,
+          "agent_decisions": [
+            "Hold",
+            "Hold",
+            "Hold",
+            "Hold",
+            "Hold"
+          ],
+          "agent_confidences": [
+            0.65,
+            0.65,
+            0.65,
+            0.1,
+            0.65
+          ],
+          "winning_score": 5.0,
+          "total_score": 5.0,
+          "contrarian_confidence_discount": 1.0,
+          "review_flagged": false
+        },
+        "confidence_weighted": {
+          "collective_decision": "Hold",
+          "collective_confidence": 1.0,
+          "n_valid_signals": 5,
+          "agreement": true,
+          "disagreement_entropy": 0.0,
+          "opinion_dispersion": 0.176,
+          "agent_decisions": [
+            "Hold",
+            "Hold",
+            "Hold",
+            "Hold",
+            "Hold"
+          ],
+          "agent_confidences": [
+            0.65,
+            0.65,
+            0.65,
+            0.1,
+            0.65
+          ],
+          "winning_score": 2.7,
+          "total_score": 2.7,
+          "contrarian_confidence_discount": 1.0,
+          "review_flagged": false
+        },
+        "performance_weighted": {
+          "collective_decision": "Hold",
+          "collective_confidence": 1.0,
+          "n_valid_signals": 5,
+          "agreement": true,
+          "disagreement_entropy": 0.0,
+          "opinion_dispersion": 0.176,
+          "agent_decisions": [
+            "Hold",
+            "Hold",
+            "Hold",
+            "Hold",
+            "Hold"
+          ],
+          "agent_confidences": [
+            0.65,
+            0.65,
+            0.65,
+            0.1,
+            0.65
+          ],
+          "winning_score": 1.124167,
+          "total_score": 1.124167,
+          "contrarian_confidence_discount": 1.0,
+          "review_flagged": false
+        },
+        "contrarian_adjusted": {
+          "collective_decision": "Hold",
+          "collective_confidence": 0.64,
+          "n_valid_signals": 5,
+          "agreement": true,
+          "disagreement_entropy": 0.0,
+          "opinion_dispersion": 0.176,
+          "agent_decisions": [
+            "Hold",
+            "Hold",
+            "Hold",
+            "Hold",
+            "Hold"
+          ],
+          "agent_confidences": [
+            0.65,
+            0.65,
+            0.65,
+            0.1,
+            0.65
+          ],
+          "winning_score": 2.7,
+          "total_score": 2.7,
+          "contrarian_confidence_discount": 0.64,
+          "review_flagged": true
+        }
+      }
+    },
+    "JPM": {
+      "ticker": "JPM",
+      "as_of_date": "2023-03-31",
+      "fundamental_analysis": {
+        "signal": {
+          "ticker": "JPM",
+          "as_of_date": "2023-03-31",
+          "decision": "Hold",
+          "confidence": 0.65,
+          "rationale": "JPM has a P/E ratio of 31.78, which is above the one-year median but within its historical range, and a ROE of 0.0435, indicating moderate profitability. However, the high debt-to-equity ratio of 11.91 and the absence of growth metrics like revenue and earnings growth make it difficult to assess future prospects.",
+          "key_concern": "The high debt-to-equity ratio of 11.91 poses a significant risk, especially given the lack of revenue and earnings growth data.",
+          "data_gaps": [
+            "ev_ebitda",
+            "current_ratio",
+            "revenue_growth_yoy",
+            "earnings_growth_yoy",
+            "gross_margin",
+            "operating_margin"
+          ],
+          "call_ids": [
+            "f97622a86ea4",
+            "950b1b5eb3dd",
+            "44f9460b0ab0",
+            "14d8bb5b6255"
+          ],
+          "model_id": "qwen2.5-coder-32b-instruct-mlx",
+          "agent_type": "fundamental"
+        },
+        "financial_ratios": {
+          "pe": 31.782926233803355,
+          "pb": 1.3793103448275863,
+          "ps": 10.430519700644085,
+          "ev_ebitda": null,
+          "roe": 0.04352413793103448,
+          "roa": 0.0033709860708462584,
+          "debt_equity": 11.910344827586206,
+          "current_ratio": null,
+          "call_id": "f97622a86ea4"
+        },
+        "growth_metrics": {
+          "revenue_growth_yoy": null,
+          "earnings_growth_yoy": null,
+          "gross_margin": null,
+          "operating_margin": null,
+          "net_margin": 0.3291350491538241,
+          "call_id": "950b1b5eb3dd"
+        },
+        "valuation_context": {
+          "current_pe": 31.782926233803355,
+          "pe_1y_min": 24.86829245962748,
+          "pe_1y_max": 35.073171476038496,
+          "pe_1y_percentile": 0.6775811612323949,
+          "price_to_52w_high": 0.9061891153902923,
+          "price_to_52w_low": 1.278050203302115,
+          "call_id": "44f9460b0ab0"
+        },
+        "macro_snapshot": {
+          "error": "NO_MACRO_DATA",
+          "detail": "No macro parquet files in /Users/alberto/Documents/projects/HiFi/data/macro",
+          "call_id": "14d8bb5b6255"
+        },
+        "prompt_version": "fundamental_v1",
+        "latency_ms": 22893.2
+      },
+      "technical_analysis": {
+        "signal": {
+          "ticker": "JPM",
+          "as_of_date": "2023-03-31",
+          "decision": "Hold",
+          "confidence": 0.52,
+          "rationale": "The stock shows mixed signals with a bullish MACD crossover (MACD of -2.39 above signal at -2.66) and positive MACD histogram of 0.27, but RSI at 46.42 indicates weak momentum in the recovering range. Price sits near BB_mid of 121.21 with EMA slightly above SMA (121.43 vs 121.21), suggesting neutral trend with slight upward bias.",
+          "key_concern": "Sharpe ratio of -0.01 indicates the stock has generated essentially zero risk-adjusted returns over the trailing 252 days, suggesting poor compensation for volatility exposure.",
+          "data_gaps": [
+            "beta"
+          ],
+          "call_ids": [
+            "2b97d648b579",
+            "bbe2bddab56e"
+          ],
+          "model_id": "mlx-qwen3.5-35b-a3b-claude-4.6-opus-reasoning-distilled",
+          "agent_type": "technical"
+        },
+        "technical_indicators": {
+          "sma": 121.21261825561524,
+          "ema": 121.43107144114647,
+          "rsi": 46.42492447699727,
+          "macd": -2.388790516048303,
+          "macd_signal": -2.6635030091282434,
+          "macd_hist": 0.2747124930799405,
+          "bb_upper": 129.7403874923411,
+          "bb_mid": 121.21261825561524,
+          "bb_lower": 112.68484901888937,
+          "atr": 11.037371150369971,
+          "call_id": "2b97d648b579"
+        },
+        "risk_metrics": {
+          "hist_vol_20d": 0.39623950785860407,
+          "hist_vol_60d": 0.2734930909910868,
+          "hist_vol_252d": 0.2845906973437291,
+          "beta": null,
+          "max_drawdown_252d": 0.23304387526925352,
+          "sharpe_252d": -0.010084683316433963,
+          "var_95_20d": 0.04562208582639296,
+          "call_id": "bbe2bddab56e"
+        },
+        "time_horizon": "short-term",
+        "prompt_version": "technical_v1",
+        "latency_ms": 26978.1
+      },
+      "ensemble_decision": {
+        "collective_decision": "Hold",
+        "collective_confidence": 1.0,
+        "n_valid_signals": 5,
+        "agreement": true,
+        "disagreement_entropy": 0.0,
+        "opinion_dispersion": 0.1656,
+        "agent_decisions": [
+          "Hold",
+          "Hold",
+          "Hold",
+          "Hold",
+          "Hold"
+        ],
+        "agent_confidences": [
+          0.65,
+          0.52,
+          0.65,
+          0.1,
+          0.65
+        ],
+        "winning_score": 2.57,
+        "total_score": 2.57,
+        "contrarian_confidence_discount": 1.0,
+        "review_flagged": false
+      },
+      "latency_ms": 149422.3,
+      "risk_analysis": {
+        "signal": {
+          "ticker": "JPM",
+          "as_of_date": "2023-03-31",
+          "decision": "Hold",
+          "confidence": 0.65,
+          "rationale": "JPM exhibits a high level of volatility with a 20-day annualized historical volatility of 0.396 and a 252-day volatility of 0.285. The maximum drawdown over the past year is 0.233, indicating a significant tail risk event. Despite a Sharpe ratio of -0.01, suggesting negative risk-adjusted returns, the 95th percentile Value at Risk (VAR) of 0.046 indicates a relatively low probability of substantial losses in the short term.",
+          "key_concern": "The negative Sharpe ratio combined with a moderate drawdown highlights the need for caution, as returns are not adequately compensating investors for the level of risk.",
+          "data_gaps": [
+            "beta"
+          ],
+          "call_ids": [
+            "bbe2bddab56e"
+          ],
+          "model_id": "google/gemma-3-4b",
+          "agent_type": "risk"
+        },
+        "risk_assessment": "The portfolio demonstrates a moderately volatile regime with a significant potential for downside risk, as evidenced by the drawdown and negative Sharpe ratio. The low VAR suggests that while large losses are unlikely, they remain a possibility.",
+        "recommended_position_size": 0.05,
+        "risk_metrics": {
+          "hist_vol_20d": 0.39623950785860407,
+          "hist_vol_60d": 0.2734930909910868,
+          "hist_vol_252d": 0.2845906973437291,
+          "beta": null,
+          "max_drawdown_252d": 0.23304387526925352,
+          "sharpe_252d": -0.010084683316433963,
+          "var_95_20d": 0.04562208582639296,
+          "call_id": "bbe2bddab56e"
+        },
+        "prompt_version": "risk_v1",
+        "latency_ms": 10070.4
+      },
+      "macro_analysis": {
+        "signal": {
+          "ticker": "JPM",
+          "as_of_date": "2023-03-31",
+          "decision": "Hold",
+          "confidence": 0.1,
+          "rationale": "No macroeconomic data is available for the assessment date of 2023-03-31. The system returned error 'NO_MACRO_DATA' indicating that no macro parquet files exist in the expected data directory. Without values for fed_funds_rate, cpi_yoy, unemployment_rate, yield_curve_slope, vix, or gdp_growth, no meaningful macro-based investment decision can be formed.",
+          "key_concern": "The complete absence of macroeconomic data prevents any regime assessment or risk evaluation for equity investments.",
+          "data_gaps": [],
+          "call_ids": [
+            "14d8bb5b6255"
+          ],
+          "model_id": "qwen3.5-27b-claude-4.6-opus-reasoning-distilled-qx64-hi-mlx",
+          "agent_type": "macro"
+        },
+        "regime_assessment": "Unknown - insufficient data",
+        "rationale": "A macro-based investment framework requires at minimum interest rate, inflation, and growth data to classify the economic cycle; none of these inputs are available.",
+        "macro_snapshot": {
+          "error": "NO_MACRO_DATA",
+          "detail": "No macro parquet files in /Users/alberto/Documents/projects/HiFi/data/macro",
+          "call_id": "14d8bb5b6255"
+        },
+        "prompt_version": "macro_v1",
+        "latency_ms": 29713.0
+      },
+      "sentiment_analysis": {
+        "signal": {
+          "ticker": "JPM",
+          "as_of_date": "2023-03-31",
+          "decision": "Hold",
+          "confidence": 0.65,
+          "rationale": "The filings do not contain specific forward guidance or emphasis on new products and market expansion. Instead, they focus on administrative details and risk factors related to preferred stock and debt securities.",
+          "key_concern": "The filings do not provide any specific forward-looking statements or positive signals about future performance, indicating a cautious stance.",
+          "data_gaps": [],
+          "call_ids": [],
+          "model_id": "qwen2.5-coder-32b-instruct-mlx",
+          "agent_type": "sentiment"
+        },
+        "sentiment_summary": "The management tone is cautious with no specific forward guidance or positive signals. The filings are primarily administrative and do not indicate any optimistic outlook.",
+        "notable_signals": [
+          "For any calendar year ending during the vesting period, JPMorgan Chase\u2019s annual pre-tax pre-provision income at the Firm level is negative.",
+          "The New York Stock Exchange Depositary Shares, each representing a one-four hundredth interest in a share of various Non-Cumulative Preferred Stock series."
+        ],
+        "prompt_version": "sentiment_v1",
+        "latency_ms": 30176.4
+      },
+      "contrarian_analysis": {
+        "alternative_thesis": "The consensus may be overly bearish by overweighting technical weakness while underweighting a structurally favorable rate environment for banks. The MACD bullish crossover with positive histogram suggests momentum is building despite the RSI reading, and the debt-to-equity ratio of 11.91 is actually typical for a major bank operating with designed leverage.",
+        "risk_scenario": "If the Fed continues to hike rates aggressively (3+ more times) AND credit quality deteriorates significantly (NPLs rise 50%+), the bank could face margin compression and loan losses that would prove the consensus wrong. Estimated probability: 25-30%.",
+        "counterargument": "The consensus is overweighting short-term technical weakness (negative Sharpe, RSI below 50) while underweighting the bullish MACD setup with positive histogram that signals momentum accumulation. Additionally, the debt-to-equity ratio of 11.91 is actually typical for a major bank - this metric shouldn't be flagged as a concern without context. The complete absence of macro data is the critical blind spot; if rates are rising, banks typically benefit from net interest margin expansion.",
+        "confidence": 0.62,
+        "prompt_version": "contrarian_v1",
+        "latency_ms": 29588.2
+      },
+      "signals": [
+        {
+          "ticker": "JPM",
+          "as_of_date": "2023-03-31",
+          "decision": "Hold",
+          "confidence": 0.65,
+          "rationale": "JPM has a P/E ratio of 31.78, which is above the one-year median but within its historical range, and a ROE of 0.0435, indicating moderate profitability. However, the high debt-to-equity ratio of 11.91 and the absence of growth metrics like revenue and earnings growth make it difficult to assess future prospects.",
+          "key_concern": "The high debt-to-equity ratio of 11.91 poses a significant risk, especially given the lack of revenue and earnings growth data.",
+          "data_gaps": [
+            "ev_ebitda",
+            "current_ratio",
+            "revenue_growth_yoy",
+            "earnings_growth_yoy",
+            "gross_margin",
+            "operating_margin"
+          ],
+          "call_ids": [
+            "f97622a86ea4",
+            "950b1b5eb3dd",
+            "44f9460b0ab0",
+            "14d8bb5b6255"
+          ],
+          "model_id": "qwen2.5-coder-32b-instruct-mlx",
+          "agent_type": "fundamental"
+        },
+        {
+          "ticker": "JPM",
+          "as_of_date": "2023-03-31",
+          "decision": "Hold",
+          "confidence": 0.52,
+          "rationale": "The stock shows mixed signals with a bullish MACD crossover (MACD of -2.39 above signal at -2.66) and positive MACD histogram of 0.27, but RSI at 46.42 indicates weak momentum in the recovering range. Price sits near BB_mid of 121.21 with EMA slightly above SMA (121.43 vs 121.21), suggesting neutral trend with slight upward bias.",
+          "key_concern": "Sharpe ratio of -0.01 indicates the stock has generated essentially zero risk-adjusted returns over the trailing 252 days, suggesting poor compensation for volatility exposure.",
+          "data_gaps": [
+            "beta"
+          ],
+          "call_ids": [
+            "2b97d648b579",
+            "bbe2bddab56e"
+          ],
+          "model_id": "mlx-qwen3.5-35b-a3b-claude-4.6-opus-reasoning-distilled",
+          "agent_type": "technical"
+        },
+        {
+          "ticker": "JPM",
+          "as_of_date": "2023-03-31",
+          "decision": "Hold",
+          "confidence": 0.65,
+          "rationale": "JPM exhibits a high level of volatility with a 20-day annualized historical volatility of 0.396 and a 252-day volatility of 0.285. The maximum drawdown over the past year is 0.233, indicating a significant tail risk event. Despite a Sharpe ratio of -0.01, suggesting negative risk-adjusted returns, the 95th percentile Value at Risk (VAR) of 0.046 indicates a relatively low probability of substantial losses in the short term.",
+          "key_concern": "The negative Sharpe ratio combined with a moderate drawdown highlights the need for caution, as returns are not adequately compensating investors for the level of risk.",
+          "data_gaps": [
+            "beta"
+          ],
+          "call_ids": [
+            "bbe2bddab56e"
+          ],
+          "model_id": "google/gemma-3-4b",
+          "agent_type": "risk"
+        },
+        {
+          "ticker": "JPM",
+          "as_of_date": "2023-03-31",
+          "decision": "Hold",
+          "confidence": 0.1,
+          "rationale": "No macroeconomic data is available for the assessment date of 2023-03-31. The system returned error 'NO_MACRO_DATA' indicating that no macro parquet files exist in the expected data directory. Without values for fed_funds_rate, cpi_yoy, unemployment_rate, yield_curve_slope, vix, or gdp_growth, no meaningful macro-based investment decision can be formed.",
+          "key_concern": "The complete absence of macroeconomic data prevents any regime assessment or risk evaluation for equity investments.",
+          "data_gaps": [],
+          "call_ids": [
+            "14d8bb5b6255"
+          ],
+          "model_id": "qwen3.5-27b-claude-4.6-opus-reasoning-distilled-qx64-hi-mlx",
+          "agent_type": "macro"
+        },
+        {
+          "ticker": "JPM",
+          "as_of_date": "2023-03-31",
+          "decision": "Hold",
+          "confidence": 0.65,
+          "rationale": "The filings do not contain specific forward guidance or emphasis on new products and market expansion. Instead, they focus on administrative details and risk factors related to preferred stock and debt securities.",
+          "key_concern": "The filings do not provide any specific forward-looking statements or positive signals about future performance, indicating a cautious stance.",
+          "data_gaps": [],
+          "call_ids": [],
+          "model_id": "qwen2.5-coder-32b-instruct-mlx",
+          "agent_type": "sentiment"
+        }
+      ],
+      "aggregation_method": "confidence_weighted",
+      "method_comparison": {
+        "majority": {
+          "collective_decision": "Hold",
+          "collective_confidence": 1.0,
+          "n_valid_signals": 5,
+          "agreement": true,
+          "disagreement_entropy": 0.0,
+          "opinion_dispersion": 0.1656,
+          "agent_decisions": [
+            "Hold",
+            "Hold",
+            "Hold",
+            "Hold",
+            "Hold"
+          ],
+          "agent_confidences": [
+            0.65,
+            0.52,
+            0.65,
+            0.1,
+            0.65
+          ],
+          "winning_score": 5.0,
+          "total_score": 5.0,
+          "contrarian_confidence_discount": 1.0,
+          "review_flagged": false
+        },
+        "confidence_weighted": {
+          "collective_decision": "Hold",
+          "collective_confidence": 1.0,
+          "n_valid_signals": 5,
+          "agreement": true,
+          "disagreement_entropy": 0.0,
+          "opinion_dispersion": 0.1656,
+          "agent_decisions": [
+            "Hold",
+            "Hold",
+            "Hold",
+            "Hold",
+            "Hold"
+          ],
+          "agent_confidences": [
+            0.65,
+            0.52,
+            0.65,
+            0.1,
+            0.65
+          ],
+          "winning_score": 2.57,
+          "total_score": 2.57,
+          "contrarian_confidence_discount": 1.0,
+          "review_flagged": false
+        },
+        "performance_weighted": {
+          "collective_decision": "Hold",
+          "collective_confidence": 1.0,
+          "n_valid_signals": 5,
+          "agreement": true,
+          "disagreement_entropy": 0.0,
+          "opinion_dispersion": 0.1656,
+          "agent_decisions": [
+            "Hold",
+            "Hold",
+            "Hold",
+            "Hold",
+            "Hold"
+          ],
+          "agent_confidences": [
+            0.65,
+            0.52,
+            0.65,
+            0.1,
+            0.65
+          ],
+          "winning_score": 1.0895,
+          "total_score": 1.0895,
+          "contrarian_confidence_discount": 1.0,
+          "review_flagged": false
+        },
+        "contrarian_adjusted": {
+          "collective_decision": "Hold",
+          "collective_confidence": 0.69,
+          "n_valid_signals": 5,
+          "agreement": true,
+          "disagreement_entropy": 0.0,
+          "opinion_dispersion": 0.1656,
+          "agent_decisions": [
+            "Hold",
+            "Hold",
+            "Hold",
+            "Hold",
+            "Hold"
+          ],
+          "agent_confidences": [
+            0.65,
+            0.52,
+            0.65,
+            0.1,
+            0.65
+          ],
+          "winning_score": 2.57,
+          "total_score": 2.57,
+          "contrarian_confidence_discount": 0.69,
+          "review_flagged": false
+        }
+      }
+    },
+    "XOM": {
+      "ticker": "XOM",
+      "as_of_date": "2023-03-31",
+      "fundamental_analysis": {
+        "signal": {
+          "ticker": "XOM",
+          "as_of_date": "2023-03-31",
+          "decision": "Hold",
+          "confidence": 0.65,
+          "rationale": "XOM has a P/E ratio of 39.3, which is above the one-year average of 36.1 but within the range seen over the past year, indicating a relatively high valuation. The ROE of 0.0678 suggests moderate profitability, and the debt-to-equity ratio of 0.97 indicates a leveraged but not overly risky capital structure.",
+          "key_concern": "The absence of growth metrics such as revenue and earnings growth makes it difficult to assess the company's future prospects.",
+          "data_gaps": [
+            "ev_ebitda",
+            "current_ratio",
+            "revenue_growth_yoy",
+            "earnings_growth_yoy",
+            "gross_margin",
+            "operating_margin"
+          ],
+          "call_ids": [
+            "adce00b19ec8",
+            "516867136b4a",
+            "0b03ff3e5673",
+            "14d8bb5b6255"
+          ],
+          "model_id": "qwen2.5-coder-32b-instruct-mlx",
+          "agent_type": "fundamental"
+        },
+        "financial_ratios": {
+          "pe": 39.30466081079189,
+          "pb": 2.6100832260628675,
+          "ps": 5.082944411071577,
+          "ev_ebitda": null,
+          "roe": 0.06781470781897886,
+          "roa": 0.03037864353723058,
+          "debt_equity": 0.9702806432668751,
+          "current_ratio": null,
+          "call_id": "adce00b19ec8"
+        },
+        "growth_metrics": {
+          "revenue_growth_yoy": null,
+          "earnings_growth_yoy": null,
+          "gross_margin": null,
+          "operating_margin": null,
+          "net_margin": 0.1320641375167506,
+          "call_id": "516867136b4a"
+        },
+        "valuation_context": {
+          "current_pe": 39.30466081079189,
+          "pe_1y_min": 29.48387173341594,
+          "pe_1y_max": 42.71326099245351,
+          "pe_1y_percentile": 0.7423463687612742,
+          "price_to_52w_high": 0.9201980812875924,
+          "price_to_52w_low": 1.3330902116985346,
+          "call_id": "0b03ff3e5673"
+        },
+        "macro_snapshot": {
+          "error": "NO_MACRO_DATA",
+          "detail": "No macro parquet files in /Users/alberto/Documents/projects/HiFi/data/macro",
+          "call_id": "14d8bb5b6255"
+        },
+        "prompt_version": "fundamental_v1",
+        "latency_ms": 22136.1
+      },
+      "technical_analysis": {
+        "signal": {
+          "ticker": "XOM",
+          "as_of_date": "2023-03-31",
+          "decision": "Hold",
+          "confidence": 0.65,
+          "rationale": "RSI of 55.13 indicates healthy upward momentum in the 50-70 range, and MACD crossover is bullish with macd (-0.56) above macd_signal (-1.31), supported by positive macd_hist of 0.75. However, EMA (96.17) exceeds SMA (95.53), suggesting the uptrend may be softening, and ATR of 12.42 indicates elevated daily volatility that complicates directional conviction.",
+          "key_concern": "High ATR of 12.42 indicates significant daily price movement, increasing both opportunity and downside risk.",
+          "data_gaps": [
+            "beta"
+          ],
+          "call_ids": [
+            "8283b67fdeaa",
+            "a966076a5489"
+          ],
+          "model_id": "mlx-qwen3.5-35b-a3b-claude-4.6-opus-reasoning-distilled",
+          "agent_type": "technical"
+        },
+        "technical_indicators": {
+          "sma": 95.52604751586914,
+          "ema": 96.17288583130451,
+          "rsi": 55.134984998662155,
+          "macd": -0.5621374493819218,
+          "macd_signal": -1.3083644581157003,
+          "macd_hist": 0.7462270087337786,
+          "bb_upper": 102.20000644138942,
+          "bb_mid": 95.52604751586914,
+          "bb_lower": 88.85208859034886,
+          "atr": 12.423692712191986,
+          "call_id": "8283b67fdeaa"
+        },
+        "risk_metrics": {
+          "hist_vol_20d": 0.32457904079158617,
+          "hist_vol_60d": 0.2868944319866813,
+          "hist_vol_252d": 0.33516254980021287,
+          "beta": null,
+          "max_drawdown_252d": 0.28803741455078125,
+          "sharpe_252d": 1.0772469857969287,
+          "var_95_20d": 0.03484769583778645,
+          "call_id": "a966076a5489"
+        },
+        "time_horizon": "short-term",
+        "prompt_version": "technical_v1",
+        "latency_ms": 29094.9
+      },
+      "ensemble_decision": {
+        "collective_decision": "Hold",
+        "collective_confidence": 1.0,
+        "n_valid_signals": 5,
+        "agreement": true,
+        "disagreement_entropy": 0.0,
+        "opinion_dispersion": 0.172,
+        "agent_decisions": [
+          "Hold",
+          "Hold",
+          "Hold",
+          "Hold",
+          "Hold"
+        ],
+        "agent_confidences": [
+          0.65,
+          0.65,
+          0.65,
+          0.1,
+          0.6
+        ],
+        "winning_score": 2.65,
+        "total_score": 2.65,
+        "contrarian_confidence_discount": 1.0,
+        "review_flagged": false
+      },
+      "latency_ms": 160036.5,
+      "risk_analysis": {
+        "signal": {
+          "ticker": "XOM",
+          "as_of_date": "2023-03-31",
+          "decision": "Hold",
+          "confidence": 0.65,
+          "rationale": "XOM exhibits moderate risk with a 20-day historical volatility of 0.32, indicating potential for significant price fluctuations. The max drawdown over 252 days is 0.288, suggesting a reasonable level of downside protection, and the Sharpe ratio of 1.07 demonstrates solid risk-adjusted performance. However, a beta of null indicates market sensitivity data is unavailable.",
+          "key_concern": "The lack of beta data prevents a complete assessment of XOM's sensitivity to broader market movements.",
+          "data_gaps": [
+            "beta"
+          ],
+          "call_ids": [
+            "a966076a5489"
+          ],
+          "model_id": "google/gemma-3-4b",
+          "agent_type": "risk"
+        },
+        "risk_assessment": "XOM\u2019s volatility is within a moderate range, and the Sharpe ratio indicates good risk-adjusted returns. The max drawdown suggests some resilience to losses, but further analysis would benefit from beta information.",
+        "recommended_position_size": 0.05,
+        "risk_metrics": {
+          "hist_vol_20d": 0.32457904079158617,
+          "hist_vol_60d": 0.2868944319866813,
+          "hist_vol_252d": 0.33516254980021287,
+          "beta": null,
+          "max_drawdown_252d": 0.28803741455078125,
+          "sharpe_252d": 1.0772469857969287,
+          "var_95_20d": 0.03484769583778645,
+          "call_id": "a966076a5489"
+        },
+        "prompt_version": "risk_v1",
+        "latency_ms": 9731.6
+      },
+      "macro_analysis": {
+        "signal": {
+          "ticker": "XOM",
+          "as_of_date": "2023-03-31",
+          "decision": "Hold",
+          "confidence": 0.1,
+          "rationale": "The macro data retrieval failed with error 'NO_MACRO_DATA' - detail indicates 'No macro parquet files in /Users/alberto/Documents/projects/HiFi/data/macro'. Without any values for fed_funds_rate, cpi_yoy, unemployment_rate, yield_curve_slope, vix, or gdp_growth, no meaningful macro-based assessment can be formed.",
+          "key_concern": "Complete absence of macroeconomic data prevents any regime classification or equity outlook assessment.",
+          "data_gaps": [],
+          "call_ids": [
+            "14d8bb5b6255"
+          ],
+          "model_id": "qwen3.5-27b-claude-4.6-opus-reasoning-distilled-qx64-hi-mlx",
+          "agent_type": "macro"
+        },
+        "regime_assessment": "Unable to determine - no macro data available",
+        "rationale": "The framework requires at minimum fed_funds_rate, inflation, and GDP data to classify regime; all fields are unavailable due to file system error.",
+        "macro_snapshot": {
+          "error": "NO_MACRO_DATA",
+          "detail": "No macro parquet files in /Users/alberto/Documents/projects/HiFi/data/macro",
+          "call_id": "14d8bb5b6255"
+        },
+        "prompt_version": "macro_v1",
+        "latency_ms": 34787.5
+      },
+      "sentiment_analysis": {
+        "signal": {
+          "ticker": "XOM",
+          "as_of_date": "2023-03-31",
+          "decision": "Hold",
+          "confidence": 0.6,
+          "rationale": "The provided filings do not contain specific forward guidance or detailed qualitative risk signals. The documents primarily consist of boilerplate information and certifications.",
+          "key_concern": "The filings lack specific forward-looking statements or detailed risk disclosures, making it difficult to gauge management's tone and future outlook.",
+          "data_gaps": [],
+          "call_ids": [],
+          "model_id": "qwen2.5-coder-32b-instruct-mlx",
+          "agent_type": "sentiment"
+        },
+        "sentiment_summary": "The management tone is neutral due to the absence of specific forward guidance or qualitative risk signals. The filings are primarily boilerplate and certifications.",
+        "notable_signals": [
+          "The filings do not contain specific forward guidance on revenue, margins, or other key metrics.",
+          "There are no new risk factors or expanded risk factor language that would indicate elevated risks."
+        ],
+        "prompt_version": "sentiment_v1",
+        "latency_ms": 30493.9
+      },
+      "contrarian_analysis": {
+        "alternative_thesis": "XOM is significantly overvalued at a P/E of 39.3 (above the one-year average of 36.1) with critical analytical blind spots\u2014the complete absence of macroeconomic data and missing growth metrics\u2014suggesting the consensus is holding a stock that may be priced for perfection without adequate downside protection.",
+        "risk_scenario": "Oil prices decline 15-20% from current levels while the Fed maintains restrictive monetary policy, compressing margins on an already elevated valuation and triggering a 20-30% equity decline; estimated probability: 40%",
+        "counterargument": "The consensus 'Hold' decision underweights three critical signals: (1) the P/E ratio of 39.3 represents a meaningful premium over historical norms that isn't adequately discounted, (2) the complete absence of macroeconomic data leaves analysts blind to potential regime shifts in oil demand or monetary policy, and (3) technical signals like the EMA-SMA crossover suggest momentum is already weakening despite bullish interpretations. These factors, when combined with elevated volatility metrics (ATR of 12.42), indicate the stock may be more vulnerable than the consensus acknowledges.",
+        "confidence": 0.7,
+        "prompt_version": "contrarian_v1",
+        "latency_ms": 33789.6
+      },
+      "signals": [
+        {
+          "ticker": "XOM",
+          "as_of_date": "2023-03-31",
+          "decision": "Hold",
+          "confidence": 0.65,
+          "rationale": "XOM has a P/E ratio of 39.3, which is above the one-year average of 36.1 but within the range seen over the past year, indicating a relatively high valuation. The ROE of 0.0678 suggests moderate profitability, and the debt-to-equity ratio of 0.97 indicates a leveraged but not overly risky capital structure.",
+          "key_concern": "The absence of growth metrics such as revenue and earnings growth makes it difficult to assess the company's future prospects.",
+          "data_gaps": [
+            "ev_ebitda",
+            "current_ratio",
+            "revenue_growth_yoy",
+            "earnings_growth_yoy",
+            "gross_margin",
+            "operating_margin"
+          ],
+          "call_ids": [
+            "adce00b19ec8",
+            "516867136b4a",
+            "0b03ff3e5673",
+            "14d8bb5b6255"
+          ],
+          "model_id": "qwen2.5-coder-32b-instruct-mlx",
+          "agent_type": "fundamental"
+        },
+        {
+          "ticker": "XOM",
+          "as_of_date": "2023-03-31",
+          "decision": "Hold",
+          "confidence": 0.65,
+          "rationale": "RSI of 55.13 indicates healthy upward momentum in the 50-70 range, and MACD crossover is bullish with macd (-0.56) above macd_signal (-1.31), supported by positive macd_hist of 0.75. However, EMA (96.17) exceeds SMA (95.53), suggesting the uptrend may be softening, and ATR of 12.42 indicates elevated daily volatility that complicates directional conviction.",
+          "key_concern": "High ATR of 12.42 indicates significant daily price movement, increasing both opportunity and downside risk.",
+          "data_gaps": [
+            "beta"
+          ],
+          "call_ids": [
+            "8283b67fdeaa",
+            "a966076a5489"
+          ],
+          "model_id": "mlx-qwen3.5-35b-a3b-claude-4.6-opus-reasoning-distilled",
+          "agent_type": "technical"
+        },
+        {
+          "ticker": "XOM",
+          "as_of_date": "2023-03-31",
+          "decision": "Hold",
+          "confidence": 0.65,
+          "rationale": "XOM exhibits moderate risk with a 20-day historical volatility of 0.32, indicating potential for significant price fluctuations. The max drawdown over 252 days is 0.288, suggesting a reasonable level of downside protection, and the Sharpe ratio of 1.07 demonstrates solid risk-adjusted performance. However, a beta of null indicates market sensitivity data is unavailable.",
+          "key_concern": "The lack of beta data prevents a complete assessment of XOM's sensitivity to broader market movements.",
+          "data_gaps": [
+            "beta"
+          ],
+          "call_ids": [
+            "a966076a5489"
+          ],
+          "model_id": "google/gemma-3-4b",
+          "agent_type": "risk"
+        },
+        {
+          "ticker": "XOM",
+          "as_of_date": "2023-03-31",
+          "decision": "Hold",
+          "confidence": 0.1,
+          "rationale": "The macro data retrieval failed with error 'NO_MACRO_DATA' - detail indicates 'No macro parquet files in /Users/alberto/Documents/projects/HiFi/data/macro'. Without any values for fed_funds_rate, cpi_yoy, unemployment_rate, yield_curve_slope, vix, or gdp_growth, no meaningful macro-based assessment can be formed.",
+          "key_concern": "Complete absence of macroeconomic data prevents any regime classification or equity outlook assessment.",
+          "data_gaps": [],
+          "call_ids": [
+            "14d8bb5b6255"
+          ],
+          "model_id": "qwen3.5-27b-claude-4.6-opus-reasoning-distilled-qx64-hi-mlx",
+          "agent_type": "macro"
+        },
+        {
+          "ticker": "XOM",
+          "as_of_date": "2023-03-31",
+          "decision": "Hold",
+          "confidence": 0.6,
+          "rationale": "The provided filings do not contain specific forward guidance or detailed qualitative risk signals. The documents primarily consist of boilerplate information and certifications.",
+          "key_concern": "The filings lack specific forward-looking statements or detailed risk disclosures, making it difficult to gauge management's tone and future outlook.",
+          "data_gaps": [],
+          "call_ids": [],
+          "model_id": "qwen2.5-coder-32b-instruct-mlx",
+          "agent_type": "sentiment"
+        }
+      ],
+      "aggregation_method": "confidence_weighted",
+      "method_comparison": {
+        "majority": {
+          "collective_decision": "Hold",
+          "collective_confidence": 1.0,
+          "n_valid_signals": 5,
+          "agreement": true,
+          "disagreement_entropy": 0.0,
+          "opinion_dispersion": 0.172,
+          "agent_decisions": [
+            "Hold",
+            "Hold",
+            "Hold",
+            "Hold",
+            "Hold"
+          ],
+          "agent_confidences": [
+            0.65,
+            0.65,
+            0.65,
+            0.1,
+            0.6
+          ],
+          "winning_score": 5.0,
+          "total_score": 5.0,
+          "contrarian_confidence_discount": 1.0,
+          "review_flagged": false
+        },
+        "confidence_weighted": {
+          "collective_decision": "Hold",
+          "collective_confidence": 1.0,
+          "n_valid_signals": 5,
+          "agreement": true,
+          "disagreement_entropy": 0.0,
+          "opinion_dispersion": 0.172,
+          "agent_decisions": [
+            "Hold",
+            "Hold",
+            "Hold",
+            "Hold",
+            "Hold"
+          ],
+          "agent_confidences": [
+            0.65,
+            0.65,
+            0.65,
+            0.1,
+            0.6
+          ],
+          "winning_score": 2.65,
+          "total_score": 2.65,
+          "contrarian_confidence_discount": 1.0,
+          "review_flagged": false
+        },
+        "performance_weighted": {
+          "collective_decision": "Hold",
+          "collective_confidence": 1.0,
+          "n_valid_signals": 5,
+          "agreement": true,
+          "disagreement_entropy": 0.0,
+          "opinion_dispersion": 0.172,
+          "agent_decisions": [
+            "Hold",
+            "Hold",
+            "Hold",
+            "Hold",
+            "Hold"
+          ],
+          "agent_confidences": [
+            0.65,
+            0.65,
+            0.65,
+            0.1,
+            0.6
+          ],
+          "winning_score": 1.074167,
+          "total_score": 1.074167,
+          "contrarian_confidence_discount": 1.0,
+          "review_flagged": false
+        },
+        "contrarian_adjusted": {
+          "collective_decision": "Hold",
+          "collective_confidence": 0.65,
+          "n_valid_signals": 5,
+          "agreement": true,
+          "disagreement_entropy": 0.0,
+          "opinion_dispersion": 0.172,
+          "agent_decisions": [
+            "Hold",
+            "Hold",
+            "Hold",
+            "Hold",
+            "Hold"
+          ],
+          "agent_confidences": [
+            0.65,
+            0.65,
+            0.65,
+            0.1,
+            0.6
+          ],
+          "winning_score": 2.65,
+          "total_score": 2.65,
+          "contrarian_confidence_discount": 0.65,
+          "review_flagged": false
+        }
+      }
+    }
+  },
+  "rolling_metrics": {
+    "AAPL": {
+      "kappa_W5": 0.6,
+      "stability_W5": 1.0,
+      "kappa_W10": 0.6,
+      "stability_W10": 1.0,
+      "kappa_W20": 0.625,
+      "stability_W20": 1.0
+    },
+    "JPM": {
+      "kappa_W5": 0.65,
+      "stability_W5": 1.0,
+      "kappa_W10": 0.675,
+      "stability_W10": 1.0,
+      "kappa_W20": 0.7125,
+      "stability_W20": 1.0
+    },
+    "XOM": {
+      "kappa_W5": 0.75,
+      "stability_W5": 1.0,
+      "kappa_W10": 0.7,
+      "stability_W10": 1.0,
+      "kappa_W20": 0.7375,
+      "stability_W20": 1.0
+    }
+  }
+}

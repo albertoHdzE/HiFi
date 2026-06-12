@@ -106,13 +106,68 @@ def check_phase7_fixture() -> list[str]:
     return []
 
 
+def check_market_data() -> list[str]:
+    """Verify Phase 1 OHLCV Parquet files exist for AAPL, JPM, XOM, SPY."""
+    data_dir = os.environ.get("HIFI_DATA_DIR", str(PROJECT_ROOT / "data"))
+    market_dir = Path(data_dir) / "market"
+    missing = []
+    for ticker in ("AAPL", "JPM", "XOM", "SPY"):
+        import glob as _glob
+        if not _glob.glob(str(market_dir / f"{ticker}_*.parquet")):
+            missing.append(ticker)
+    if missing:
+        return [
+            f"Market Parquet files missing for: {', '.join(missing)}",
+            "Run first: make acquire-data",
+        ]
+    return []
+
+
+def check_phase8_fixture() -> list[str]:
+    """Verify the Phase 8 agent population baseline fixture exists."""
+    path = PROJECT_ROOT / "tests" / "fixtures" / "baseline" / "phase8_agent_population.json"
+    if not path.exists():
+        return [
+            f"Phase 8 fixture not found: {path}",
+            "Generate it first: make baseline-phase8  (requires LM Studio)",
+        ]
+    return []
+
+
+def check_phase9_bootstrap() -> list[str]:
+    """Verify the Phase 9 performance history bootstrap file exists."""
+    data_dir = os.environ.get("HIFI_DATA_DIR", str(PROJECT_ROOT / "data"))
+    path = Path(data_dir) / "agent_performance_history.json"
+    if not path.exists():
+        return [
+            f"Phase 9 bootstrap not found: {path}",
+            "Generate it first: make bootstrap-phase9  (no LM Studio required)",
+        ]
+    return []
+
+
+def check_phase9_fixture() -> list[str]:
+    """Verify the Phase 9 collective engine baseline fixture exists."""
+    path = PROJECT_ROOT / "tests" / "fixtures" / "baseline" / "phase9_collective.json"
+    if not path.exists():
+        return [
+            f"Phase 9 fixture not found: {path}",
+            "Generate it first: make baseline-phase9  (requires LM Studio)",
+        ]
+    return []
+
+
 _CHECKS = {
     "langfuse": check_langfuse,
     "lm-studio": check_lm_studio,
+    "market-data": check_market_data,
     "phase4-fixture": check_phase4_fixture,
     "phase5-fixture": check_phase5_fixture,
     "sec-fixtures": check_sec_fixtures,
     "phase7-fixture": check_phase7_fixture,
+    "phase8-fixture": check_phase8_fixture,
+    "phase9-bootstrap": check_phase9_bootstrap,
+    "phase9-fixture": check_phase9_fixture,
 }
 
 

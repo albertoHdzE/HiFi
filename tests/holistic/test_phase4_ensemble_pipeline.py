@@ -116,7 +116,10 @@ def test_run_ensemble_returns_valid_output(
     monkeypatch.setattr(fa, "make_llm", lambda *a, **kw: _stub_llm(_BUY_RESPONSE, "fund-model"))
     monkeypatch.setattr(ta, "make_llm", lambda *a, **kw: _stub_llm(_HOLD_RESPONSE, "tech-model"))
 
-    output = run_ensemble("AAPL", "2023-03-31", aapl_snapshot_json, fixtures_data_dir)
+    output = run_ensemble(
+        "AAPL", "2023-03-31", aapl_snapshot_json,
+        fixtures_data_dir, agents=["fundamental", "technical"],
+    )
 
     assert isinstance(output, EnsembleOutput)
     assert output.ticker == "AAPL"
@@ -140,7 +143,10 @@ def test_ensemble_agreement_scenario(
     monkeypatch.setattr(fa, "make_llm", lambda *a, **kw: _stub_llm(_BUY_RESPONSE, "fund-model"))
     monkeypatch.setattr(ta, "make_llm", lambda *a, **kw: _stub_llm(_BUY_RESPONSE, "tech-model"))
 
-    output = run_ensemble("AAPL", "2023-03-31", aapl_snapshot_json, fixtures_data_dir)
+    output = run_ensemble(
+        "AAPL", "2023-03-31", aapl_snapshot_json,
+        fixtures_data_dir, agents=["fundamental", "technical"],
+    )
 
     ed = output.ensemble_decision
     assert ed.collective_decision == "Buy"
@@ -163,7 +169,10 @@ def test_ensemble_disagreement_scenario(
     monkeypatch.setattr(fa, "make_llm", lambda *a, **kw: _stub_llm(_BUY_RESPONSE, "fund-model"))
     monkeypatch.setattr(ta, "make_llm", lambda *a, **kw: _stub_llm(_SELL_RESPONSE, "tech-model"))
 
-    output = run_ensemble("AAPL", "2023-03-31", aapl_snapshot_json, fixtures_data_dir)
+    output = run_ensemble(
+        "AAPL", "2023-03-31", aapl_snapshot_json,
+        fixtures_data_dir, agents=["fundamental", "technical"],
+    )
 
     ed = output.ensemble_decision
     assert ed.agreement is False
@@ -186,7 +195,10 @@ def test_ensemble_output_json_safe(
     monkeypatch.setattr(fa, "make_llm", lambda *a, **kw: _stub_llm(_HOLD_RESPONSE, "fund-model"))
     monkeypatch.setattr(ta, "make_llm", lambda *a, **kw: _stub_llm(_HOLD_RESPONSE, "tech-model"))
 
-    output = run_ensemble("AAPL", "2023-03-31", aapl_snapshot_json, fixtures_data_dir)
+    output = run_ensemble(
+        "AAPL", "2023-03-31", aapl_snapshot_json,
+        fixtures_data_dir, agents=["fundamental", "technical"],
+    )
     # Must not raise
     json.dumps(output.model_dump())
 
@@ -235,7 +247,10 @@ def test_technical_analysis_time_horizon_in_output(
     monkeypatch.setattr(fa, "make_llm", lambda *a, **kw: _stub_llm(_HOLD_RESPONSE, "fund-model"))
     monkeypatch.setattr(ta, "make_llm", lambda *a, **kw: _stub_llm(_SELL_RESPONSE, "tech-model"))
 
-    output = run_ensemble("AAPL", "2023-03-31", aapl_snapshot_json, fixtures_data_dir)
+    output = run_ensemble(
+        "AAPL", "2023-03-31", aapl_snapshot_json,
+        fixtures_data_dir, agents=["fundamental", "technical"],
+    )
 
     # time_horizon from the stub JSON is "short-term"
     assert output.technical_analysis.time_horizon == "short-term"

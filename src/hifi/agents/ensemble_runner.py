@@ -1,27 +1,36 @@
 """
-Ensemble runner for the Phase 4 two-agent ensemble (P4-E4).
+Ensemble runner for the Phase 8/9 N-agent ensemble (P8-E6, P9-E3).
 
-Runs the Fundamental Agent and Technical Agent sequentially with no shared state
-between them during reasoning. This independence is the condition from David §10.1
-required for ensemble theory to apply.
+Extends the Phase 4 two-agent runner to support up to 6 agents:
+  fundamental, technical, risk, macro, sentiment, contrarian
 
-Sequential execution is intentional for Phase 4 (2 agents). Phase 9 will
-parallelize agent runs; the additional complexity is not justified at this scale.
+The `agents` parameter selects which agents to run (DJ-038):
+- agents=None         → all 6 agents (Phase 8 default)
+- agents=["fundamental","technical"] → Phase 4/6/7 behavior (backward compat)
+- Contrarian always runs LAST (after voting) regardless of list order
 
-Phase 6 addition: run_ensemble() creates a parent LangFuse trace, passes the
-tracer to both agents, and logs verification scores on the trace after calling
-verify_ensemble(). The full pipeline is observable end-to-end without any changes
-to agent logic or LangGraph state schemas (DJ-023, DJ-024).
+Phase 9 additions (P9-E3):
+- All four aggregation methods run on every call via run_all_methods(); results
+  stored in EnsembleOutput.method_comparison (D-02)
+- Valid signals captured in EnsembleOutput.signals (D-01)
+- Performance weights loaded from data/agent_performance_history.json (D-04)
+- Method divergence logged at INFO when methods produce different decisions (D-06)
+
+Sequential execution: agents run one at a time.
+
+Observability: the same parent LangFuse trace covers all agents and verification.
 """
 
 from __future__ import annotations
 
+import logging
 import time
 
 from hifi.agents.fundamental_agent import run_analysis
 from hifi.agents.technical_agent import run_technical_analysis
+from hifi.collective.performance_store import get_weights
 from hifi.collective.schemas import EnsembleOutput
-from hifi.collective.voting import confidence_weighted_vote
+from hifi.collective.voting import confidence_weighted_vote, run_all_methods
 from hifi.observability.tracing import (
     AbstractTracer,
     get_tracer,
@@ -29,6 +38,10 @@ from hifi.observability.tracing import (
     trace_context,
 )
 from hifi.verification.verifier import verify_ensemble
+
+logger = logging.getLogger(__name__)
+
+_ALL_AGENTS = ["fundamental", "technical", "risk", "macro", "sentiment", "contrarian"]
 
 
 def run_ensemble(
@@ -38,9 +51,10 @@ def run_ensemble(
     data_dir: str | None = None,
     tracer: AbstractTracer | None = None,
     use_rag: bool = False,
+    agents: list[str] | None = None,
 ) -> EnsembleOutput:
     """
-    Run both agents independently, aggregate their outputs, and verify.
+    Run the agent ensemble, aggregate outputs, and verify.
 
     Parameters
     ----------
@@ -50,35 +64,42 @@ def run_ensemble(
         ISO 8601 analysis date (e.g. "2023-03-31").
     snapshot_json : str
         JSON-serialised FundamentalsSnapshot for the Fundamental Agent.
-        The Technical Agent does not receive this.
+        Only used when "fundamental" is in the agents list.
     data_dir : str | None
         Path to the data root directory. Defaults to HIFI_DATA_DIR env var.
     tracer : AbstractTracer | None
-        Observability tracer. Defaults to get_tracer(). When LANGFUSE_ENABLED=true
-        and credentials are set, this creates a parent LangFuse trace that covers
-        both agent runs and the verification step. When disabled, NoOpTracer is
-        used and behaviour is identical to pre-Phase-6.
+        Observability tracer. Defaults to get_tracer().
     use_rag : bool
-        When True, both agents include a retrieve_context step that queries the
-        knowledge MCP server for SEC filing passages. Fail-open: if the server
-        is unavailable the agents fall back to v1 prompts transparently.
+        When True, Fundamental and Technical Agents include a retrieve_context step.
+    agents : list[str] | None
+        Agents to run. None means all 6 agents. Use ["fundamental","technical"] for
+        Phase 4/6/7 backward compat. Contrarian always runs last (DJ-038).
 
     Returns
     -------
     EnsembleOutput
-        Full ensemble output: both agent analyses plus collective decision.
-        Agents share no state during reasoning -- independence is enforced by
-        the function call boundary.
+        Full ensemble output. Phase 8 fields (risk, macro, sentiment, contrarian)
+        are None when the corresponding agent was not in the `agents` list.
     """
     _tracer = tracer if tracer is not None else get_tracer()
     trace_id = _tracer.start_trace(
         "run_ensemble", ticker=ticker, as_of_date=as_of_date
     )
 
+    active = _ALL_AGENTS if agents is None else list(agents)
+    # Contrarian always runs last — remove and re-append after other agents
+    run_contrarian = "contrarian" in active
+    voting_agents = [a for a in active if a != "contrarian"]
+
     start = time.monotonic()
 
+    risk_analysis = None
+    macro_analysis = None
+    sentiment_analysis = None
+    contrarian_analysis = None
+
     with trace_context(trace_id):
-        # Step 1: Fundamental Agent (uses snapshot_json + MCP fundamentals tools)
+        # --- Phase 4 agents ---
         fundamental = run_analysis(
             ticker=ticker,
             as_of_date=as_of_date,
@@ -88,7 +109,6 @@ def run_ensemble(
             use_rag=use_rag,
         )
 
-        # Step 2: Technical Agent (uses only price-derived MCP tools; no snapshot)
         technical = run_technical_analysis(
             ticker=ticker,
             as_of_date=as_of_date,
@@ -97,13 +117,99 @@ def run_ensemble(
             use_rag=use_rag,
         )
 
-    # Step 3: Collect valid signals and aggregate
-    valid_signals = [
-        s
-        for s in [fundamental.signal, technical.signal]
-        if s is not None
-    ]
+        # --- Phase 8 agents (imported lazily to avoid import-time side effects) ---
+        if "risk" in voting_agents:
+            from hifi.agents.risk_agent import run_risk_analysis
+            risk_analysis = run_risk_analysis(
+                ticker=ticker,
+                as_of_date=as_of_date,
+                data_dir=data_dir,
+                tracer=_tracer,
+            )
+
+        if "macro" in voting_agents:
+            from hifi.agents.macro_agent import run_macro_analysis
+            macro_analysis = run_macro_analysis(
+                ticker=ticker,
+                as_of_date=as_of_date,
+                data_dir=data_dir,
+                tracer=_tracer,
+            )
+
+        if "sentiment" in voting_agents:
+            from hifi.agents.sentiment_agent import run_sentiment_analysis
+            sentiment_analysis = run_sentiment_analysis(
+                ticker=ticker,
+                as_of_date=as_of_date,
+                data_dir=data_dir,
+                tracer=_tracer,
+            )
+
+    # --- Performance weights for aggregation (D-02) ---
+    perf_weights = get_weights(data_dir=data_dir)
+
+    # --- Voting: collect valid signals from all non-contrarian agents ---
+    candidate_signals = [fundamental.signal, technical.signal]
+    if risk_analysis is not None:
+        candidate_signals.append(risk_analysis.signal)
+    if macro_analysis is not None:
+        candidate_signals.append(macro_analysis.signal)
+    if sentiment_analysis is not None:
+        candidate_signals.append(sentiment_analysis.signal)
+
+    valid_signals = [s for s in candidate_signals if s is not None]
     decision = confidence_weighted_vote(valid_signals)
+
+    # --- Contrarian (second-pass, always after voting) ---
+    if run_contrarian:
+        from hifi.agents.contrarian_agent import (
+            _build_ensemble_context,
+            run_contrarian_analysis,
+        )
+
+        agent_summaries = []
+        for sig in valid_signals:
+            agent_summaries.append({
+                "agent_type": sig.agent_type,
+                "decision": sig.decision,
+                "confidence": sig.confidence,
+                "rationale": sig.rationale,
+                "key_concern": sig.key_concern,
+            })
+
+        ensemble_context = _build_ensemble_context(
+            ticker=ticker,
+            as_of_date=as_of_date,
+            agent_summaries=agent_summaries,
+            collective_decision=decision.collective_decision,
+            collective_confidence=decision.collective_confidence,
+        )
+
+        with trace_context(trace_id):
+            contrarian_analysis = run_contrarian_analysis(
+                ticker=ticker,
+                as_of_date=as_of_date,
+                ensemble_context=ensemble_context,
+                tracer=_tracer,
+            )
+
+    # --- Run all four aggregation methods (D-02, D-06) ---
+    method_comparison = run_all_methods(
+        signals=candidate_signals,
+        contrarian=contrarian_analysis,
+        weights=perf_weights,
+    )
+
+    # Log divergence when methods produce different decisions (D-06)
+    decisions_by_method = {k: v.collective_decision for k, v in method_comparison.items()}
+    unique_decisions = {d for d in decisions_by_method.values() if d is not None}
+    if len(unique_decisions) > 1:
+        logger.info(
+            "Method divergence for %s %s: %s",
+            ticker,
+            as_of_date,
+            decisions_by_method,
+        )
 
     latency_ms = round((time.monotonic() - start) * 1000, 1)
 
@@ -114,9 +220,16 @@ def run_ensemble(
         technical_analysis=technical,
         ensemble_decision=decision,
         latency_ms=latency_ms,
+        risk_analysis=risk_analysis,
+        macro_analysis=macro_analysis,
+        sentiment_analysis=sentiment_analysis,
+        contrarian_analysis=contrarian_analysis,
+        signals=valid_signals,
+        aggregation_method="confidence_weighted",
+        method_comparison=method_comparison,
     )
 
-    # Step 4: Verify ensemble output and log scores (DJ-024)
+    # Verification covers fundamental and technical (Phase 5/6 layer unchanged)
     verification = verify_ensemble(output)
     log_verification_scores(_tracer, trace_id, verification, decision)
 

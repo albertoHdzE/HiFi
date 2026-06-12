@@ -8,7 +8,8 @@ What this test validates:
 1. run_ensemble() with NoOpTracer completes and returns a valid EnsembleOutput
 2. NoOpTracer.start_trace() was called (tracer method invocation tracking)
 3. log_verification_scores() was called with the correct trace_id and report
-4. flush() was called exactly once per run_ensemble() call
+4. flush(    agents=["fundamental", "technical"],
+) was called exactly once per run_ensemble() call
 5. Phase 5 regression: verify_ensemble() still produces a valid EnsembleVerificationReport
 6. Phase 4 regression: run_ensemble() without explicit tracer still produces valid output
 """
@@ -123,7 +124,8 @@ def fixtures_data_dir(tmp_path):
 
 def test_phase6_full_pipeline_with_noop_tracer(monkeypatch, fixtures_data_dir):
     """
-    run_ensemble() with NoOpTracer:
+    run_ensemble(    agents=["fundamental", "technical"],
+    ) with NoOpTracer:
     1. Completes and returns valid EnsembleOutput
     2. start_trace() was called
     3. Verification scores logged
@@ -142,6 +144,7 @@ def test_phase6_full_pipeline_with_noop_tracer(monkeypatch, fixtures_data_dir):
         "AAPL", "2023-03-31", snap.model_dump_json(),
         data_dir=fixtures_data_dir,
         tracer=tracer,
+        agents=["fundamental", "technical"],
     )
 
     # Assertion 1: valid EnsembleOutput
@@ -189,6 +192,7 @@ def test_phase5_regression_verify_ensemble(monkeypatch, fixtures_data_dir):
     output = run_ensemble(
         "AAPL", "2023-03-31", snap.model_dump_json(),
         data_dir=fixtures_data_dir,
+        agents=["fundamental", "technical"],
     )
 
     # Directly call verify_ensemble on the output (Phase 5 pipeline unchanged)
@@ -210,7 +214,8 @@ def test_phase5_regression_verify_ensemble(monkeypatch, fixtures_data_dir):
 
 
 def test_phase4_regression_run_ensemble_without_tracer(monkeypatch, fixtures_data_dir):
-    """Phase 4 regression: run_ensemble() without explicit tracer still works."""
+    """Phase 4 regression: run_ensemble(    agents=["fundamental", "technical"],
+    ) without explicit tracer still works."""
     import hifi.agents.fundamental_agent as fa
     import hifi.agents.technical_agent as ta
     from hifi.agents.ensemble_runner import run_ensemble
@@ -221,7 +226,10 @@ def test_phase4_regression_run_ensemble_without_tracer(monkeypatch, fixtures_dat
     snap = _make_snapshot()
     # No explicit tracer -- falls back to get_tracer() which returns NoOpTracer
     # (LANGFUSE_ENABLED=false in conftest.py session fixture)
-    output = run_ensemble("AAPL", "2023-03-31", snap.model_dump_json(), fixtures_data_dir)
+    output = run_ensemble(
+        "AAPL", "2023-03-31", snap.model_dump_json(),
+        fixtures_data_dir, agents=["fundamental", "technical"],
+    )
 
     assert isinstance(output, EnsembleOutput)
     assert output.ticker == "AAPL"

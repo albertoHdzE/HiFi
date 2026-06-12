@@ -30,6 +30,7 @@ import os
 import subprocess
 import sys
 import uuid
+from pathlib import Path
 from typing import Any
 
 from hifi.observability.tracing import _current_trace_id, get_tracer
@@ -45,9 +46,10 @@ def call_tool(
     params: dict[str, Any],
     server_module: str = "hifi.mcp.financial_server",
     data_dir: str | None = None,
+    python_executable: str | None = None,
 ) -> dict[str, Any]:
     """
-    Call one tool on the Phase 2 MCP stdio server.
+    Call one tool on an MCP stdio server.
 
     Starts the server as a subprocess, sends the JSON-RPC initialize + tools/call
     sequence, reads the response, and terminates the subprocess.
@@ -67,6 +69,11 @@ def call_tool(
     data_dir : str | None
         Path to the data directory. Passed as HIFI_DATA_DIR env var to the server
         subprocess. If None, the server uses its own default ("data").
+    python_executable : str | None
+        Full path to the Python interpreter to use for the server subprocess.
+        Defaults to sys.executable (the current interpreter). Use this to run
+        servers in isolated virtual environments (e.g. venvs/ta/bin/python for
+        the indicators server — DJ-035).
 
     Returns
     -------
@@ -81,11 +88,11 @@ def call_tool(
     """
     trace_id = _current_trace_id.get()
     if trace_id is None:
-        return _call_subprocess(tool_name, params, server_module, data_dir)
+        return _call_subprocess(tool_name, params, server_module, data_dir, python_executable)
 
     tracer = get_tracer()
     with tracer.span(trace_id, f"mcp_{tool_name}", input=params) as span_ctx:
-        result = _call_subprocess(tool_name, params, server_module, data_dir)
+        result = _call_subprocess(tool_name, params, server_module, data_dir, python_executable)
         span_ctx.output = result
         call_id = result.get("call_id") if isinstance(result, dict) else None
         if call_id:
@@ -98,14 +105,25 @@ def _call_subprocess(
     params: dict[str, Any],
     server_module: str,
     data_dir: str | None,
+    python_executable: str | None = None,
 ) -> dict[str, Any]:
     """Execute one MCP tool call as a subprocess (implementation detail)."""
     env = os.environ.copy()
     if data_dir is not None:
         env["HIFI_DATA_DIR"] = data_dir
 
+    executable = python_executable or sys.executable
+
+    # When a custom Python executable is used (e.g. venvs/ta/bin/python), set
+    # PYTHONPATH to include the project src/ directory so that `import hifi`
+    # succeeds inside the isolated venv (DJ-035).
+    if python_executable is not None:
+        src_dir = str(Path(__file__).parent.parent.parent)
+        existing = env.get("PYTHONPATH", "")
+        env["PYTHONPATH"] = f"{src_dir}:{existing}" if existing else src_dir
+
     proc = subprocess.Popen(
-        [sys.executable, "-m", server_module],
+        [executable, "-m", server_module],
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,

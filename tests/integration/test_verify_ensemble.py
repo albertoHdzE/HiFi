@@ -98,7 +98,10 @@ def test_verify_ensemble_returns_report(monkeypatch, fixtures_data_dir, aapl_sna
     monkeypatch.setattr(fa, "make_llm", lambda *a, **kw: _stub_llm(_STUB_HOLD, "fund"))
     monkeypatch.setattr(ta, "make_llm", lambda *a, **kw: _stub_llm(_STUB_HOLD, "tech"))
 
-    output = run_ensemble("AAPL", "2023-03-31", aapl_snapshot_json, fixtures_data_dir)
+    output = run_ensemble(
+        "AAPL", "2023-03-31", aapl_snapshot_json,
+        fixtures_data_dir, agents=["fundamental", "technical"],
+    )
 
     assert isinstance(output, EnsembleOutput)
     report = verify_ensemble(output)
@@ -125,7 +128,10 @@ def test_triggered_by_disagreement_false_when_agreement(
     monkeypatch.setattr(fa, "make_llm", lambda *a, **kw: _stub_llm(_STUB_HOLD, "fund"))
     monkeypatch.setattr(ta, "make_llm", lambda *a, **kw: _stub_llm(_STUB_HOLD, "tech"))
 
-    output = run_ensemble("AAPL", "2023-03-31", aapl_snapshot_json, fixtures_data_dir)
+    output = run_ensemble(
+        "AAPL", "2023-03-31", aapl_snapshot_json,
+        fixtures_data_dir, agents=["fundamental", "technical"],
+    )
     report = verify_ensemble(output)
 
     if output.ensemble_decision.disagreement_entropy == 0.0:
@@ -144,7 +150,10 @@ def test_triggered_by_disagreement_true_when_disagreement(
     monkeypatch.setattr(fa, "make_llm", lambda *a, **kw: _stub_llm(_STUB_HOLD, "fund"))
     monkeypatch.setattr(ta, "make_llm", lambda *a, **kw: _stub_llm(_STUB_BUY, "tech"))
 
-    output = run_ensemble("AAPL", "2023-03-31", aapl_snapshot_json, fixtures_data_dir)
+    output = run_ensemble(
+        "AAPL", "2023-03-31", aapl_snapshot_json,
+        fixtures_data_dir, agents=["fundamental", "technical"],
+    )
     report = verify_ensemble(output)
 
     fa_sig = output.fundamental_analysis.signal
@@ -165,7 +174,10 @@ def test_verify_ensemble_structural_invariants(monkeypatch, fixtures_data_dir, a
     monkeypatch.setattr(fa, "make_llm", lambda *a, **kw: _stub_llm(_STUB_HOLD, "fund"))
     monkeypatch.setattr(ta, "make_llm", lambda *a, **kw: _stub_llm(_STUB_HOLD, "tech"))
 
-    output = run_ensemble("AAPL", "2023-03-31", aapl_snapshot_json, fixtures_data_dir)
+    output = run_ensemble(
+        "AAPL", "2023-03-31", aapl_snapshot_json,
+        fixtures_data_dir, agents=["fundamental", "technical"],
+    )
     report = verify_ensemble(output)
 
     fr = report.fundamental_report
@@ -191,7 +203,10 @@ def test_verify_ensemble_json_safe(monkeypatch, fixtures_data_dir, aapl_snapshot
     monkeypatch.setattr(fa, "make_llm", lambda *a, **kw: _stub_llm(_STUB_HOLD, "fund"))
     monkeypatch.setattr(ta, "make_llm", lambda *a, **kw: _stub_llm(_STUB_HOLD, "tech"))
 
-    output = run_ensemble("AAPL", "2023-03-31", aapl_snapshot_json, fixtures_data_dir)
+    output = run_ensemble(
+        "AAPL", "2023-03-31", aapl_snapshot_json,
+        fixtures_data_dir, agents=["fundamental", "technical"],
+    )
     report = verify_ensemble(output)
     # Must not raise
     json.dumps(report.model_dump())

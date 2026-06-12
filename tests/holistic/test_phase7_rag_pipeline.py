@@ -6,7 +6,8 @@ live server required.
 
 What this test validates:
 1. Full RAG pipeline: KnowledgeStore → retriever → retrieved_context → v2 prompt → EnsembleOutput
-2. Phase 6 regression: run_ensemble(use_rag=False) identical structure to Phase 6
+2. Phase 6 regression: run_ensemble(use_rag=False, agents=["fundamental", "technical"])
+   identical structure to Phase 6
 3. Phase 5 regression: verify_ensemble() works on Phase 7 EnsembleOutput
 4. Fail-open: retrieval failure → v1 prompt, valid output still produced
 5. RAG output is JSON-safe (serialisable with no errors)
@@ -246,6 +247,7 @@ def test_rag_full_pipeline_produces_ensemble_output(
         as_of_date=_DATE,
         snapshot_json=snap.model_dump_json(),
         use_rag=True,
+        agents=["fundamental", "technical"],
     )
 
     assert isinstance(output, EnsembleOutput)
@@ -286,6 +288,7 @@ def test_phase6_regression_rag_false_identical_structure(
         as_of_date=_DATE,
         snapshot_json=snap.model_dump_json(),
         use_rag=False,
+        agents=["fundamental", "technical"],
     )
 
     assert isinstance(output, EnsembleOutput)
@@ -328,6 +331,7 @@ def test_phase5_regression_verify_ensemble_on_rag_output(
         as_of_date=_DATE,
         snapshot_json=snap.model_dump_json(),
         use_rag=True,
+        agents=["fundamental", "technical"],
     )
 
     report = verify_ensemble(output, always_verify=True)
@@ -366,6 +370,7 @@ def test_rag_server_failure_fail_open(monkeypatch, knowledge_store_and_retriever
         as_of_date=_DATE,
         snapshot_json=snap.model_dump_json(),
         use_rag=True,
+        agents=["fundamental", "technical"],
     )
 
     assert isinstance(output, EnsembleOutput)
@@ -402,6 +407,7 @@ def test_rag_output_is_json_safe(monkeypatch, knowledge_store_and_retriever):
         as_of_date=_DATE,
         snapshot_json=snap.model_dump_json(),
         use_rag=True,
+        agents=["fundamental", "technical"],
     )
 
     serialised = json.dumps(output.model_dump())

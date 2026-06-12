@@ -99,6 +99,7 @@ def test_run_ensemble_returns_ensemble_output(
         as_of_date="2023-03-31",
         snapshot_json=aapl_snapshot_json,
         data_dir=fixtures_data_dir,
+        agents=["fundamental", "technical"],
     )
 
     assert isinstance(output, EnsembleOutput)
@@ -120,7 +121,10 @@ def test_run_ensemble_independent_agents(
     monkeypatch.setattr(fa, "make_llm", lambda *a, **kw: _make_fund_stub())
     monkeypatch.setattr(ta, "make_llm", lambda *a, **kw: _make_tech_stub())
 
-    output = run_ensemble("AAPL", "2023-03-31", aapl_snapshot_json, fixtures_data_dir)
+    output = run_ensemble(
+        "AAPL", "2023-03-31", aapl_snapshot_json,
+        fixtures_data_dir, agents=["fundamental", "technical"],
+    )
 
     # Each analysis uses a different model_id (their stubs have different model_name)
     fa_signal = output.fundamental_analysis.signal
@@ -141,9 +145,98 @@ def test_run_ensemble_json_safe(
     monkeypatch.setattr(fa, "make_llm", lambda *a, **kw: _make_fund_stub())
     monkeypatch.setattr(ta, "make_llm", lambda *a, **kw: _make_tech_stub())
 
-    output = run_ensemble("AAPL", "2023-03-31", aapl_snapshot_json, fixtures_data_dir)
+    output = run_ensemble(
+        "AAPL", "2023-03-31", aapl_snapshot_json,
+        fixtures_data_dir, agents=["fundamental", "technical"],
+    )
     # Must not raise
     json.dumps(output.model_dump())
+
+
+def test_run_ensemble_phase9_fields_populated(
+    monkeypatch, fixtures_data_dir, aapl_snapshot_json
+):
+    """Phase 9: signals, aggregation_method, and method_comparison are populated."""
+    import hifi.agents.fundamental_agent as fa
+    import hifi.agents.technical_agent as ta
+
+    monkeypatch.setattr(fa, "make_llm", lambda *a, **kw: _make_fund_stub())
+    monkeypatch.setattr(ta, "make_llm", lambda *a, **kw: _make_tech_stub())
+
+    output = run_ensemble(
+        "AAPL", "2023-03-31", aapl_snapshot_json,
+        fixtures_data_dir, agents=["fundamental", "technical"],
+    )
+
+    assert output.aggregation_method == "confidence_weighted"
+    assert isinstance(output.signals, list)
+    assert all(s is not None for s in output.signals)
+    assert set(output.method_comparison.keys()) == {
+        "majority", "confidence_weighted", "performance_weighted", "contrarian_adjusted"
+    }
+
+
+def test_run_ensemble_method_comparison_cw_equals_ensemble_decision(
+    monkeypatch, fixtures_data_dir, aapl_snapshot_json
+):
+    """method_comparison['confidence_weighted'] equals ensemble_decision."""
+    import hifi.agents.fundamental_agent as fa
+    import hifi.agents.technical_agent as ta
+
+    monkeypatch.setattr(fa, "make_llm", lambda *a, **kw: _make_fund_stub())
+    monkeypatch.setattr(ta, "make_llm", lambda *a, **kw: _make_tech_stub())
+
+    output = run_ensemble(
+        "AAPL", "2023-03-31", aapl_snapshot_json,
+        fixtures_data_dir, agents=["fundamental", "technical"],
+    )
+
+    cw = output.method_comparison["confidence_weighted"]
+    ed = output.ensemble_decision
+    assert cw.collective_decision == ed.collective_decision
+    assert cw.collective_confidence == ed.collective_confidence
+    assert cw.n_valid_signals == ed.n_valid_signals
+
+
+def test_run_ensemble_backward_compat_agents_list_still_gets_method_comparison(
+    monkeypatch, fixtures_data_dir, aapl_snapshot_json
+):
+    """agents=['fundamental','technical'] still populates method_comparison with 4 keys."""
+    import hifi.agents.fundamental_agent as fa
+    import hifi.agents.technical_agent as ta
+
+    monkeypatch.setattr(fa, "make_llm", lambda *a, **kw: _make_fund_stub())
+    monkeypatch.setattr(ta, "make_llm", lambda *a, **kw: _make_tech_stub())
+
+    output = run_ensemble(
+        "AAPL", "2023-03-31", aapl_snapshot_json,
+        fixtures_data_dir, agents=["fundamental", "technical"],
+    )
+
+    assert len(output.method_comparison) == 4
+    assert output.signals  # non-empty
+
+
+def test_run_ensemble_output_json_roundtrip_with_phase9_fields(
+    monkeypatch, fixtures_data_dir, aapl_snapshot_json
+):
+    """EnsembleOutput with Phase 9 fields is JSON-safe and round-trips."""
+
+    import hifi.agents.fundamental_agent as fa
+    import hifi.agents.technical_agent as ta
+
+    monkeypatch.setattr(fa, "make_llm", lambda *a, **kw: _make_fund_stub())
+    monkeypatch.setattr(ta, "make_llm", lambda *a, **kw: _make_tech_stub())
+
+    output = run_ensemble(
+        "AAPL", "2023-03-31", aapl_snapshot_json,
+        fixtures_data_dir, agents=["fundamental", "technical"],
+    )
+
+    serialised = output.model_dump_json()
+    restored = type(output).model_validate_json(serialised)
+    assert restored.ticker == output.ticker
+    assert set(restored.method_comparison.keys()) == set(output.method_comparison.keys())
 
 
 def test_run_ensemble_disagreement_valid(
@@ -157,7 +250,10 @@ def test_run_ensemble_disagreement_valid(
     monkeypatch.setattr(fa, "make_llm", lambda *a, **kw: _make_fund_stub())
     monkeypatch.setattr(ta, "make_llm", lambda *a, **kw: _make_tech_stub())
 
-    output = run_ensemble("AAPL", "2023-03-31", aapl_snapshot_json, fixtures_data_dir)
+    output = run_ensemble(
+        "AAPL", "2023-03-31", aapl_snapshot_json,
+        fixtures_data_dir, agents=["fundamental", "technical"],
+    )
 
     ed = output.ensemble_decision
     fa_sig = output.fundamental_analysis.signal

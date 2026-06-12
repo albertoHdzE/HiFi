@@ -5,7 +5,7 @@ Covers:
 - use_rag=False (regression): graph structure identical to Phase 6, v1 prompt used
 - use_rag=True with mock passages: retrieved_context non-empty, v2 prompt selected
 - use_rag=True with retrieval failure: fail-open to "", v1 prompt used
-- run_ensemble(use_rag=True): use_rag forwarded to both agents
+- run_ensemble(use_rag=True, agents=["fundamental", "technical"]): use_rag forwarded to both agents
 """
 
 from __future__ import annotations
@@ -293,6 +293,7 @@ def test_ensemble_use_rag_false_default(monkeypatch, snapshot_json):
         as_of_date=_DATE,
         snapshot_json=snapshot_json,
         use_rag=False,
+    agents=["fundamental", "technical"],
     )
 
     assert isinstance(output, EnsembleOutput)
@@ -301,7 +302,8 @@ def test_ensemble_use_rag_false_default(monkeypatch, snapshot_json):
 
 
 def test_ensemble_use_rag_true_forwards_to_both_agents(monkeypatch, snapshot_json):
-    """run_ensemble(use_rag=True): both agents see passages and use v2 prompts."""
+    """run_ensemble(use_rag=True, agents=["fundamental", "technical"]):
+    both agents see passages and use v2 prompts."""
     monkeypatch.setattr(fa, "make_llm", lambda *a, **kw: _FundamentalStub())
     monkeypatch.setattr(ta, "make_llm", lambda *a, **kw: _TechnicalStub())
     monkeypatch.setattr(fa, "call_tool", _stub_tool_results)
@@ -314,6 +316,7 @@ def test_ensemble_use_rag_true_forwards_to_both_agents(monkeypatch, snapshot_jso
         as_of_date=_DATE,
         snapshot_json=snapshot_json,
         use_rag=True,
+    agents=["fundamental", "technical"],
     )
 
     assert isinstance(output, EnsembleOutput)

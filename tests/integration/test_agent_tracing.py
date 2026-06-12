@@ -323,7 +323,10 @@ def test_run_ensemble_passes_tracer_to_agents(monkeypatch, fixtures_data_dir):
 
     tracer = RecordingTracer()
     snap = _make_snapshot()
-    run_ensemble("AAPL", "2023-03-31", snap.model_dump_json(), fixtures_data_dir, tracer=tracer)
+    run_ensemble(
+        "AAPL", "2023-03-31", snap.model_dump_json(), fixtures_data_dir,
+        tracer=tracer, agents=["fundamental", "technical"],
+    )
 
     # run_ensemble starts one trace, each agent also starts one trace via tracer
     # Total: 1 (ensemble) + 1 (fundamental) + 1 (technical) = 3 start_trace calls
@@ -349,7 +352,10 @@ def test_run_ensemble_logs_verification_scores(monkeypatch, fixtures_data_dir):
 
     tracer = RecordingTracer()
     snap = _make_snapshot()
-    run_ensemble("AAPL", "2023-03-31", snap.model_dump_json(), fixtures_data_dir, tracer=tracer)
+    run_ensemble(
+        "AAPL", "2023-03-31", snap.model_dump_json(), fixtures_data_dir,
+        tracer=tracer, agents=["fundamental", "technical"],
+    )
 
     # Six verification scores must be logged
     assert len(tracer.scores) == 6

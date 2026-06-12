@@ -327,7 +327,10 @@ def test_phase4_run_ensemble_regression(monkeypatch, fixtures_data_dir):
         provenance=ProvenanceRecord(source="test", fetched_at=datetime(2023, 4, 1)),
     )
 
-    output = run_ensemble("AAPL", "2023-03-31", snap.model_dump_json(), fixtures_data_dir)
+    output = run_ensemble(
+        "AAPL", "2023-03-31", snap.model_dump_json(),
+        fixtures_data_dir, agents=["fundamental", "technical"],
+    )
 
     assert isinstance(output, EnsembleOutput)
     assert output.ticker == "AAPL"
