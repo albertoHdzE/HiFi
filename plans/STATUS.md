@@ -1,7 +1,7 @@
 # HiFi Project Status
 
-**Last Updated:** 2026-06-11
-**Current Phase:** Phase 7 COMPLETE
+**Last Updated:** 2026-06-12
+**Current Phase:** Phase 10 IN PROGRESS
 
 ---
 
@@ -29,9 +29,9 @@ HiFi is a fully local multi-agent financial intelligence platform. Read these fi
 | 5 | Verification Layer | COMPLETE | plans/PHASE_05_PLAN.md | doc/bitacora/PHASE_05_VERIFICATION.md |
 | 6 | Observability (LangFuse) | COMPLETE | plans/PHASE_06_PLAN.md | doc/bitacora/PHASE_06_OBSERVABILITY.md |
 | 7 | RAG Knowledge Systems | COMPLETE | plans/PHASE_07_PLAN.md | doc/bitacora/PHASE_07_RAG.md |
-| 8 | Full Agent Population | NOT STARTED | -- | -- |
-| 9 | Collective Decision Engine | NOT STARTED | -- | -- |
-| 10 | Evaluation & Backtesting | NOT STARTED | -- | -- |
+| 8 | Full Agent Population | COMPLETE | plans/PHASE_08_PLAN.md | doc/bitacora/PHASE_08_AGENT_POPULATION.md |
+| 9 | Collective Decision Engine | COMPLETE | plans/PHASE_09_PLAN.md | doc/bitacora/PHASE_09_COLLECTIVE_ENGINE.md |
+| 10 | Evaluation & Backtesting | IN PROGRESS | plans/PHASE_10_PLAN.md | -- |
 | 11 | Fine-Tuning | NOT STARTED | -- | -- |
 | 12 | GraphRAG | NOT STARTED | -- | -- |
 | 13 | Advanced Features | NOT STARTED | -- | -- |
@@ -183,11 +183,11 @@ HiFi is a fully local multi-agent financial intelligence platform. Read these fi
 
 | Metric | Value |
 |---|---|
-| Total tests | 596 (596 passing, 0 skipped) |
-| Tests passing | 596 |
-| Source packages | 18 (hifi.knowledge added in Phase 7) |
-| Lines of production code | ~8500 |
-| Lines of test code | ~11500 |
+| Total tests | 857 (857 passing, 2 skipped — venvs/ta/ absent) |
+| Tests passing | 857 |
+| Source packages | 20 (hifi.agents expanded Phase 8; hifi.analytics added Phase 10) |
+| Lines of production code | ~12000 |
+| Lines of test code | ~16000 |
 | Lint errors | 0 |
 | Baseline HR (fundamental) | 0.000 (Phase 5 baseline, 2026-06-10) |
 | Baseline HR (technical) | 0.067 (Phase 5 baseline, 2026-06-10) |

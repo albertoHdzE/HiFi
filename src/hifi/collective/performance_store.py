@@ -1,18 +1,20 @@
 """
-Agent performance history store (P9-E4).
+Agent performance history store (P9-E4, P10-E4).
 
 Manages persistence and retrieval of AgentPerformanceHistory, which tracks
 per-agent decision accuracy to power performance_weighted_vote() (D-07).
 
 Design:
-- Storage: data/agent_performance_history.json (flat JSON at Phase 9 scale)
+- Storage: data/agent_performance_history.json (flat JSON at Phase 9/10 scale)
 - Atomic writes: write to .tmp, then rename to prevent corruption on crash
+- File locking (DJ-048): update_and_save() holds a FileLock during read-modify-write
+  to prevent concurrent corruption when multiple ensemble runs update the store
+  simultaneously (Phase 11+). At Phase 10, runs are single-threaded so the lock
+  is never contested, but it is in place for forward compatibility.
 - Fallback: when the file is absent, return uniform weights (1/N per agent type)
   so run_ensemble() works before the bootstrap has been run
 - compute_weights() is a pure function: given a list of labeled DecisionRecords,
   returns accuracy per agent_type (number correct / number labeled per type)
-
-Phase 10 will migrate to Parquet when the bootstrap expands to 20+ tickers.
 """
 
 from __future__ import annotations
@@ -20,6 +22,8 @@ from __future__ import annotations
 import os
 from datetime import UTC, datetime
 from pathlib import Path
+
+from filelock import FileLock
 
 from hifi.collective.schemas import AgentPerformanceHistory, DecisionRecord
 
@@ -116,17 +120,26 @@ def update_and_save(
     """
     Load existing history, append new records, recompute weights, and save.
 
-    Returns the updated AgentPerformanceHistory. Used by the bootstrap script
-    and future live-labeling routines (Phase 10).
+    Holds a FileLock during the read-modify-write cycle (DJ-048) to prevent
+    concurrent corruption. The lock file is a sibling of the JSON file with
+    a .lock suffix. At Phase 10 scale, runs are single-threaded and the lock
+    is never contested; it is in place for Phase 11+ parallel ensemble runs.
+
+    Returns the updated AgentPerformanceHistory.
     """
-    history = load_history(data_dir)
-    all_records = history.records + records
-    updated_weights = compute_weights(all_records)
-    updated = AgentPerformanceHistory(
-        records=all_records,
-        weights=updated_weights,
-        last_updated=datetime.now(tz=UTC).isoformat(),
-        n_labeled=0,  # auto-computed by model_validator
-    )
-    save_history(updated, data_dir)
+    path = _history_path(data_dir)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    lock_path = path.with_suffix(".json.lock")
+
+    with FileLock(str(lock_path)):
+        history = load_history(data_dir)
+        all_records = history.records + records
+        updated_weights = compute_weights(all_records)
+        updated = AgentPerformanceHistory(
+            records=all_records,
+            weights=updated_weights,
+            last_updated=datetime.now(tz=UTC).isoformat(),
+            n_labeled=0,  # auto-computed by model_validator
+        )
+        save_history(updated, data_dir)
     return updated

@@ -261,3 +261,5 @@ docker/volumes/
 
 # OS
 .DS_Store
+data/tearsheets/
+data/calibration_report.json

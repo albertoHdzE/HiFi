@@ -4,9 +4,10 @@ DOCKER_ENV_FILE     := docker/langfuse/.env
 .PHONY: help install test lint lint-fix \
 	langfuse-setup langfuse-start langfuse-stop langfuse-restart \
 	langfuse-clean langfuse-status langfuse-logs langfuse-seed \
-	sec-fixtures acquire-data \
+	sec-fixtures acquire-data acquire-data-phase10 \
 	baseline-phase3 baseline-phase4 baseline-phase5 baseline-phase6 baseline-phase7 \
 	baseline-phase8 bootstrap-phase9 baseline-phase9 \
+	bootstrap baseline-phase10 \
 	test-live
 
 .DEFAULT_GOAL := help
@@ -83,6 +84,9 @@ sec-fixtures: ## Record SEC EDGAR fixtures for Phase 7 tests (requires internet,
 acquire-data: ## Acquire Phase 1 market + macro Parquet files (idempotent, skips existing)
 	uv run python scripts/acquire_phase1_data.py
 
+acquire-data-phase10: ## Acquire Phase 10 market Parquet files for 12 new tickers (idempotent)
+	uv run python scripts/acquire_phase10_data.py
+
 # ---------------------------------------------------------------------------
 # Baseline generation + closed-loop validation
 #
@@ -150,6 +154,21 @@ baseline-phase9: ## Phase 9 collective engine: generate + validate (requires LM 
 	             tests/holistic/test_phase9_collective_engine.py \
 	             -q --tb=short
 
+bootstrap: ## Phase 10 bootstrap: 15-ticker performance history seed (no LM Studio required)
+	uv run python scripts/check_env.py --check market-data || $(MAKE) acquire-data
+	uv run python scripts/check_env.py --check phase10-data || $(MAKE) acquire-data-phase10
+	uv run python scripts/run_phase10_bootstrap.py
+	uv run python scripts/check_env.py --check phase10-bootstrap
+
+baseline-phase10: ## Phase 10 accuracy labeling + tear sheets: generate + validate (no LM Studio)
+	uv run python scripts/check_env.py --check phase9-fixture || { \
+		echo "Phase 9 fixture required. Run: make baseline-phase9"; exit 1; }
+	uv run python scripts/check_env.py --check market-data || $(MAKE) acquire-data
+	uv run python scripts/run_phase10_baseline.py
+	uv run pytest tests/unit/test_phase10_baseline.py \
+	             tests/holistic/test_phase10_evaluation.py \
+	             -q --tb=short
+
 # ---------------------------------------------------------------------------
 # Full live validation — all baselines in sequence, complete test suite at end
 #
@@ -166,6 +185,6 @@ test-live: ## Full live validation: all baselines + complete test suite (require
 	$(MAKE) sec-fixtures
 	$(MAKE) baseline-phase7
 	$(MAKE) baseline-phase8
-	$(MAKE) bootstrap-phase9
 	$(MAKE) baseline-phase9
+	$(MAKE) baseline-phase10
 	uv run pytest -q --tb=short

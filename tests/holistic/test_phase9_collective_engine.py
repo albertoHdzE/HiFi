@@ -1,162 +1,91 @@
 """
-Holistic test for the Phase 9 Collective Decision Engine (P9-E5).
+Holistic structural tests for the Phase 9 Collective Decision Engine (P10-E3).
 
-Validates:
-1. All four aggregation methods run on every ensemble call
-2. method_comparison populated with correct keys and semantics
-3. contrarian_adjusted carries discount < 1.0 (contrarian ran)
-4. signals contains only non-None AgentSignals
-5. aggregation_method == "confidence_weighted"
-6. EnsembleOutput JSON round-trip is lossless
-7. Backward compat: agents=["fundamental","technical"] still works; 4-key comparison
+Tests the aggregation layer (voting, method_comparison, schema) without any LLM
+invocation. Signals are constructed deterministically from known decision/confidence
+tuples. All four aggregation methods are exercised via run_all_methods() directly.
 
-No live LM Studio required. LLMs are monkeypatched with stub objects.
-Sentinel fail-open for sentiment (empty passages). Parquet fixtures from Phase 1.
+Philosophical note (DJ-047):
+  The previous version of this file used monkeypatch.setattr(make_llm, ...) to inject
+  canned LLM responses into run_ensemble(). This conflated pipeline structure (which
+  these tests own) with model behaviour (which make baseline-phase9 owns). That debt
+  is now resolved: these tests call run_all_methods() and related functions directly
+  with seeded inputs, exercising the full aggregation pipeline without any LLM.
 
-Contrarian stub uses confidence=0.65:
-  - discount = 1 - 0.5*0.65 = 0.675
-  - review_flagged = 0.65 > 0.70 → False
+  Specific behaviours validated by the stub approach that now belong in baseline-*:
+  - That run_ensemble() returns a non-empty signals list from live agent calls
+  - That the Sentiment fail-open path activates under real conditions
+  - That the Contrarian Agent produces a valid ContrarianAnalysis JSON under load
+
+What these tests DO validate:
+  - All four aggregation methods run and return the four canonical keys
+  - Confidence-weighted, majority, performance-weighted, and contrarian-adjusted
+    math is correct for known inputs
+  - Contrarian discount formula (1 - 0.5*confidence) and review_flagged threshold
+  - EnsembleOutput schema construction and JSON round-trip with all Phase 9 fields
+  - Backward compatibility: no contrarian → discount=1.0, review_flagged=False
+  - Performance-weighted with uniform weights equals confidence-weighted
 """
 
-import json
-import os
-import shutil
-from datetime import datetime
+from __future__ import annotations
 
 import pytest
 
-from hifi.agents.ensemble_runner import run_ensemble
-from hifi.collective.schemas import EnsembleOutput
-from hifi.data.schemas import FundamentalsSnapshot, ProvenanceRecord
+from hifi.agents.schemas import AgentSignal, ContrarianAnalysis
+from hifi.collective.schemas import EnsembleDecision, EnsembleOutput
+from hifi.collective.voting import (
+    confidence_weighted_vote,
+    contrarian_adjusted_vote,
+    majority_vote,
+    performance_weighted_vote,
+    run_all_methods,
+)
 
 # ---------------------------------------------------------------------------
-# Fixtures
+# Signal builders
 # ---------------------------------------------------------------------------
 
 
-@pytest.fixture
-def fixtures_data_dir(tmp_path):
-    fixtures_root = os.path.join(os.path.dirname(__file__), "..", "fixtures")
-    for subdir in ("market", "macro"):
-        dst = tmp_path / subdir
-        dst.mkdir()
-        src = os.path.join(fixtures_root, subdir)
-        for f in os.listdir(src):
-            if f.endswith(".parquet"):
-                shutil.copy(os.path.join(src, f), dst / f)
-    return str(tmp_path)
-
-
-@pytest.fixture
-def aapl_snapshot_json():
-    snap = FundamentalsSnapshot(
-        ticker="AAPL",
-        period_end="2023-03-31",
-        eps=6.11,
-        market_cap=2_500_000_000_000,
-        total_equity=62_146_000_000,
-        revenue=394_330_000_000,
-        net_income=99_803_000_000,
-        total_assets=352_755_000_000,
-        total_liabilities=290_437_000_000,
-        source="test",
-        fetched_at=datetime(2023, 4, 1),
-        provenance=ProvenanceRecord(source="test", fetched_at=datetime(2023, 4, 1)),
+def _sig(
+    agent_type: str,
+    decision: str,
+    confidence: float,
+    ticker: str = "AAPL",
+    as_of_date: str = "2023-03-31",
+) -> AgentSignal:
+    return AgentSignal(
+        ticker=ticker,
+        as_of_date=as_of_date,
+        decision=decision,
+        confidence=confidence,
+        rationale=f"Test rationale for {agent_type}.",
+        key_concern="Test concern.",
+        model_id="test-model",
+        agent_type=agent_type,
     )
-    return snap.model_dump_json()
+
+
+def _contrarian(confidence: float = 0.65) -> ContrarianAnalysis:
+    return ContrarianAnalysis(
+        alternative_thesis="Bear case: rates remain elevated longer than priced.",
+        risk_scenario="Credit tightening triggers 15% correction.",
+        counterargument="Consensus underestimates rate duration.",
+        confidence=confidence,
+        prompt_version="test",
+    )
 
 
 # ---------------------------------------------------------------------------
-# Stub LLM responses
-# ---------------------------------------------------------------------------
-
-_FUND_RESPONSE = json.dumps({
-    "decision": "Buy",
-    "confidence": 0.80,
-    "rationale": "P/E of 28.3 is below sector average; strong FCF generation.",
-    "key_concern": "Fed funds at 4.75 compresses growth multiples.",
-})
-
-_TECH_RESPONSE = json.dumps({
-    "decision": "Hold",
-    "confidence": 0.65,
-    "rationale": "RSI of 48 is neutral; MACD histogram near zero.",
-    "key_concern": "ATR elevated, short-term volatility risk.",
-    "time_horizon": "short-term",
-})
-
-_RISK_RESPONSE = json.dumps({
-    "decision": "Hold",
-    "confidence": 0.60,
-    "rationale": "hist_vol_20d of 0.22 is moderate; Sharpe 0.82 acceptable.",
-    "key_concern": "max_drawdown_252d of -0.28 is a tail risk.",
-    "risk_assessment": "Moderate volatility regime.",
-    "recommended_position_size": 0.05,
-})
-
-_MACRO_RESPONSE = json.dumps({
-    "decision": "Buy",
-    "confidence": 0.55,
-    "rationale": "Fed near rate peak; CPI decelerating.",
-    "key_concern": "Unemployment uptick could signal slowdown.",
-    "regime_assessment": "Late tightening cycle with easing bias.",
-    "macro_rationale": "CPI deceleration supports risk recovery.",
-})
-
-_CONTRARIAN_RESPONSE = json.dumps({
-    "alternative_thesis": "Rate cuts are fully priced; real rates remain restrictive.",
-    "risk_scenario": "Credit spread widening triggers 15% equity correction.",
-    "counterargument": "Consensus underestimates duration of high-rate environment.",
-    "confidence": 0.65,   # discount = 0.675; review_flagged = False
-})
-
-
-def _stub_llm(content: str, model_name: str = "stub-model"):
-    class _Stub:
-        def invoke(self, _messages):
-            class _R:
-                pass
-            r = _R()
-            r.content = content
-            return r
-    s = _Stub()
-    s.model_name = model_name
-    return s
-
-
-@pytest.fixture
-def patched_llms(monkeypatch):
-    """
-    Patch make_llm in all agent modules (fund, tech, risk, macro, contrarian).
-    Patch sentiment.call_tool to return empty passages → fail-open Hold/0.0.
-    """
-    import hifi.agents.contrarian_agent as ca
-    import hifi.agents.fundamental_agent as fa
-    import hifi.agents.macro_agent as ma
-    import hifi.agents.risk_agent as ra
-    import hifi.agents.sentiment_agent as sa_mod
-    import hifi.agents.technical_agent as ta
-
-    monkeypatch.setattr(fa, "make_llm", lambda *a, **kw: _stub_llm(_FUND_RESPONSE))
-    monkeypatch.setattr(ta, "make_llm", lambda *a, **kw: _stub_llm(_TECH_RESPONSE))
-    monkeypatch.setattr(ra, "make_llm", lambda *a, **kw: _stub_llm(_RISK_RESPONSE))
-    monkeypatch.setattr(ma, "make_llm", lambda *a, **kw: _stub_llm(_MACRO_RESPONSE))
-    monkeypatch.setattr(ca, "make_llm", lambda *a, **kw: _stub_llm(_CONTRARIAN_RESPONSE))
-    monkeypatch.setattr(sa_mod, "call_tool", lambda *a, **kw: {"passages": []})
-
-
-# ---------------------------------------------------------------------------
-# Tests
+# Tests: run_all_methods — canonical keys and structure
 # ---------------------------------------------------------------------------
 
 
-def test_method_comparison_has_four_keys(
-    patched_llms, fixtures_data_dir, aapl_snapshot_json
-):
-    """All four aggregation methods run on every run_ensemble() call."""
-    output = run_ensemble("AAPL", "2023-03-31", aapl_snapshot_json, fixtures_data_dir)
+def test_run_all_methods_has_four_canonical_keys():
+    """run_all_methods always returns the four canonical method keys."""
+    signals = [_sig("fundamental", "Buy", 0.80), _sig("technical", "Hold", 0.65)]
+    result = run_all_methods(signals=signals, contrarian=None, weights={})
 
-    assert set(output.method_comparison.keys()) == {
+    assert set(result.keys()) == {
         "majority",
         "confidence_weighted",
         "performance_weighted",
@@ -164,92 +93,270 @@ def test_method_comparison_has_four_keys(
     }
 
 
-def test_cw_method_equals_ensemble_decision(
-    patched_llms, fixtures_data_dir, aapl_snapshot_json
-):
-    """method_comparison['confidence_weighted'] matches ensemble_decision exactly."""
-    output = run_ensemble("AAPL", "2023-03-31", aapl_snapshot_json, fixtures_data_dir)
+def test_run_all_methods_values_are_ensemble_decisions():
+    """All four values are EnsembleDecision instances."""
+    signals = [_sig("fundamental", "Buy", 0.80), _sig("technical", "Hold", 0.65)]
+    result = run_all_methods(signals=signals, contrarian=None, weights={})
 
-    cw = output.method_comparison["confidence_weighted"]
-    ed = output.ensemble_decision
-    assert cw.collective_decision == ed.collective_decision
-    assert cw.collective_confidence == ed.collective_confidence
-    assert cw.n_valid_signals == ed.n_valid_signals
-    assert cw.agreement == ed.agreement
-
-
-def test_signals_non_empty_and_all_valid(
-    patched_llms, fixtures_data_dir, aapl_snapshot_json
-):
-    """EnsembleOutput.signals contains only non-None AgentSignals."""
-    output = run_ensemble("AAPL", "2023-03-31", aapl_snapshot_json, fixtures_data_dir)
-
-    assert len(output.signals) > 0
-    for sig in output.signals:
-        assert sig is not None
-        assert sig.decision in {"Buy", "Hold", "Sell"}
-        assert 0.0 <= sig.confidence <= 1.0
-
-
-def test_aggregation_method_is_confidence_weighted(
-    patched_llms, fixtures_data_dir, aapl_snapshot_json
-):
-    output = run_ensemble("AAPL", "2023-03-31", aapl_snapshot_json, fixtures_data_dir)
-    assert output.aggregation_method == "confidence_weighted"
-
-
-def test_contrarian_adjusted_has_discount_below_one(
-    patched_llms, fixtures_data_dir, aapl_snapshot_json
-):
-    """When contrarian ran (confidence=0.65), discount = 0.675 < 1.0."""
-    output = run_ensemble("AAPL", "2023-03-31", aapl_snapshot_json, fixtures_data_dir)
-
-    ca_decision = output.method_comparison["contrarian_adjusted"]
-    assert ca_decision.contrarian_confidence_discount < 1.0
-    assert ca_decision.contrarian_confidence_discount == pytest.approx(
-        1.0 - 0.5 * 0.65
-    )
-
-
-def test_contrarian_adjusted_review_not_flagged_at_065(
-    patched_llms, fixtures_data_dir, aapl_snapshot_json
-):
-    """contrarian.confidence = 0.65 < 0.70 → review_flagged = False."""
-    output = run_ensemble("AAPL", "2023-03-31", aapl_snapshot_json, fixtures_data_dir)
-
-    ca_decision = output.method_comparison["contrarian_adjusted"]
-    assert ca_decision.review_flagged is False
-
-
-def test_contrarian_adjusted_direction_unchanged(
-    patched_llms, fixtures_data_dir, aapl_snapshot_json
-):
-    """Contrarian discount never changes the winning direction."""
-    output = run_ensemble("AAPL", "2023-03-31", aapl_snapshot_json, fixtures_data_dir)
-
-    cw = output.method_comparison["confidence_weighted"]
-    ca = output.method_comparison["contrarian_adjusted"]
-    assert ca.collective_decision == cw.collective_decision
-
-
-def test_all_method_decisions_are_valid_options(
-    patched_llms, fixtures_data_dir, aapl_snapshot_json
-):
-    """All four methods produce Buy/Hold/Sell (or None if no signals)."""
-    output = run_ensemble("AAPL", "2023-03-31", aapl_snapshot_json, fixtures_data_dir)
-
-    for method_name, decision in output.method_comparison.items():
-        assert decision.collective_decision in {"Buy", "Hold", "Sell", None}, (
-            f"{method_name} produced unexpected decision: {decision.collective_decision}"
+    for key, decision in result.items():
+        assert isinstance(decision, EnsembleDecision), (
+            f"method_comparison[{key!r}] is not an EnsembleDecision"
         )
 
 
-def test_ensemble_output_json_roundtrip_lossless(
-    patched_llms, fixtures_data_dir, aapl_snapshot_json
-):
-    """model_dump_json → model_validate_json is lossless with all Phase 9 fields."""
-    output = run_ensemble("AAPL", "2023-03-31", aapl_snapshot_json, fixtures_data_dir)
+def test_run_all_methods_decisions_are_valid_options():
+    """All four methods produce Buy/Hold/Sell (or None when no signals)."""
+    signals = [_sig("fundamental", "Buy", 0.80), _sig("technical", "Sell", 0.70)]
+    result = run_all_methods(signals=signals, contrarian=None, weights={})
 
+    for key, decision in result.items():
+        assert decision.collective_decision in {"Buy", "Hold", "Sell", None}, (
+            f"{key!r} produced unexpected decision: {decision.collective_decision!r}"
+        )
+
+
+def test_run_all_methods_empty_signals_all_none():
+    """Empty signal list → all four methods have collective_decision=None."""
+    result = run_all_methods(signals=[], contrarian=None, weights={})
+
+    for key, decision in result.items():
+        assert decision.collective_decision is None, (
+            f"{key!r} expected None, got {decision.collective_decision!r}"
+        )
+
+
+# ---------------------------------------------------------------------------
+# Tests: confidence_weighted method correctness
+# ---------------------------------------------------------------------------
+
+
+def test_confidence_weighted_vote_math():
+    """
+    Known inputs → known output.
+    fund=Buy/0.80, tech=Hold/0.65: Buy score=0.80, Hold score=0.65, Sell=0.0
+    total=1.45; Buy wins; confidence = 0.80/1.45 ≈ 0.5517
+    """
+    signals = [_sig("fundamental", "Buy", 0.80), _sig("technical", "Hold", 0.65)]
+    result = confidence_weighted_vote(signals)
+
+    assert result.collective_decision == "Buy"
+    assert result.collective_confidence == pytest.approx(0.80 / 1.45, rel=1e-5)
+    assert result.n_valid_signals == 2
+    assert result.agreement is False
+    assert result.total_score == pytest.approx(1.45, rel=1e-5)
+
+
+def test_confidence_weighted_vote_tie_returns_hold():
+    """Equal scores for Buy and Sell → tie → Hold with confidence 0.0."""
+    signals = [
+        _sig("fundamental", "Buy", 0.70),
+        _sig("technical", "Sell", 0.70),
+    ]
+    result = confidence_weighted_vote(signals)
+
+    assert result.collective_decision == "Hold"
+    assert result.collective_confidence == 0.0
+
+
+# ---------------------------------------------------------------------------
+# Tests: majority_vote method correctness
+# ---------------------------------------------------------------------------
+
+
+def test_majority_vote_plurality():
+    """Two Buy + one Sell → majority=Buy (2/3 votes)."""
+    signals = [
+        _sig("fundamental", "Buy", 0.60),
+        _sig("technical", "Buy", 0.70),
+        _sig("risk", "Sell", 0.80),
+    ]
+    result = majority_vote(signals)
+
+    assert result.collective_decision == "Buy"
+    assert result.collective_confidence == pytest.approx(2 / 3, rel=1e-5)
+    assert result.n_valid_signals == 3
+
+
+def test_majority_vote_and_cw_can_differ():
+    """
+    High-confidence outlier can win cw but lose majority.
+    One high-conf Sell (0.90) vs two low-conf Buy (0.30 each):
+      cw: Sell=0.90, Buy=0.60 → Sell wins
+      majority: Buy=2, Sell=1 → Buy wins
+    """
+    signals = [
+        _sig("fundamental", "Buy", 0.30),
+        _sig("technical", "Buy", 0.30),
+        _sig("risk", "Sell", 0.90),
+    ]
+    cw = confidence_weighted_vote(signals)
+    mv = majority_vote(signals)
+
+    assert cw.collective_decision == "Sell"
+    assert mv.collective_decision == "Buy"
+
+
+# ---------------------------------------------------------------------------
+# Tests: performance_weighted_vote with uniform weights
+# ---------------------------------------------------------------------------
+
+
+def test_performance_weighted_uniform_equals_confidence_weighted():
+    """
+    With equal weights for all agent types, performance_weighted is mathematically
+    identical to confidence_weighted (same score formula, same winner).
+    """
+    signals = [
+        _sig("fundamental", "Buy", 0.80),
+        _sig("technical", "Hold", 0.65),
+        _sig("risk", "Buy", 0.60),
+    ]
+    weights = {"fundamental": 0.25, "technical": 0.25, "risk": 0.25, "macro": 0.25}
+
+    cw = confidence_weighted_vote(signals)
+    pw = performance_weighted_vote(signals, weights)
+
+    assert cw.collective_decision == pw.collective_decision
+
+
+def test_performance_weighted_differentiates_with_non_uniform_weights():
+    """
+    Non-uniform weights: a low-confidence winner under equal weights can be
+    overridden when a high-weight agent votes differently.
+    """
+    signals = [
+        _sig("fundamental", "Buy", 0.50),
+        _sig("technical", "Buy", 0.50),
+        _sig("risk", "Sell", 0.40),
+    ]
+    # With equal weights, Buy wins. With risk weight >> others, Sell might win.
+    weights_equal = {"fundamental": 0.25, "technical": 0.25, "risk": 0.25}
+    weights_risk_dominant = {"fundamental": 0.10, "technical": 0.10, "risk": 2.00}
+
+    pw_equal = performance_weighted_vote(signals, weights_equal)
+    pw_risk = performance_weighted_vote(signals, weights_risk_dominant)
+
+    assert pw_equal.collective_decision == "Buy"
+    assert pw_risk.collective_decision == "Sell"
+
+
+# ---------------------------------------------------------------------------
+# Tests: contrarian_adjusted discount formula (DJ-040)
+# ---------------------------------------------------------------------------
+
+
+def test_contrarian_adjusted_discount_formula():
+    """discount = 1 - 0.5 * contrarian.confidence (alpha=0.5, DJ-040)."""
+    signals = [_sig("fundamental", "Buy", 0.80), _sig("technical", "Hold", 0.65)]
+    ca_result = contrarian_adjusted_vote(signals, _contrarian(confidence=0.65))
+
+    expected_discount = 1.0 - 0.5 * 0.65  # = 0.675
+    assert ca_result.contrarian_confidence_discount == pytest.approx(expected_discount, rel=1e-5)
+
+
+def test_contrarian_adjusted_review_not_flagged_below_theta():
+    """confidence=0.65 < theta=0.70 → review_flagged=False."""
+    signals = [_sig("fundamental", "Buy", 0.80)]
+    ca_result = contrarian_adjusted_vote(signals, _contrarian(confidence=0.65))
+
+    assert ca_result.review_flagged is False
+
+
+def test_contrarian_adjusted_review_flagged_above_theta():
+    """confidence=0.80 > theta=0.70 → review_flagged=True."""
+    signals = [_sig("fundamental", "Buy", 0.80)]
+    ca_result = contrarian_adjusted_vote(signals, _contrarian(confidence=0.80))
+
+    assert ca_result.review_flagged is True
+
+
+def test_contrarian_adjusted_direction_unchanged():
+    """Discounting never changes the winning direction (only reduces confidence)."""
+    signals = [_sig("fundamental", "Buy", 0.80), _sig("technical", "Hold", 0.65)]
+    base = confidence_weighted_vote(signals)
+    discounted = contrarian_adjusted_vote(signals, _contrarian(confidence=0.90))
+
+    assert discounted.collective_decision == base.collective_decision
+    assert discounted.collective_confidence < base.collective_confidence
+
+
+def test_contrarian_none_gives_discount_one_no_flag():
+    """No ContrarianAnalysis → discount=1.0, review_flagged=False (neutral default)."""
+    signals = [_sig("fundamental", "Buy", 0.80)]
+    ca_result = contrarian_adjusted_vote(signals, contrarian=None)
+
+    assert ca_result.contrarian_confidence_discount == 1.0
+    assert ca_result.review_flagged is False
+
+
+# ---------------------------------------------------------------------------
+# Tests: run_all_methods — confidence_weighted == ensemble_decision
+# ---------------------------------------------------------------------------
+
+
+def test_cw_method_key_equals_standalone_cw_vote():
+    """
+    method_comparison['confidence_weighted'] is computed by the same function as
+    ensemble_decision in ensemble_runner.py — results must be identical.
+    """
+    signals = [
+        _sig("fundamental", "Buy", 0.80),
+        _sig("technical", "Hold", 0.65),
+        _sig("risk", "Hold", 0.60),
+    ]
+    result = run_all_methods(signals=signals, contrarian=None, weights={})
+    standalone = confidence_weighted_vote(signals)
+
+    assert result["confidence_weighted"].collective_decision == standalone.collective_decision
+    assert result["confidence_weighted"].collective_confidence == standalone.collective_confidence
+    assert result["confidence_weighted"].n_valid_signals == standalone.n_valid_signals
+
+
+# ---------------------------------------------------------------------------
+# Tests: EnsembleOutput JSON round-trip with Phase 9 fields
+# ---------------------------------------------------------------------------
+
+
+def _build_ensemble_output(
+    ticker: str = "AAPL",
+    as_of_date: str = "2023-03-31",
+) -> EnsembleOutput:
+    """Construct a structurally valid EnsembleOutput with all Phase 9 fields."""
+    from hifi.agents.schemas import FundamentalAnalysis, TechnicalAnalysis
+
+    fund_sig = _sig("fundamental", "Buy", 0.80, ticker, as_of_date)
+    tech_sig = _sig("technical", "Hold", 0.65, ticker, as_of_date)
+    signals = [fund_sig, tech_sig]
+
+    contrarian = _contrarian(0.65)
+    method_comparison = run_all_methods(
+        signals=signals, contrarian=contrarian, weights={}
+    )
+
+    return EnsembleOutput(
+        ticker=ticker,
+        as_of_date=as_of_date,
+        fundamental_analysis=FundamentalAnalysis(
+            signal=fund_sig,
+            financial_ratios={}, growth_metrics={}, valuation_context={},
+            macro_snapshot={}, prompt_version="test", latency_ms=0.0,
+        ),
+        technical_analysis=TechnicalAnalysis(
+            signal=tech_sig,
+            technical_indicators={}, risk_metrics={},
+            prompt_version="test", latency_ms=0.0,
+        ),
+        ensemble_decision=method_comparison["confidence_weighted"],
+        latency_ms=0.0,
+        signals=signals,
+        aggregation_method="confidence_weighted",
+        method_comparison=method_comparison,
+    )
+
+
+def test_ensemble_output_json_roundtrip_lossless():
+    """model_dump_json → model_validate_json is lossless with all Phase 9 fields."""
+    output = _build_ensemble_output()
     restored = EnsembleOutput.model_validate_json(output.model_dump_json())
 
     assert restored.ticker == output.ticker
@@ -262,42 +369,18 @@ def test_ensemble_output_json_roundtrip_lossless(
     )
 
 
-def test_backward_compat_two_agent_subset(
-    patched_llms, fixtures_data_dir, aapl_snapshot_json
-):
-    """agents=['fundamental','technical']: method_comparison still has 4 keys."""
-    output = run_ensemble(
-        "AAPL", "2023-03-31", aapl_snapshot_json, fixtures_data_dir,
-        agents=["fundamental", "technical"],
-    )
+def test_ensemble_output_method_comparison_has_four_keys():
+    """EnsembleOutput.method_comparison always has exactly 4 keys."""
+    output = _build_ensemble_output()
 
-    assert isinstance(output, EnsembleOutput)
-    assert len(output.method_comparison) == 4
-    assert output.risk_analysis is None
-    assert output.macro_analysis is None
-
-
-def test_sentiment_fail_open_still_produces_method_comparison(
-    patched_llms, fixtures_data_dir, aapl_snapshot_json
-):
-    """Sentiment fail-open (Hold/0.0) still contributes to method_comparison."""
-    output = run_ensemble("AAPL", "2023-03-31", aapl_snapshot_json, fixtures_data_dir)
-
-    sa = output.sentiment_analysis
-    assert sa is not None
-    assert sa.signal is not None
-    assert sa.signal.decision == "Hold"
-    assert sa.signal.confidence == pytest.approx(0.0)
-    # method_comparison still has 4 keys despite one agent having zero confidence
     assert len(output.method_comparison) == 4
 
 
-def test_performance_weighted_key_present_and_valid(
-    patched_llms, fixtures_data_dir, aapl_snapshot_json
-):
-    """performance_weighted runs with uniform fallback weights (no history file)."""
-    output = run_ensemble("AAPL", "2023-03-31", aapl_snapshot_json, fixtures_data_dir)
+def test_ensemble_output_contrarian_adjusted_fields_in_json():
+    """Contrarian integration fields survive JSON round-trip."""
+    output = _build_ensemble_output()
+    restored = EnsembleOutput.model_validate_json(output.model_dump_json())
 
-    pw = output.method_comparison["performance_weighted"]
-    assert pw.collective_decision in {"Buy", "Hold", "Sell", None}
-    assert 0.0 <= pw.collective_confidence <= 1.0
+    ca = restored.method_comparison["contrarian_adjusted"]
+    assert ca.contrarian_confidence_discount == pytest.approx(0.675, rel=1e-5)
+    assert ca.review_flagged is False

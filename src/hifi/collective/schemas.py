@@ -1,5 +1,5 @@
 """
-Collective Decision Engine output schemas (P4-E2, P8-E1, P9-E0).
+Collective Decision Engine output schemas (P4-E2, P8-E1, P9-E0, P10-E0).
 
 EnsembleDecision captures the aggregated output of any voting method (David §12.2)
 plus the diversity metrics from David §5.6 computable with any number of agents >= 2.
@@ -13,6 +13,11 @@ Named analysis fields are kept for Phase 5/6 verification traceability.
 
 DecisionRecord and AgentPerformanceHistory (D-07) track per-agent historical
 accuracy to power performance-weighted aggregation (D-02).
+
+Phase 10 adds:
+- MethodDecisionRecord: per-method collective decision with outcome label (DJ-044)
+- MethodAccuracyReport: aggregated accuracy across all four methods (DJ-044)
+- CalibrationReport: weight calibration analysis from bootstrap vs real labels (DJ-048)
 """
 
 from __future__ import annotations
@@ -165,3 +170,130 @@ class AgentPerformanceHistory(BaseModel):
             1 for r in self.records if r.outcome_correct is not None
         )
         return self
+
+
+# ---------------------------------------------------------------------------
+# Phase 10: method-level accuracy tracking (DJ-044)
+# ---------------------------------------------------------------------------
+
+_VALID_METHODS = frozenset(
+    {"confidence_weighted", "majority", "performance_weighted", "contrarian_adjusted"}
+)
+
+
+class MethodDecisionRecord(BaseModel):
+    """
+    Single collective method decision at a historical date with optional outcome label.
+
+    Tracks whether a specific aggregation method's collective_decision was correct
+    for a given (ticker, analysis_date) pair. Distinct from DecisionRecord, which
+    tracks individual agent decisions: a method aggregates across all agents and has
+    no agent_type (DJ-044).
+
+    Two records are written per (ticker, date, method): one for horizon_days=60
+    and one for horizon_days=20 (DJ-052), allowing comparison of method accuracy
+    at different evaluation windows.
+
+    outcome_correct is None until the forward window passes and a label is applied.
+    forward_return is the realised return over horizon_days trading days starting
+    from the first available trading day on or after analysis_date.
+    """
+
+    ticker: str
+    analysis_date: str              # ISO 8601 quarter-end
+    method_name: str                # one of the 4 canonical aggregation method keys
+    decision: Literal["Buy", "Hold", "Sell"]
+    collective_confidence: float    # from EnsembleDecision.collective_confidence
+    forward_return: float | None = None
+    outcome_correct: bool | None = None
+    horizon_days: int = 60          # 60 = primary (DJ-052); 20 = secondary
+    outcome_labeled_at: str | None = None
+
+    @model_validator(mode="after")
+    def _validate_fields(self) -> MethodDecisionRecord:
+        if self.method_name not in _VALID_METHODS:
+            raise ValueError(
+                f"method_name must be one of {sorted(_VALID_METHODS)}, "
+                f"got {self.method_name!r}"
+            )
+        if not (0.0 <= self.collective_confidence <= 1.0):
+            raise ValueError(
+                f"collective_confidence must be in [0, 1], "
+                f"got {self.collective_confidence}"
+            )
+        if self.horizon_days <= 0:
+            raise ValueError(
+                f"horizon_days must be positive, got {self.horizon_days}"
+            )
+        return self
+
+
+class MethodAccuracyReport(BaseModel):
+    """
+    Aggregated accuracy report across all four aggregation methods (DJ-044).
+
+    accuracy_by_method, n_labeled, tickers, and analysis_dates are all derived
+    from the records list by a model_validator — they are never set independently.
+    This ensures consistency between the stored records and the summary statistics.
+
+    Accuracy convention (matching Phase 5 HR/GR):
+      accuracy(method) = n_correct / (n_correct + n_incorrect)
+    Records with outcome_correct=None are excluded from both numerator and
+    denominator (unlabeled != incorrect).
+
+    When multiple horizons are present in the records, accuracy_by_method aggregates
+    across all of them. Use a filtered subset of records for horizon-specific accuracy.
+    """
+
+    records: list[MethodDecisionRecord]
+    accuracy_by_method: dict[str, float] = Field(default_factory=dict)
+    n_labeled: int = 0
+    tickers: list[str] = Field(default_factory=list)
+    analysis_dates: list[str] = Field(default_factory=list)
+    generated_at: str
+
+    @model_validator(mode="after")
+    def _compute_derived_fields(self) -> MethodAccuracyReport:
+        labeled = [r for r in self.records if r.outcome_correct is not None]
+        self.n_labeled = len(labeled)
+
+        # accuracy per method: n_correct / n_labeled_for_method
+        correct_by: dict[str, int] = {}
+        total_by: dict[str, int] = {}
+        for r in labeled:
+            correct_by[r.method_name] = correct_by.get(r.method_name, 0) + (
+                1 if r.outcome_correct else 0
+            )
+            total_by[r.method_name] = total_by.get(r.method_name, 0) + 1
+
+        self.accuracy_by_method = {
+            m: correct_by[m] / total_by[m] for m in total_by
+        }
+
+        # Derived metadata from records
+        self.tickers = sorted({r.ticker for r in self.records})
+        self.analysis_dates = sorted({r.analysis_date for r in self.records})
+        return self
+
+
+class CalibrationReport(BaseModel):
+    """
+    Weight calibration analysis: bootstrap heuristics vs real LLM labels (P10-E4).
+
+    bootstrap_weights: accuracy weights derived from proxy-rule bootstrap records
+        (2018-Q1 through 2022-Q4, RSI/Sharpe heuristics, DJ-041).
+    real_label_weights: accuracy weights derived from records labeled by live LLM
+        ensemble runs (Phase 10+ analysis dates).
+    combined_weights: accuracy weights from all labeled records (bootstrap + real).
+    divergence_rates: pairwise method divergence — fraction of (ticker, date) pairs
+        where two methods produce different collective_decisions. Keys follow the
+        pattern "{m1}_vs_{m2}" in canonical order (e.g., "cw_vs_mv").
+    """
+
+    bootstrap_weights: dict[str, float]
+    real_label_weights: dict[str, float]
+    combined_weights: dict[str, float]
+    divergence_rates: dict[str, float]
+    n_bootstrap_labeled: int
+    n_real_labeled: int
+    generated_at: str

@@ -1,0 +1,152 @@
+{
+  "records": [
+    {
+      "ticker": "AAPL",
+      "analysis_date": "2023-03-31",
+      "method_name": "majority",
+      "decision": "Hold",
+      "collective_confidence": 1.0,
+      "forward_return": 0.14925259960859763,
+      "outcome_correct": false,
+      "horizon_days": 60,
+      "outcome_labeled_at": "2026-06-12T21:17:37.840106+00:00"
+    },
+    {
+      "ticker": "AAPL",
+      "analysis_date": "2023-03-31",
+      "method_name": "confidence_weighted",
+      "decision": "Hold",
+      "collective_confidence": 1.0,
+      "forward_return": 0.14925259960859763,
+      "outcome_correct": false,
+      "horizon_days": 60,
+      "outcome_labeled_at": "2026-06-12T21:17:37.840106+00:00"
+    },
+    {
+      "ticker": "AAPL",
+      "analysis_date": "2023-03-31",
+      "method_name": "performance_weighted",
+      "decision": "Hold",
+      "collective_confidence": 1.0,
+      "forward_return": 0.14925259960859763,
+      "outcome_correct": false,
+      "horizon_days": 60,
+      "outcome_labeled_at": "2026-06-12T21:17:37.840106+00:00"
+    },
+    {
+      "ticker": "AAPL",
+      "analysis_date": "2023-03-31",
+      "method_name": "contrarian_adjusted",
+      "decision": "Hold",
+      "collective_confidence": 0.64,
+      "forward_return": 0.14925259960859763,
+      "outcome_correct": false,
+      "horizon_days": 60,
+      "outcome_labeled_at": "2026-06-12T21:17:37.840106+00:00"
+    },
+    {
+      "ticker": "JPM",
+      "analysis_date": "2023-03-31",
+      "method_name": "majority",
+      "decision": "Hold",
+      "collective_confidence": 1.0,
+      "forward_return": 0.0718874276183977,
+      "outcome_correct": false,
+      "horizon_days": 60,
+      "outcome_labeled_at": "2026-06-12T21:17:37.840106+00:00"
+    },
+    {
+      "ticker": "JPM",
+      "analysis_date": "2023-03-31",
+      "method_name": "confidence_weighted",
+      "decision": "Hold",
+      "collective_confidence": 1.0,
+      "forward_return": 0.0718874276183977,
+      "outcome_correct": false,
+      "horizon_days": 60,
+      "outcome_labeled_at": "2026-06-12T21:17:37.840106+00:00"
+    },
+    {
+      "ticker": "JPM",
+      "analysis_date": "2023-03-31",
+      "method_name": "performance_weighted",
+      "decision": "Hold",
+      "collective_confidence": 1.0,
+      "forward_return": 0.0718874276183977,
+      "outcome_correct": false,
+      "horizon_days": 60,
+      "outcome_labeled_at": "2026-06-12T21:17:37.840106+00:00"
+    },
+    {
+      "ticker": "JPM",
+      "analysis_date": "2023-03-31",
+      "method_name": "contrarian_adjusted",
+      "decision": "Hold",
+      "collective_confidence": 0.69,
+      "forward_return": 0.0718874276183977,
+      "outcome_correct": false,
+      "horizon_days": 60,
+      "outcome_labeled_at": "2026-06-12T21:17:37.840106+00:00"
+    },
+    {
+      "ticker": "XOM",
+      "analysis_date": "2023-03-31",
+      "method_name": "majority",
+      "decision": "Hold",
+      "collective_confidence": 1.0,
+      "forward_return": -0.030507271201672202,
+      "outcome_correct": false,
+      "horizon_days": 60,
+      "outcome_labeled_at": "2026-06-12T21:17:37.840106+00:00"
+    },
+    {
+      "ticker": "XOM",
+      "analysis_date": "2023-03-31",
+      "method_name": "confidence_weighted",
+      "decision": "Hold",
+      "collective_confidence": 1.0,
+      "forward_return": -0.030507271201672202,
+      "outcome_correct": false,
+      "horizon_days": 60,
+      "outcome_labeled_at": "2026-06-12T21:17:37.840106+00:00"
+    },
+    {
+      "ticker": "XOM",
+      "analysis_date": "2023-03-31",
+      "method_name": "performance_weighted",
+      "decision": "Hold",
+      "collective_confidence": 1.0,
+      "forward_return": -0.030507271201672202,
+      "outcome_correct": false,
+      "horizon_days": 60,
+      "outcome_labeled_at": "2026-06-12T21:17:37.840106+00:00"
+    },
+    {
+      "ticker": "XOM",
+      "analysis_date": "2023-03-31",
+      "method_name": "contrarian_adjusted",
+      "decision": "Hold",
+      "collective_confidence": 0.65,
+      "forward_return": -0.030507271201672202,
+      "outcome_correct": false,
+      "horizon_days": 60,
+      "outcome_labeled_at": "2026-06-12T21:17:37.840106+00:00"
+    }
+  ],
+  "accuracy_by_method": {
+    "majority": 0.0,
+    "confidence_weighted": 0.0,
+    "performance_weighted": 0.0,
+    "contrarian_adjusted": 0.0
+  },
+  "n_labeled": 12,
+  "tickers": [
+    "AAPL",
+    "JPM",
+    "XOM"
+  ],
+  "analysis_dates": [
+    "2023-03-31"
+  ],
+  "generated_at": "2026-06-12T21:17:38.053700+00:00"
+}

@@ -25,6 +25,7 @@ dependencies = [
     "langfuse>=3.0",
     "lancedb>=0.8",
     "pylance>=7.0.0",
+    "filelock>=3.12",
 ]
 
 [project.optional-dependencies]
@@ -77,6 +78,7 @@ check_untyped_defs = true
 
 [dependency-groups]
 dev = [
+    "pytest>=9.0.3",
     "responses>=0.26.1",
     "vcrpy>=6.0",
 ]

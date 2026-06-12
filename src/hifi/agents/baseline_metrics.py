@@ -44,7 +44,7 @@ def extract_numbers(text: str) -> list[float]:
 def number_in_tool_results(value: float, tool_results: dict[str, Any], tol: float = 0.01) -> bool:
     """Return True if value appears within tol (relative) of any numeric tool result value."""
     for v in _flatten_values(tool_results):
-        if not isinstance(v, (int, float)):
+        if not isinstance(v, int | float):
             continue
         if v == 0.0:
             if abs(value) < 1e-9:

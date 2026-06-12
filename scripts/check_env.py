@@ -157,6 +157,57 @@ def check_phase9_fixture() -> list[str]:
     return []
 
 
+def check_phase10_data() -> list[str]:
+    """Verify Phase 10 OHLCV Parquet files exist for all 12 new tickers."""
+    data_dir = os.environ.get("HIFI_DATA_DIR", str(PROJECT_ROOT / "data"))
+    market_dir = Path(data_dir) / "market"
+    new_tickers = (
+        "MSFT", "NVDA", "GOOGL", "BAC", "GS", "CVX", "JNJ", "UNH", "AMZN", "WMT", "CAT", "NEE"
+    )
+    import glob as _glob
+    missing = [t for t in new_tickers if not _glob.glob(str(market_dir / f"{t}_*.parquet"))]
+    if missing:
+        return [
+            f"Phase 10 market Parquet files missing for: {', '.join(missing)}",
+            "Run first: make acquire-data-phase10",
+        ]
+    return []
+
+
+def check_phase10_bootstrap() -> list[str]:
+    """Verify the Phase 10 performance history has >= 1000 labeled records."""
+    data_dir = os.environ.get("HIFI_DATA_DIR", str(PROJECT_ROOT / "data"))
+    path = Path(data_dir) / "agent_performance_history.json"
+    if not path.exists():
+        return [
+            f"Performance history not found: {path}",
+            "Run first: make bootstrap  (no LM Studio required)",
+        ]
+    import json
+    try:
+        data = json.loads(path.read_text())
+        n_labeled = sum(1 for r in data.get("records", []) if r.get("outcome_correct") is not None)
+        if n_labeled < 1000:
+            return [
+                f"Performance history has only {n_labeled} labeled records (need >= 1000).",
+                "Run first: make bootstrap  (Phase 10 bootstrap with 15 tickers)",
+            ]
+    except Exception as exc:
+        return [f"Failed to parse performance history: {exc}"]
+    return []
+
+
+def check_phase10_fixture() -> list[str]:
+    """Verify the Phase 10 accuracy baseline fixture exists."""
+    path = PROJECT_ROOT / "tests" / "fixtures" / "baseline" / "phase10_accuracy.json"
+    if not path.exists():
+        return [
+            f"Phase 10 fixture not found: {path}",
+            "Generate it first: make baseline-phase10  (no LM Studio required)",
+        ]
+    return []
+
+
 _CHECKS = {
     "langfuse": check_langfuse,
     "lm-studio": check_lm_studio,
@@ -168,6 +219,9 @@ _CHECKS = {
     "phase8-fixture": check_phase8_fixture,
     "phase9-bootstrap": check_phase9_bootstrap,
     "phase9-fixture": check_phase9_fixture,
+    "phase10-data": check_phase10_data,
+    "phase10-bootstrap": check_phase10_bootstrap,
+    "phase10-fixture": check_phase10_fixture,
 }
 
 
