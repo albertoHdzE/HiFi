@@ -63,10 +63,7 @@ def run_baseline(data_dir: str) -> None:
     # phase9_collective.json: {"metadata":..., "outputs":{"AAPL":{...},...}, ...}
     if isinstance(raw, dict) and "outputs" in raw:
         raw_outputs = raw["outputs"]
-        if isinstance(raw_outputs, dict):
-            output_list = list(raw_outputs.values())
-        else:
-            output_list = raw_outputs
+        output_list = list(raw_outputs.values()) if isinstance(raw_outputs, dict) else raw_outputs
     elif isinstance(raw, list):
         output_list = raw
     else:

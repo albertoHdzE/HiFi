@@ -8,7 +8,11 @@ DOCKER_ENV_FILE     := docker/langfuse/.env
 	baseline-phase3 baseline-phase4 baseline-phase5 baseline-phase6 baseline-phase7 \
 	baseline-phase8 bootstrap-phase9 baseline-phase9 \
 	bootstrap baseline-phase10 \
+	finetune-setup finetune-train finetune-serve finetune-stop \
+	generate-reference-strategies label-outcomes baseline-phase11 \
 	test-live
+
+FINETUNE_VENV := venvs/finetune/bin/python
 
 .DEFAULT_GOAL := help
 
@@ -187,4 +191,48 @@ test-live: ## Full live validation: all baselines + complete test suite (require
 	$(MAKE) baseline-phase8
 	$(MAKE) baseline-phase9
 	$(MAKE) baseline-phase10
+	$(MAKE) label-outcomes
 	uv run pytest -q --tb=short
+
+# ---------------------------------------------------------------------------
+# Fine-tuning infrastructure (Phase 11, DJ-056, DJ-057, DJ-059, DJ-060)
+# ---------------------------------------------------------------------------
+
+finetune-setup: ## Create venvs/finetune/ with pinned mlx+mlx-lm (idempotent)
+	bash scripts/setup_finetune_venv.sh
+	uv run python scripts/check_env.py --check finetune-venv
+
+finetune-train: ## Run LoRA fine-tuning for both agents (requires finetune-setup + training data)
+	uv run python scripts/check_env.py --check finetune-venv
+	uv run python scripts/check_env.py --check phase11-data || { \
+		echo "Generate training data first: make generate-reference-strategies"; exit 1; }
+	uv run python scripts/run_phase11_finetune.py
+
+finetune-serve: ## Start mlx_lm.server for fine-tuned models on ports 1235/1236 (background)
+	uv run python scripts/check_env.py --check phase11-adapters || { \
+		echo "Train first: make finetune-train"; exit 1; }
+	bash scripts/serve_finetune_models.sh
+
+finetune-stop: ## Stop mlx_lm.server instances
+	pkill -f "mlx_lm.server" 2>/dev/null || true
+
+generate-reference-strategies: ## Generate Dataset Family C Parquets (no LM Studio required)
+	uv run python scripts/check_env.py --check market-data || $(MAKE) acquire-data
+	uv run python scripts/check_env.py --check phase10-data || $(MAKE) acquire-data-phase10
+	uv run python scripts/generate_reference_strategies.py
+	uv run python scripts/check_env.py --check phase11-data
+
+label-outcomes: ## Label unlabeled performance records where 60d has elapsed (no LM Studio)
+	uv run python scripts/run_label_outcomes.py
+
+baseline-phase11: ## Phase 11 fine-tuning eval: generate + validate (requires LM Studio + finetune servers)
+	uv run python scripts/check_env.py --check lm-studio
+	uv run python scripts/check_env.py --check finetune-venv
+	uv run python scripts/check_env.py --check phase11-adapters || $(MAKE) finetune-train
+	$(MAKE) finetune-serve
+	sleep 15
+	uv run python scripts/run_phase11_evaluation.py
+	$(MAKE) finetune-stop
+	uv run pytest tests/unit/test_phase11_baseline.py \
+	             tests/holistic/test_phase11_evaluation.py \
+	             -q --tb=short

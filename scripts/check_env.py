@@ -208,6 +208,65 @@ def check_phase10_fixture() -> list[str]:
     return []
 
 
+def check_finetune_venv() -> list[str]:
+    """Verify venvs/finetune/ exists with mlx_lm installed (DJ-056)."""
+    import subprocess
+
+    venv_python = PROJECT_ROOT / "venvs" / "finetune" / "bin" / "python"
+    if not venv_python.exists():
+        return [
+            f"venvs/finetune/bin/python not found: {venv_python}",
+            "Create it first: make finetune-setup",
+        ]
+    result = subprocess.run(
+        [str(venv_python), "-c", "import mlx_lm; print(mlx_lm.__version__)"],
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        return [
+            "mlx_lm not importable in venvs/finetune/:",
+            result.stderr.strip() or "(no error output)",
+            "Re-run: make finetune-setup",
+        ]
+    return []
+
+
+def check_phase11_data() -> list[str]:
+    """Verify Dataset Family C Parquets exist in data/reference_strategies/ (DJ-059)."""
+    data_dir = os.environ.get("HIFI_DATA_DIR", str(PROJECT_ROOT / "data"))
+    max_return_dir = Path(data_dir) / "reference_strategies" / "max_return"
+    risk_adj_dir = Path(data_dir) / "reference_strategies" / "risk_adjusted"
+    errors = []
+    for label, directory in (("max_return", max_return_dir), ("risk_adjusted", risk_adj_dir)):
+        if not directory.exists():
+            errors.append(f"data/reference_strategies/{label}/ not found: {directory}")
+            continue
+        import glob as _glob
+        files = _glob.glob(str(directory / "*.parquet"))
+        if len(files) < 12:
+            errors.append(
+                f"data/reference_strategies/{label}/ has only {len(files)} Parquet files "
+                f"(need >= 12); run: make generate-reference-strategies"
+            )
+    if errors:
+        errors.append("Generate Dataset Family C first: make generate-reference-strategies")
+    return errors
+
+
+def check_phase11_adapters() -> list[str]:
+    """Verify LoRA adapter directories exist for Technical and Fundamental agents (DJ-056)."""
+    data_dir = os.environ.get("HIFI_DATA_DIR", str(PROJECT_ROOT / "data"))
+    errors = []
+    for name in ("technical_v1", "fundamental_v1"):
+        adapter_dir = Path(data_dir) / "adapters" / name
+        if not adapter_dir.exists():
+            errors.append(f"Adapter directory not found: {adapter_dir}")
+    if errors:
+        errors.append("Train adapters first: make finetune-train")
+    return errors
+
+
 _CHECKS = {
     "langfuse": check_langfuse,
     "lm-studio": check_lm_studio,
@@ -222,6 +281,9 @@ _CHECKS = {
     "phase10-data": check_phase10_data,
     "phase10-bootstrap": check_phase10_bootstrap,
     "phase10-fixture": check_phase10_fixture,
+    "finetune-venv": check_finetune_venv,
+    "phase11-data": check_phase11_data,
+    "phase11-adapters": check_phase11_adapters,
 }
 
 

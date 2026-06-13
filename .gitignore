@@ -226,6 +226,8 @@ data/raw/
 data/processed/
 data/features/
 data/reference_strategies/
+data/training/
+data/adapters/
 data/evaluation/
 data/knowledge/
 data/market/
@@ -242,6 +244,7 @@ venvs/*/.python-version
 
 # Model weights (too large for git)
 models/
+!src/hifi/models/
 *.gguf
 *.safetensors
 
