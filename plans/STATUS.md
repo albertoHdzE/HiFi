@@ -32,7 +32,7 @@ HiFi is a fully local multi-agent financial intelligence platform. Read these in
 | 8 | Full Agent Population | COMPLETE | plans/PHASE_08_PLAN.md | doc/bitacora/PHASE_08_AGENT_POPULATION.md |
 | 9 | Collective Decision Engine | COMPLETE | plans/PHASE_09_PLAN.md | doc/bitacora/PHASE_09_COLLECTIVE_ENGINE.md |
 | 10 | Evaluation & Backtesting | COMPLETE | plans/PHASE_10_PLAN.md | doc/bitacora/PHASE_10_EVALUATION.md |
-| 11 | Fine-Tuning | COMPLETE (infra); training pending | plans/PHASE_11_PLAN.md | doc/bitacora/PHASE_11_FINE_TUNING.md |
+| 11 | Fine-Tuning | COMPLETE (training); evaluation + notebook pending | plans/PHASE_11_PLAN.md | doc/bitacora/PHASE_11_FINE_TUNING.md |
 | 12 | GraphRAG + Structured Debate | NOT STARTED | -- | -- |
 | 13 | Advanced Features | NOT STARTED | -- | -- |
 | 14 | Paper Trading | NOT STARTED | -- | -- |
@@ -60,10 +60,11 @@ HiFi is a fully local multi-agent financial intelligence platform. Read these in
 - New scripts: 9 scripts for data gen, training, serving, evaluation, label-outcomes
 - New Makefile targets: finetune-setup, finetune-train, finetune-serve, finetune-stop,
   generate-reference-strategies, label-outcomes, baseline-phase11
-- Training pending: `make acquire-data-phase10 && make generate-reference-strategies`
-  then `make finetune-setup && make finetune-train` (requires internet + Apple Silicon GPU)
-- OQ-M01 (minimum training data for stable LoRA) and OQ-M02 (diversity preserved)
-  will be answered after the full training run
+- Rank sweep: rank 4/8/16/32 at 300 iters, losses 0.314/0.299/0.296/0.298, optimal=rank 8
+- technical_v1 adapter: rank 8, 1000 iters, 26,433 examples, 8202s, quality PASS
+- fundamental_v1 adapter: rank 8, 1000 iters, 26,433 examples, 2767s, quality PASS
+- Pending: `make baseline-phase11` (three-tier eval) + replication notebook
+- Full handoff: plans/PHASE_11_HANDOFF.md
 
 ## Phase 11 Pre-Phase Decisions (DJ-053 to DJ-060)
 
@@ -127,7 +128,7 @@ Phase 11 creates venvs/finetune/ to pin these versions.
 
 | Metric | Value |
 |---|---|
-| Tests passing | 991 (10 skipped -- training JSONL, 0 lint) |
+| Tests passing | 997 (4 skipped -- phase11 baseline fixture, 0 lint) |
 | DJ decisions | DJ-000 through DJ-060 |
 | Technical Agent GR (Phase 5) | 0.667 (improvement target Phase 11) |
 | Fundamental Agent GR (Phase 5) | 1.000 |
