@@ -37,6 +37,7 @@ def make_llm(
     model: str = _DEFAULT_MODEL,
     temperature: float = 0.0,
     max_tokens: int = 1024,
+    base_url: str | None = None,
 ) -> ChatOpenAI:
     """
     Return a ChatOpenAI instance pointed at the local LM Studio server.
@@ -49,6 +50,8 @@ def make_llm(
         Sampling temperature. 0.0 for deterministic output (structured JSON).
     max_tokens : int
         Maximum tokens in the completion. 1024 is sufficient for AgentSignal JSON.
+    base_url : str | None
+        Override the LM Studio base URL. When None, uses HIFI_LM_STUDIO_URL env var.
 
     Returns
     -------
@@ -57,7 +60,7 @@ def make_llm(
     """
     return ChatOpenAI(
         model=model,
-        base_url=lm_studio_url(),
+        base_url=base_url if base_url is not None else lm_studio_url(),
         api_key="lm-studio",  # LM Studio ignores the key; required by openai client
         temperature=temperature,
         max_tokens=max_tokens,

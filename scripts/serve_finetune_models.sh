@@ -34,19 +34,19 @@ if [ ! -d "${ADAPTERS_DIR}/technical_v1" ] || [ ! -d "${ADAPTERS_DIR}/fundamenta
 fi
 
 echo "Starting mlx_lm.server for Technical Agent (port 1235)..."
-"${VENV}/bin/python" -m mlx_lm.server \
+"${VENV}/bin/python" -m mlx_lm server \
     --model "${MODEL_BASE}" \
     --adapter-path "${ADAPTERS_DIR}/technical_v1" \
     --port 1235 \
-    --log-level warning &
+    --log-level WARNING &
 echo "Technical fine-tuned server PID: $!"
 
 echo "Starting mlx_lm.server for Fundamental Agent (port 1236)..."
-"${VENV}/bin/python" -m mlx_lm.server \
+"${VENV}/bin/python" -m mlx_lm server \
     --model "${MODEL_BASE}" \
     --adapter-path "${ADAPTERS_DIR}/fundamental_v1" \
     --port 1236 \
-    --log-level warning &
+    --log-level WARNING &
 echo "Fundamental fine-tuned server PID: $!"
 
 echo "Servers starting. Health check in 10s..."

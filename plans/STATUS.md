@@ -32,7 +32,7 @@ HiFi is a fully local multi-agent financial intelligence platform. Read these in
 | 8 | Full Agent Population | COMPLETE | plans/PHASE_08_PLAN.md | doc/bitacora/PHASE_08_AGENT_POPULATION.md |
 | 9 | Collective Decision Engine | COMPLETE | plans/PHASE_09_PLAN.md | doc/bitacora/PHASE_09_COLLECTIVE_ENGINE.md |
 | 10 | Evaluation & Backtesting | COMPLETE | plans/PHASE_10_PLAN.md | doc/bitacora/PHASE_10_EVALUATION.md |
-| 11 | Fine-Tuning | COMPLETE (training); evaluation + notebook pending | plans/PHASE_11_PLAN.md | doc/bitacora/PHASE_11_FINE_TUNING.md |
+| 11 | Fine-Tuning | COMPLETE | plans/PHASE_11_PLAN.md | doc/bitacora/PHASE_11_FINE_TUNING.md |
 | 12 | GraphRAG + Structured Debate | NOT STARTED | -- | -- |
 | 13 | Advanced Features | NOT STARTED | -- | -- |
 | 14 | Paper Trading | NOT STARTED | -- | -- |
@@ -53,18 +53,21 @@ HiFi is a fully local multi-agent financial intelligence platform. Read these in
 - Performance history: 255 bootstrap records (heuristic proxies only)
 - 15-ticker expansion pending: run `make acquire-data-phase10` (requires internet)
 
-## Phase 11 Results (Infrastructure COMPLETE 2026-06-12)
+## Phase 11 Results (COMPLETE 2026-06-13)
 
-- 991 tests, 10 skipped (skipif: training JSONL absent), 0 lint errors
-- New package: src/hifi/models/ (training_data.py, fine_tune.py)
-- New scripts: 9 scripts for data gen, training, serving, evaluation, label-outcomes
-- New Makefile targets: finetune-setup, finetune-train, finetune-serve, finetune-stop,
-  generate-reference-strategies, label-outcomes, baseline-phase11
+- 997 tests, 4 skipped, 0 lint errors
 - Rank sweep: rank 4/8/16/32 at 300 iters, losses 0.314/0.299/0.296/0.298, optimal=rank 8
 - technical_v1 adapter: rank 8, 1000 iters, 26,433 examples, 8202s, quality PASS
 - fundamental_v1 adapter: rank 8, 1000 iters, 26,433 examples, 2767s, quality PASS
-- Pending: `make baseline-phase11` (three-tier eval) + replication notebook
-- Full handoff: plans/PHASE_11_HANDOFF.md
+- Three-tier evaluation (AAPL/JPM/XOM, 2023-03-31):
+  - Base Technical GR=1.000, Fine-tuned Technical GR=0.000 (NOT DEPLOYED -- GR degraded)
+  - Base Fundamental GR=1.000, Fine-tuned Fundamental GR=1.000 (PASS)
+  - Diversity pairwise=0.000 both runs (agents agreed on all tickers this date)
+  - OQ-M01: rank 8 confirmed optimal
+  - OQ-M02: diversity preserved (vacuously -- single date with no disagreement)
+- Replication notebook: notebooks/phase11_finetune_replication.ipynb
+- Bug fixes: serve_finetune_models.sh (log-level casing, deprecated module path),
+  lm_client.py (base_url param), agent finetune URL routing, eval GR field path
 
 ## Phase 11 Pre-Phase Decisions (DJ-053 to DJ-060)
 
@@ -128,7 +131,7 @@ Phase 11 creates venvs/finetune/ to pin these versions.
 
 | Metric | Value |
 |---|---|
-| Tests passing | 997 (4 skipped -- phase11 baseline fixture, 0 lint) |
+| Tests passing | 997 (4 skipped, 0 lint) |
 | DJ decisions | DJ-000 through DJ-060 |
 | Technical Agent GR (Phase 5) | 0.667 (improvement target Phase 11) |
 | Fundamental Agent GR (Phase 5) | 1.000 |

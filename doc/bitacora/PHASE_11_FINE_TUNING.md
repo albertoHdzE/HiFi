@@ -193,58 +193,74 @@ compliance examples).
 
 ## LoRA Rank Sweep Results
 
-**Status:** PENDING -- requires Apple Silicon GPU + venvs/finetune/ + training JSONL.
+**Status:** COMPLETE (2026-06-13)
 
 Command: `uv run python scripts/run_phase11_finetune.py --rank-sweep --sweep-iters 300`
 
-Expected output table (placeholder):
-
 | Rank | Train Loss | Duration (s) | Quality OK |
 |---|---|---|---|
-| 4  | -- | -- | -- |
-| 8  | -- | -- | -- |
-| 16 | -- | -- | -- |
-| 32 | -- | -- | -- |
+| 4  | 0.314 | 2459 | True |
+| 8  | 0.299 | 2463 | True |
+| 16 | 0.296 | 2465 | True |
+| 32 | 0.298 | 2472 | True |
 
-Results will be written to `data/training/rank_sweep_results.json` and
-`data/training/optimal_rank.json`.
+**Optimal rank selected: 8** (loss 0.299, within 0.003 of minimum, parsimony wins over rank 16).
 
-**OQ-M01 answer:** Pending empirical run. Expected finding: rank 8 or 16 yields
-the best loss-to-duration tradeoff for a ~450-example dataset. Rank 4 may
-underfit (insufficient LoRA capacity for structured JSON output); rank 32 may
-overfit given the training set size. The sweep will establish this empirically.
+**OQ-M01 answer:** Rank 8 is the efficiency knee. All ranks achieve quality_ok=True.
+Rank 16 is 0.003 lower but not worth the extra parameters at 300 iterations.
+Rank 32 underperforms rank 16 (under-converged at 300 iters — gradient updates
+spread across more parameters need more steps to converge).
 
 ---
 
 ## Three-Tier Evaluation Results
 
-**Status:** PENDING -- requires all of: training data, fine-tuned adapters,
-LM Studio on 1234, mlx_lm.server on 1235 and 1236.
+**Status:** COMPLETE (2026-06-13)
 
 Command: `make baseline-phase11`
+Tickers: AAPL, JPM, XOM at 2023-03-31
 
-Expected FineTuneEvaluationResult structure:
+### Results
 
-```json
-{
-  "ticker": "AAPL",
-  "analysis_date": "2023-03-31",
-  "base_technical_gr": 0.667,
-  "finetuned_technical_gr": null,
-  "base_fundamental_gr": 1.000,
-  "finetuned_fundamental_gr": null,
-  "base_pairwise_diversity": null,
-  "finetuned_pairwise_diversity": null,
-  "diversity_preserved": null,
-  "gr_improved_technical": null,
-  "gr_improved_fundamental": null
-}
-```
+| Ticker | Base Tech GR | FT Tech GR | Base Fund GR | FT Fund GR | Base Div | FT Div | Div Preserved |
+|---|---|---|---|---|---|---|---|
+| AAPL | 1.000 | 0.000 | 1.000 | 1.000 | 0.000 | 0.000 | True |
+| JPM  | 1.000 | 0.000 | 1.000 | 1.000 | 0.000 | 0.000 | True |
+| XOM  | 1.000 | 0.000 | 1.000 | 1.000 | 0.000 | 0.000 | True |
 
-**OQ-M02 answer:** Pending empirical run. The null hypothesis (diversity
-degrades) will be tested against the experimental hypothesis (heterogeneous
-labels preserve diversity). The threshold is finetuned_pairwise_diversity >=
-0.9 x base_pairwise_diversity.
+### Analysis
+
+**Base model (Tier 1):** Technical GR=1.000 on this date (better than Phase 5
+baseline of 0.667 — Phase 5 used a different model configuration). Fundamental
+GR=1.000, consistent with Phase 5.
+
+**Fine-tuned technical (Tier 1 FAIL):** GR degraded to 0.000. The technical_v1
+adapter at rank 8 / 1000 iters caused JSON format compliance failures on this
+evaluation date. The parse retry was triggered for AAPL fine-tuned run, and
+subsequent tickers had unverifiable outputs. Root cause: 1000 iters at rank 8
+may have overfit to the training label distribution, disrupting the structured
+output format. Mitigation: reduce iters or add more compliance examples.
+
+**Fine-tuned fundamental (Tier 1 PASS):** GR maintained at 1.000. Fundamental
+agent format compliance is robust to fine-tuning — consistent with the
+fundamental agent being trained on shorter prompts (lower overfitting risk).
+
+**Diversity (Tier 3 PASS):** pairwise_diversity=0.000 for both base and
+fine-tuned runs. On 2023-03-31, both agents voted identically for all tickers.
+Diversity preserved trivially (0.000 >= 0.9 × 0.000). A broader evaluation
+set covering multiple dates is needed to properly assess Tier 3.
+
+### OQ-M01 (GR improvement): NO
+Technical_v1 adapter degrades GR. Not deployed. Next steps: (a) reduce training
+iters to 500, (b) increase compliance examples ratio, (c) re-evaluate.
+
+### OQ-M02 (diversity preserved): YES (vacuously — no disagreement on this date)
+A single date with identical votes cannot distinguish heterogeneous from
+homogeneous fine-tuning effects. Requires multi-date evaluation (Phase 12 scope).
+
+### Deployment decision (DJ-058)
+- **technical_v1:** NOT DEPLOYED (Tier 1 fail — GR degraded 1.000 → 0.000)
+- **fundamental_v1:** CONDITIONALLY PASSED (Tier 1 + Tier 3 pass; Tier 2 not gating)
 
 ---
 
@@ -320,14 +336,16 @@ index which contains only trading days.
 
 | Criterion | Status |
 |---|---|
-| Tests >= 1000, 0 failures | 991 + 10 skipped (10 will activate after data gen) |
+| Tests >= 1000, 0 failures | 997 passed, 4 skipped (phase11 fixture was absent; now generated) |
 | Lint clean | PASS -- 0 errors |
-| Infrastructure (finetune-setup, finetune-serve) | IMPLEMENTED -- pending first run |
-| Training data (>= 400 examples/agent) | PENDING -- internet + GPU |
-| Adapters (technical_v1, fundamental_v1) | PENDING -- GPU |
-| OQ-M01 (rank sweep) | PENDING -- GPU |
-| OQ-M02 (diversity preserved) | PENDING -- full evaluation run |
-| Tier 1 (GR improved) | PENDING -- evaluation run |
+| Infrastructure (finetune-setup, finetune-serve) | COMPLETE |
+| Training data (>= 400 examples/agent) | COMPLETE -- 26,433 examples each |
+| Adapters (technical_v1, fundamental_v1) | COMPLETE -- rank 8, 1000 iters |
+| OQ-M01 (rank sweep) | COMPLETE -- rank 8 optimal |
+| OQ-M02 (diversity preserved) | COMPLETE -- vacuously YES (single date, agents agreed) |
+| Tier 1 technical (GR improved) | FAIL -- technical_v1 degrades GR; not deployed |
+| Tier 1 fundamental (GR maintained) | PASS -- fundamental_v1 GR=1.000 |
+| Replication notebook | COMPLETE -- notebooks/phase11_finetune_replication.ipynb |
 | Bitacora | COMPLETE |
 
 The infrastructure phase is complete. The empirical phase (training, evaluation,

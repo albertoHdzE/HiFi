@@ -80,6 +80,11 @@ def _technical_model() -> str:
     return os.environ.get("HIFI_TECHNICAL_MODEL", _DEFAULT_TECHNICAL_MODEL)
 
 
+def _technical_url() -> str | None:
+    """Return per-agent URL override for fine-tuned evaluation (DJ-057), or None for default."""
+    return os.environ.get("HIFI_TECHNICAL_FINETUNE_URL")
+
+
 def _load_prompt_template() -> tuple[str, str]:
     """Return (system_text, user_template) from the v1 prompt markdown file."""
     raw = _PROMPT_PATH.read_text(encoding="utf-8")
@@ -262,7 +267,9 @@ def generate_analysis_node(state: TechnicalAnalystState) -> dict:
             data_gaps_list=data_gaps_list,
         )
 
-    llm = make_llm(_technical_model(), max_tokens=4096)
+    _url = _technical_url()
+    llm = make_llm(_technical_model(), max_tokens=4096, base_url=_url) if _url \
+        else make_llm(_technical_model(), max_tokens=4096)
     messages = [SystemMessage(content=system_text), HumanMessage(content=user_text)]
     response = llm.invoke(messages)
     return {"llm_response": response.content}
@@ -293,7 +300,9 @@ def parse_output_node(state: TechnicalAnalystState) -> dict:
             if v is None and k not in ("call_id", "error", "detail"):
                 data_gaps.append(k)
 
-    llm = make_llm(_technical_model(), max_tokens=4096)
+    _url = _technical_url()
+    llm = make_llm(_technical_model(), max_tokens=4096, base_url=_url) if _url \
+        else make_llm(_technical_model(), max_tokens=4096)
     model_id = llm.model_name
 
     def _try_parse(text: str) -> tuple[AgentSignal | None, str | None]:

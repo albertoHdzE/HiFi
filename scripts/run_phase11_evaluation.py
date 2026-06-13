@@ -32,6 +32,38 @@ import sys
 from datetime import UTC, datetime
 from pathlib import Path
 
+# Reference fundamentals snapshots (same as Phase 9 baseline, 2023-03-31 vintage)
+_FETCHED_AT = datetime(2023, 3, 31, tzinfo=UTC).isoformat()
+_REFERENCE_SNAPSHOTS: dict[str, dict] = {
+    "AAPL": {
+        "ticker": "AAPL", "period_end": "2022-12-31",
+        "revenue": 117_154_000_000, "net_income": 29_998_000_000,
+        "total_assets": 346_747_000_000, "total_liabilities": 290_437_000_000,
+        "total_equity": 50_672_000_000, "eps": 1.88,
+        "market_cap": 2_350_000_000_000, "source": "reference",
+        "fetched_at": _FETCHED_AT,
+        "provenance": {"source": "10-Q reference", "fetched_at": _FETCHED_AT},
+    },
+    "JPM": {
+        "ticker": "JPM", "period_end": "2023-03-31",
+        "revenue": 38_349_000_000, "net_income": 12_622_000_000,
+        "total_assets": 3_744_305_000_000, "total_liabilities": 3_454_000_000_000,
+        "total_equity": 290_000_000_000, "eps": 4.10,
+        "market_cap": 400_000_000_000, "source": "reference",
+        "fetched_at": _FETCHED_AT,
+        "provenance": {"source": "10-Q reference", "fetched_at": _FETCHED_AT},
+    },
+    "XOM": {
+        "ticker": "XOM", "period_end": "2023-03-31",
+        "revenue": 86_564_000_000, "net_income": 11_432_000_000,
+        "total_assets": 376_317_000_000, "total_liabilities": 163_567_000_000,
+        "total_equity": 168_577_000_000, "eps": 2.79,
+        "market_cap": 440_000_000_000, "source": "reference",
+        "fetched_at": _FETCHED_AT,
+        "provenance": {"source": "10-Q reference", "fetched_at": _FETCHED_AT},
+    },
+}
+
 _ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_ROOT / "src"))
 
@@ -56,57 +88,78 @@ def _check_server(url: str, name: str) -> bool:
         return False
 
 
-def _run_ensemble_with_model(ticker: str, analysis_date: str, model_url_override: dict | None) -> dict:  # noqa: E501
+def _get_server_model_id(url: str) -> str:
+    """Return the model ID served at url by querying /v1/models."""
+    import urllib.request
+
+    models_url = url.rstrip("/") + "/models"
+    with urllib.request.urlopen(models_url, timeout=5) as resp:
+        data = json.loads(resp.read())
+    return data["data"][0]["id"]
+
+
+def _run_ensemble_with_model(
+    ticker: str,
+    analysis_date: str,
+    model_url_override: dict | None,
+    snapshot_json: str,
+) -> dict:
     """
     Run the ensemble for (ticker, analysis_date), optionally overriding model URLs.
 
     model_url_override: {"technical": url, "fundamental": url} or None for base.
+    snapshot_json: JSON-serialized FundamentalsSnapshot for the Fundamental Agent.
     Returns the EnsembleOutput as a dict.
     """
-    # Save and restore env vars to allow model URL overriding
-    original_technical = os.environ.get("HIFI_TECHNICAL_MODEL")
-    original_lm_studio = os.environ.get("HIFI_LM_STUDIO_URL")
+    # Save env vars we may mutate
+    saved = {
+        k: os.environ.get(k)
+        for k in ("HIFI_TECHNICAL_MODEL", "HIFI_TECHNICAL_FINETUNE_URL",
+                  "HIFI_FUNDAMENTAL_FINETUNE_URL", "HIFI_FUNDAMENTAL_FINETUNE_MODEL")
+    }
 
     try:
         if model_url_override:
             if "technical" in model_url_override:
-                os.environ["HIFI_TECHNICAL_FINETUNE_URL"] = model_url_override["technical"]
+                tech_url = model_url_override["technical"]
+                os.environ["HIFI_TECHNICAL_FINETUNE_URL"] = tech_url
+                # mlx_lm server requires the exact model ID it serves (full local path)
+                os.environ["HIFI_TECHNICAL_MODEL"] = _get_server_model_id(tech_url)
             if "fundamental" in model_url_override:
-                os.environ["HIFI_FUNDAMENTAL_FINETUNE_URL"] = model_url_override["fundamental"]
+                fund_url = model_url_override["fundamental"]
+                os.environ["HIFI_FUNDAMENTAL_FINETUNE_URL"] = fund_url
+                os.environ["HIFI_FUNDAMENTAL_FINETUNE_MODEL"] = _get_server_model_id(fund_url)
 
         from hifi.agents.ensemble_runner import run_ensemble
         output = run_ensemble(
             ticker=ticker,
             as_of_date=analysis_date,
+            snapshot_json=snapshot_json,
             agents=["fundamental", "technical"],
             use_rag=False,
         )
         return output.model_dump()
 
     finally:
-        # Restore env vars
-        if original_technical is not None:
-            os.environ["HIFI_TECHNICAL_MODEL"] = original_technical
-        elif "HIFI_TECHNICAL_FINETUNE_URL" in os.environ:
-            del os.environ["HIFI_TECHNICAL_FINETUNE_URL"]
-        if original_lm_studio is not None:
-            os.environ["HIFI_LM_STUDIO_URL"] = original_lm_studio
-        elif "HIFI_FUNDAMENTAL_FINETUNE_URL" in os.environ:
-            del os.environ["HIFI_FUNDAMENTAL_FINETUNE_URL"]
+        # Restore all mutated env vars
+        for key, original in saved.items():
+            if original is not None:
+                os.environ[key] = original
+            elif key in os.environ:
+                del os.environ[key]
 
 
 def _extract_agent_gr(verification_report: dict, agent_type: str) -> float:
     """Extract GR for a specific agent from an EnsembleVerificationReport dict."""
-    reports = verification_report.get("agent_reports", {})
-    agent_report = reports.get(agent_type, {})
-    return float(agent_report.get("grounding_rate", 0.0))
+    report = verification_report.get(f"{agent_type}_report", {})
+    return float(report.get("grounding_rate", 0.0))
 
 
 def _extract_diversity(ensemble_output: dict) -> tuple[float, float]:
     """Extract (pairwise_diversity, disagreement_entropy) from EnsembleOutput dict."""
     decision = ensemble_output.get("ensemble_decision", {})
-    pairwise = float(decision.get("pairwise_diversity", 0.0))
-    entropy = float(decision.get("disagreement_entropy", 0.0))
+    pairwise = float(decision.get("pairwise_diversity") or 0.0)
+    entropy = float(decision.get("disagreement_entropy") or 0.0)
     return pairwise, entropy
 
 
@@ -139,12 +192,22 @@ def main() -> None:
 
     results = []
 
+    from hifi.data.schemas import FundamentalsSnapshot
+
     for ticker in tickers:
         logger.info("Evaluating %s on %s...", ticker, args.analysis_date)
 
+        # Build snapshot_json for the Fundamental Agent
+        raw_snap = _REFERENCE_SNAPSHOTS.get(ticker)
+        if raw_snap is None:
+            logger.error("No reference snapshot for ticker %s; skipping.", ticker)
+            continue
+        snap = FundamentalsSnapshot.model_validate(raw_snap)
+        snap_json = snap.model_dump_json()
+
         # --- Base model run ---
         logger.info("  Base model run...")
-        base_output_dict = _run_ensemble_with_model(ticker, args.analysis_date, None)
+        base_output_dict = _run_ensemble_with_model(ticker, args.analysis_date, None, snap_json)
 
         # Reconstruct EnsembleOutput for verification
         from hifi.collective.schemas import EnsembleOutput
@@ -160,7 +223,9 @@ def main() -> None:
             "technical": ft_tech_url,
             "fundamental": ft_fund_url,
         }
-        ft_output_dict = _run_ensemble_with_model(ticker, args.analysis_date, ft_url_override)
+        ft_output_dict = _run_ensemble_with_model(  # noqa: E501
+            ticker, args.analysis_date, ft_url_override, snap_json
+        )
         ft_output = EnsembleOutput.model_validate(ft_output_dict)
         ft_verification = verify_ensemble(ft_output)
         ft_tech_gr = _extract_agent_gr(ft_verification.model_dump(), "technical")

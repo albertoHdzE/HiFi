@@ -300,7 +300,14 @@ def generate_analysis_node(state: FundamentalistState) -> dict:
             data_gaps_list=data_gaps_list,
         )
 
-    llm = make_llm()
+    _ft_url   = os.environ.get("HIFI_FUNDAMENTAL_FINETUNE_URL")
+    _ft_model = os.environ.get("HIFI_FUNDAMENTAL_FINETUNE_MODEL")
+    if _ft_url and _ft_model:
+        llm = make_llm(model=_ft_model, base_url=_ft_url)
+    elif _ft_url:
+        llm = make_llm(base_url=_ft_url)
+    else:
+        llm = make_llm()
     messages = [SystemMessage(content=system_text), HumanMessage(content=user_text)]
     response = llm.invoke(messages)
     return {"llm_response": response.content}
@@ -333,7 +340,14 @@ def parse_output_node(state: FundamentalistState) -> dict:
             if v is None and k not in ("call_id", "error", "detail"):
                 data_gaps.append(k)
 
-    llm = make_llm()
+    _ft_url   = os.environ.get("HIFI_FUNDAMENTAL_FINETUNE_URL")
+    _ft_model = os.environ.get("HIFI_FUNDAMENTAL_FINETUNE_MODEL")
+    if _ft_url and _ft_model:
+        llm = make_llm(model=_ft_model, base_url=_ft_url)
+    elif _ft_url:
+        llm = make_llm(base_url=_ft_url)
+    else:
+        llm = make_llm()
     model_id = llm.model_name
 
     def _try_parse(text: str) -> AgentSignal | None:

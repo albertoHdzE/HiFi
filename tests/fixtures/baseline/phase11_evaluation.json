@@ -1,0 +1,62 @@
+{
+  "metadata": {
+    "phase": "11",
+    "analysis_date": "2023-03-31",
+    "tickers": [
+      "AAPL",
+      "JPM",
+      "XOM"
+    ],
+    "run_date": "2026-06-13T21:15:27.554085+00:00"
+  },
+  "results": [
+    {
+      "ticker": "AAPL",
+      "analysis_date": "2023-03-31",
+      "base_technical_gr": 1.0,
+      "base_fundamental_gr": 1.0,
+      "finetuned_technical_gr": 0.0,
+      "finetuned_fundamental_gr": 1.0,
+      "base_pairwise_diversity": 0.0,
+      "finetuned_pairwise_diversity": 0.0,
+      "base_disagreement_entropy": 0.0,
+      "finetuned_disagreement_entropy": 0.0,
+      "diversity_preserved": true,
+      "gr_improved_technical": false,
+      "gr_improved_fundamental": false,
+      "generated_at": "2026-06-13T20:46:47.564671+00:00"
+    },
+    {
+      "ticker": "JPM",
+      "analysis_date": "2023-03-31",
+      "base_technical_gr": 1.0,
+      "base_fundamental_gr": 1.0,
+      "finetuned_technical_gr": 0.0,
+      "finetuned_fundamental_gr": 1.0,
+      "base_pairwise_diversity": 0.0,
+      "finetuned_pairwise_diversity": 0.0,
+      "base_disagreement_entropy": 0.0,
+      "finetuned_disagreement_entropy": 0.0,
+      "diversity_preserved": true,
+      "gr_improved_technical": false,
+      "gr_improved_fundamental": false,
+      "generated_at": "2026-06-13T21:01:00.850197+00:00"
+    },
+    {
+      "ticker": "XOM",
+      "analysis_date": "2023-03-31",
+      "base_technical_gr": 1.0,
+      "base_fundamental_gr": 1.0,
+      "finetuned_technical_gr": 0.0,
+      "finetuned_fundamental_gr": 1.0,
+      "base_pairwise_diversity": 0.0,
+      "finetuned_pairwise_diversity": 0.0,
+      "base_disagreement_entropy": 0.0,
+      "finetuned_disagreement_entropy": 0.0,
+      "diversity_preserved": true,
+      "gr_improved_technical": false,
+      "gr_improved_fundamental": false,
+      "generated_at": "2026-06-13T21:15:27.552922+00:00"
+    }
+  ]
+}
