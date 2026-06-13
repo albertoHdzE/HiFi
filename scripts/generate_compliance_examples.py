@@ -32,6 +32,7 @@ logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
 
 _PHASE3_FIXTURE = _ROOT / "tests" / "fixtures" / "baseline" / "phase3_baseline.json"
+_PHASE4_FIXTURE = _ROOT / "tests" / "fixtures" / "baseline" / "phase4_ensemble.json"
 _PHASE5_FIXTURE = _ROOT / "tests" / "fixtures" / "baseline" / "phase5_verification.json"
 _TECHNICAL_PROMPT = _ROOT / "src" / "hifi" / "agents" / "prompts" / "technical_v1.md"
 _FUNDAMENTAL_PROMPT = _ROOT / "src" / "hifi" / "agents" / "prompts" / "fundamental_v1.md"
@@ -44,20 +45,20 @@ def _parse_system(template_path: Path) -> str:
     return system
 
 
-def _extract_technical_examples(phase3_data: dict) -> list[dict]:
+def _extract_technical_examples(phase4_data: dict) -> list[dict]:
     """
-    Extract verified Technical Agent examples from the Phase 3 baseline fixture.
+    Extract verified Technical Agent examples from the Phase 4 ensemble fixture.
 
+    Phase 4 format: outputs[ticker]['technical_analysis']['signal'].
     Only includes analyses where the signal is non-None (successful runs).
-    Formats as compliance examples showing correct schema + MCP field citation.
     """
     system = _parse_system(_TECHNICAL_PROMPT)
     examples = []
-    analyses = phase3_data.get("analyses", {})
+    outputs = phase4_data.get("outputs", {})
 
-    for ticker, analysis_data in analyses.items():
-        tech = analysis_data.get("technical_analysis", {})
-        if tech is None:
+    for ticker, analysis_data in outputs.items():
+        tech = analysis_data.get("technical_analysis") or {}
+        if not tech:
             continue
 
         signal = tech.get("signal")
@@ -98,25 +99,37 @@ def _extract_technical_examples(phase3_data: dict) -> list[dict]:
 
 
 def _extract_fundamental_examples(phase3_data: dict) -> list[dict]:
-    """Extract verified Fundamental Agent examples from Phase 3 baseline fixture."""
+    """Extract verified Fundamental Agent examples from Phase 3 baseline fixture.
+
+    Phase 3 fixture format: analyses[ticker] = {signal, financial_ratios, ...} (flat).
+    Phase 4+ fixture format: analyses[ticker] = {fundamental_analysis: {signal, ...}}.
+    Both formats are handled.
+    """
     system = _parse_system(_FUNDAMENTAL_PROMPT)
     examples = []
     analyses = phase3_data.get("analyses", {})
 
     for ticker, analysis_data in analyses.items():
-        fund = analysis_data.get("fundamental_analysis", {})
-        if fund is None:
-            continue
+        # Try nested format first (phase4+), then flat format (phase3)
+        fund = analysis_data.get("fundamental_analysis") or {}
+        if not fund:
+            # Phase 3 flat format: signal is directly on the ticker dict
+            signal = analysis_data.get("signal")
+            fin_ratios = analysis_data.get("financial_ratios", {})
+            growth = analysis_data.get("growth_metrics", {})
+            valuation = analysis_data.get("valuation_context", {})
+            macro = analysis_data.get("macro_snapshot", {})
+        else:
+            signal = fund.get("signal")
+            fin_ratios = fund.get("financial_ratios", {})
+            growth = fund.get("growth_metrics", {})
+            valuation = fund.get("valuation_context", {})
+            macro = fund.get("macro_snapshot", {})
 
-        signal = fund.get("signal")
         if signal is None:
             continue
 
         as_of_date = signal.get("as_of_date", "")
-        fin_ratios = fund.get("financial_ratios", {})
-        growth = fund.get("growth_metrics", {})
-        valuation = fund.get("valuation_context", {})
-        macro = fund.get("macro_snapshot", {})
 
         user_content = (
             f"Analyze {ticker} as of {as_of_date}.\n\n"
@@ -158,7 +171,7 @@ def main() -> None:
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Load Phase 3 fixture
+    # Load Phase 3 fixture (fundamental agent)
     if not _PHASE3_FIXTURE.exists():
         logger.error("Phase 3 fixture not found: %s", _PHASE3_FIXTURE)
         logger.error("Generate it first: make baseline-phase3  (requires LM Studio)")
@@ -166,8 +179,15 @@ def main() -> None:
 
     phase3_data = json.loads(_PHASE3_FIXTURE.read_text())
 
-    # Technical compliance examples
-    tech_examples = _extract_technical_examples(phase3_data)
+    # Load Phase 4 fixture (technical + fundamental ensemble)
+    phase4_data: dict = {}
+    if _PHASE4_FIXTURE.exists():
+        phase4_data = json.loads(_PHASE4_FIXTURE.read_text())
+    else:
+        logger.warning("Phase 4 fixture not found -- technical compliance examples will be empty")
+
+    # Technical compliance examples (from phase4 which has technical_analysis)
+    tech_examples = _extract_technical_examples(phase4_data)
     tech_out = output_dir / "technical_compliance.jsonl"
     with open(tech_out, "w") as f:
         for ex in tech_examples:

@@ -54,7 +54,8 @@ def run_lora_training(
     output_dir: str = "",
     lora_rank: int = 8,
     lora_layers: int = 16,
-    batch_size: int = 4,
+    batch_size: int = 1,        # 32B at 8-bit peaks ~52GB at bs=1; bs=4 OOMs M3 Ultra
+    grad_accumulation_steps: int = 4,   # effective batch = bs * grad_accum = 4
     num_iters: int = 1000,
     learning_rate: float = 1e-5,
     venv_python: str = "venvs/finetune/bin/python",
@@ -92,13 +93,25 @@ def run_lora_training(
     # Count training examples
     n_examples = sum(1 for _ in train_path.read_text().splitlines() if _.strip())
 
-    # mlx_lm.lora expects a directory with train.jsonl, not a bare file
+    # mlx_lm.lora expects a directory with train.jsonl, not a bare file.
+    # Rank is not a CLI flag in mlx_lm 0.31.1 -- it is set via YAML config (-c).
     tmpdir = tempfile.mkdtemp(prefix="hifi_lora_")
     try:
         shutil.copy(str(train_path), str(Path(tmpdir) / "train.jsonl"))
 
+        # Write rank config to YAML (mlx_lm.lora --config pattern)
+        config_yaml = (
+            f"lora_parameters:\n"
+            f"  rank: {lora_rank}\n"
+            f"  dropout: 0.0\n"
+            f"  scale: 20.0\n"
+        )
+        config_path = Path(tmpdir) / "lora_config.yaml"
+        config_path.write_text(config_yaml)
+
+        # mlx_lm 0.31+: use `python -m mlx_lm lora` (not `python -m mlx_lm.lora`)
         cmd = [
-            str(venv_py), "-m", "mlx_lm.lora",
+            str(venv_py), "-m", "mlx_lm", "lora",
             "--model", model_path,
             "--train",
             "--data", tmpdir,
@@ -106,8 +119,9 @@ def run_lora_training(
             "--num-layers", str(lora_layers),
             "--iters", str(num_iters),
             "--batch-size", str(batch_size),
+            "--grad-accumulation-steps", str(grad_accumulation_steps),
             "--learning-rate", str(learning_rate),
-            "--lora-rank", str(lora_rank),
+            "-c", str(config_path),
         ]
 
         logger.info("Starting LoRA training: rank=%d, iters=%d, file=%s", lora_rank, num_iters, train_file)  # noqa: E501
@@ -116,13 +130,13 @@ def run_lora_training(
             cmd,
             capture_output=False,
             text=True,
-            timeout=7200,  # 2-hour ceiling; rank-32 full training on M2 Ultra
+            timeout=14400,  # 4-hour ceiling for rank-32 full training on M3 Ultra
         )
         duration = time.monotonic() - t_start
 
         if result.returncode != 0:
             raise RuntimeError(
-                f"mlx_lm.lora exited with code {result.returncode}. "
+                f"mlx_lm lora exited with code {result.returncode}. "
                 "Check stdout above for details."
             )
 
@@ -177,8 +191,9 @@ def check_adapter_quality(
         logger.warning("finetune venv not found: %s", venv_py)
         return False
 
+    # mlx_lm 0.31+: use `python -m mlx_lm generate` (not `python -m mlx_lm.generate`)
     cmd = [
-        str(venv_py), "-m", "mlx_lm.generate",
+        str(venv_py), "-m", "mlx_lm", "generate",
         "--model", model_path,
         "--adapter-path", str(adapter_path),
         "--prompt", "Hello",

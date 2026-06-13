@@ -41,7 +41,8 @@ from hifi.models.fine_tune import (  # noqa: E402
     run_lora_training,
 )
 
-_MODEL_BASE = "mlx-community/Qwen2.5-Coder-32B-Instruct-8bit"
+# Use local LM Studio copy to avoid re-downloading 32GB model (DJ-056)
+_MODEL_BASE = str(Path.home() / ".lmstudio/models/lmstudio-community/Qwen2.5-Coder-32B-Instruct-MLX-8bit")  # noqa: E501
 _VENV_PYTHON = str(_ROOT / "venvs" / "finetune" / "bin" / "python")
 _SWEEP_RANKS = [4, 8, 16, 32]
 

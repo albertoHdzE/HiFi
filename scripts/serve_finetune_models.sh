@@ -19,7 +19,8 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 VENV="${REPO_ROOT}/venvs/finetune"
-MODEL_BASE="mlx-community/Qwen2.5-Coder-32B-Instruct-8bit"
+# Use local LM Studio copy (avoids re-downloading 32GB; DJ-056)
+MODEL_BASE="${HOME}/.lmstudio/models/lmstudio-community/Qwen2.5-Coder-32B-Instruct-MLX-8bit"
 ADAPTERS_DIR="${REPO_ROOT}/data/adapters"
 
 if [ ! -f "${VENV}/bin/python" ]; then
