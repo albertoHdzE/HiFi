@@ -13,7 +13,7 @@ the agent returns a default "Insufficient Data" signal without calling the LLM
 Model selection
 ---------------
 Controlled by HIFI_SENTIMENT_MODEL env var (DJ-032).
-Default: qwen2.5-coder-32b-instruct-mlx.
+Default: gemma-4-12b-it (DJ-080 — model family diversity).
 Non-reasoning model: max_tokens=1024 is sufficient.
 """
 
@@ -36,7 +36,7 @@ logger = logging.getLogger(__name__)
 
 _PROMPT_VERSION = "sentiment_v1"
 _PROMPT_PATH = Path(__file__).parent / "prompts" / f"{_PROMPT_VERSION}.md"
-_DEFAULT_SENTIMENT_MODEL = "qwen2.5-coder-32b-instruct-mlx"
+_DEFAULT_SENTIMENT_MODEL = "gemma-4-12B-it-MLX-4bit"
 _INSUFFICIENT_DATA_MODEL = "sentiment-default"
 _RETRY_MSG = (
     "Your previous response was not valid JSON or was missing required fields. "

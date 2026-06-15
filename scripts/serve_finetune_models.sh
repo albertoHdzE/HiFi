@@ -3,7 +3,7 @@
 #
 # Start mlx_lm.server for fine-tuned Technical and Fundamental agents (DJ-057).
 #
-# Technical Agent: port 1235 (base + technical_v1 adapter)
+# Technical Agent: port 1235 (base + technical_v2 adapter, DJ-082)
 # Fundamental Agent: port 1236 (base + fundamental_v1 adapter)
 # Both run alongside LM Studio (port 1234).
 #
@@ -28,7 +28,7 @@ if [ ! -f "${VENV}/bin/python" ]; then
     exit 1
 fi
 
-if [ ! -d "${ADAPTERS_DIR}/technical_v1" ] || [ ! -d "${ADAPTERS_DIR}/fundamental_v1" ]; then
+if [ ! -d "${ADAPTERS_DIR}/technical_v2" ] || [ ! -d "${ADAPTERS_DIR}/fundamental_v1" ]; then
     echo "ERROR: Adapters not found in ${ADAPTERS_DIR}/. Run: make finetune-train"
     exit 1
 fi
@@ -36,7 +36,7 @@ fi
 echo "Starting mlx_lm.server for Technical Agent (port 1235)..."
 "${VENV}/bin/python" -m mlx_lm server \
     --model "${MODEL_BASE}" \
-    --adapter-path "${ADAPTERS_DIR}/technical_v1" \
+    --adapter-path "${ADAPTERS_DIR}/technical_v2" \
     --port 1235 \
     --log-level WARNING &
 echo "Technical fine-tuned server PID: $!"
