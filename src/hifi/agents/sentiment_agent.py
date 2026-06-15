@@ -36,7 +36,7 @@ logger = logging.getLogger(__name__)
 
 _PROMPT_VERSION = "sentiment_v1"
 _PROMPT_PATH = Path(__file__).parent / "prompts" / f"{_PROMPT_VERSION}.md"
-_DEFAULT_SENTIMENT_MODEL = "gemma-4-12B-it-MLX-4bit"
+_DEFAULT_SENTIMENT_MODEL = "gemma-4-12b-it-mlx"
 _INSUFFICIENT_DATA_MODEL = "sentiment-default"
 _RETRY_MSG = (
     "Your previous response was not valid JSON or was missing required fields. "
