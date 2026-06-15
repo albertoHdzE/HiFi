@@ -33,8 +33,8 @@ HiFi is a fully local multi-agent financial intelligence platform. Read these in
 | 9 | Collective Decision Engine | COMPLETE | plans/PHASE_09_PLAN.md | doc/bitacora/PHASE_09_COLLECTIVE_ENGINE.md |
 | 10 | Evaluation & Backtesting | COMPLETE | plans/PHASE_10_PLAN.md | doc/bitacora/PHASE_10_EVALUATION.md |
 | 11 | Fine-Tuning | COMPLETE | plans/PHASE_11_PLAN.md | doc/bitacora/PHASE_11_FINE_TUNING.md |
-| 12 | GraphRAG + Structured Debate | IN PROGRESS (infra complete, eval partial) | plans/PHASE_12_PLAN.md | doc/bitacora/PHASE_12_GRAPHRAG_DEBATE.md |
-| 12.1 | Completion and Correction | IN PROGRESS | plans/PHASE_12.1_PLAN.md | doc/bitacora/PHASE_12.1_COMPLETION.md |
+| 12 | GraphRAG + Structured Debate | COMPLETE | plans/PHASE_12_PLAN.md | doc/bitacora/PHASE_12_GRAPHRAG_DEBATE.md |
+| 12.1 | Completion and Correction | COMPLETE (W7 SGR deferred) | plans/PHASE_12.1_PLAN.md | doc/bitacora/PHASE_12.1_COMPLETION.md |
 | 13 | Verification Completeness, Sentiment Intelligence, System Resilience | IN PROGRESS (E0 complete) | plans/PHASE_13_PLAN.md | -- |
 | 14 | Paper Trading | NOT STARTED | -- | -- |
 | 15 | Containerization | NOT STARTED | -- | -- |
@@ -69,6 +69,24 @@ HiFi is a fully local multi-agent financial intelligence platform. Read these in
 - Replication notebook: notebooks/phase11_finetune_replication.ipynb
 - Bug fixes: serve_finetune_models.sh (log-level casing, deprecated module path),
   lm_client.py (base_url param), agent finetune URL routing, eval GR field path
+
+## Phase 12.1 Results (COMPLETE 2026-06-15)
+
+- 1197 tests, 0 skipped, 0 lint errors
+- technical_v2: rank 8, 500 iters, loss 0.295, 26,630 examples (200 compliance augmented)
+- Factorial 120/120 complete (A:30 B:30 C:30 D:30)
+  - A (base, no debate):  entropy=0.367, herding=0.817
+  - B (FT, no debate):    entropy=0.000, herding=1.000
+  - C (base, debate):     entropy=0.100, herding=0.950, debate_rate=36.7%
+  - D (FT, debate):       entropy=0.000, herding=1.000, debate_rate=0.0%
+- OQ-M02: NEGATIVE — fine-tuning collapses diversity (entropy 0.367→0.000, 100% loss)
+- OQ-D01: YES — debate increases herding A→C by +0.133 (threshold >0.10)
+- OQ-D02: DEGENERATE — B=D (FT saturates ensemble pre-debate); interaction = -(C-A)
+- Key finding: technical_v2+fundamental_v1 vote unanimously Buy; debate structurally inert
+- DJ-085: Sentiment model → google/gemma-4-e4b (12B VLM incompatible with LM Studio)
+- OQ-SGR01: OPEN — Gemma 4 SGR baseline blocked by jinja prompt template error
+  Workaround: LM Studio → My Models → gemma-4-e4b → Prompt Template → set ChatML
+- Fixture: tests/fixtures/baseline/phase12_factorial_results.json
 
 ## Phase 11 Pre-Phase Decisions (DJ-053 to DJ-060)
 

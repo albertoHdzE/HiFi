@@ -1,0 +1,100 @@
+{
+  "metadata": {
+    "phase": "12",
+    "epic": "E4-T1/T2",
+    "conditions": [
+      "A",
+      "B",
+      "C",
+      "D"
+    ],
+    "tickers": [
+      "AAPL",
+      "JPM",
+      "XOM"
+    ],
+    "dates": [
+      "2020-03-31",
+      "2020-06-30",
+      "2020-09-30",
+      "2020-12-31",
+      "2021-03-31",
+      "2021-06-30",
+      "2021-09-30",
+      "2021-12-31",
+      "2022-03-31",
+      "2022-06-30"
+    ],
+    "agents": [
+      "fundamental",
+      "technical"
+    ],
+    "total_runs_planned": 120,
+    "total_runs_completed": 120,
+    "run_date": "2026-06-15T20:30:10.434576+00:00"
+  },
+  "conditions": {
+    "A": {
+      "n_runs": 30,
+      "mean_disagreement_entropy": 0.36666666666666664,
+      "mean_opinion_dispersion": 0.06566666666666666,
+      "mean_herding_coefficient": 0.8166666666666667,
+      "vote_delta_distribution": {},
+      "debate_skipped_count": 0,
+      "debate_participated_count": 0,
+      "debate_participation_rate": null
+    },
+    "B": {
+      "n_runs": 30,
+      "mean_disagreement_entropy": 0.0,
+      "mean_opinion_dispersion": 0.0,
+      "mean_herding_coefficient": 1.0,
+      "vote_delta_distribution": {},
+      "debate_skipped_count": 0,
+      "debate_participated_count": 0,
+      "debate_participation_rate": null
+    },
+    "C": {
+      "n_runs": 30,
+      "mean_disagreement_entropy": 0.1,
+      "mean_opinion_dispersion": 0.03933333333333333,
+      "mean_herding_coefficient": 0.95,
+      "vote_delta_distribution": {
+        "unchanged": 22,
+        "converged": 8
+      },
+      "debate_skipped_count": 19,
+      "debate_participated_count": 11,
+      "debate_participation_rate": 0.36666666666666664
+    },
+    "D": {
+      "n_runs": 30,
+      "mean_disagreement_entropy": 0.0,
+      "mean_opinion_dispersion": 0.0,
+      "mean_herding_coefficient": 1.0,
+      "vote_delta_distribution": {
+        "unchanged": 30
+      },
+      "debate_skipped_count": 30,
+      "debate_participated_count": 0,
+      "debate_participation_rate": 0.0
+    }
+  },
+  "interaction_effects": {
+    "herding_coefficient": -0.1333,
+    "disagreement_entropy": 0.2667,
+    "interpretation": "positive = fine-tuning amplifies debate benefit; negative = debate benefits base models more"
+  },
+  "oq_m02": {
+    "finetune_effect_entropy_degradation": 1.0,
+    "debate_effect_entropy_degradation": 0.7273,
+    "diversity_preserved_finetune": false,
+    "diversity_preserved_debate": false,
+    "threshold": "< 10% degradation"
+  },
+  "herding_assessment": {
+    "herding_increase_A_to_C": 0.1333,
+    "debate_induces_herding": true,
+    "threshold": "> 0.10 increase flags herding"
+  }
+}
