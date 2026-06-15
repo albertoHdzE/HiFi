@@ -1,7 +1,7 @@
 # HiFi Project Status
 
 **Last Updated:** 2026-06-15
-**Current Phase:** Phase 12.1 (IN PROGRESS — completion and correction)
+**Current Phase:** Phase 13 (IN PROGRESS — Wave 1 complete)
 
 ---
 
@@ -34,8 +34,8 @@ HiFi is a fully local multi-agent financial intelligence platform. Read these in
 | 10 | Evaluation & Backtesting | COMPLETE | plans/PHASE_10_PLAN.md | doc/bitacora/PHASE_10_EVALUATION.md |
 | 11 | Fine-Tuning | COMPLETE | plans/PHASE_11_PLAN.md | doc/bitacora/PHASE_11_FINE_TUNING.md |
 | 12 | GraphRAG + Structured Debate | COMPLETE | plans/PHASE_12_PLAN.md | doc/bitacora/PHASE_12_GRAPHRAG_DEBATE.md |
-| 12.1 | Completion and Correction | COMPLETE (W7 SGR deferred) | plans/PHASE_12.1_PLAN.md | doc/bitacora/PHASE_12.1_COMPLETION.md |
-| 13 | Verification Completeness, Sentiment Intelligence, System Resilience | IN PROGRESS (E0 complete) | plans/PHASE_13_PLAN.md | -- |
+| 12.1 | Completion and Correction | COMPLETE | plans/PHASE_12.1_PLAN.md | doc/bitacora/PHASE_12.1_COMPLETION.md |
+| 13 | Verification Completeness, Sentiment Intelligence, System Resilience | IN PROGRESS (Wave 1: E0+E2+E4+E5+E6 code complete) | plans/PHASE_13_PLAN.md | -- |
 | 14 | Paper Trading | NOT STARTED | -- | -- |
 | 15 | Containerization | NOT STARTED | -- | -- |
 | 16 | Open Source Release | NOT STARTED | -- | -- |
@@ -84,8 +84,7 @@ HiFi is a fully local multi-agent financial intelligence platform. Read these in
 - OQ-D02: DEGENERATE — B=D (FT saturates ensemble pre-debate); interaction = -(C-A)
 - Key finding: technical_v2+fundamental_v1 vote unanimously Buy; debate structurally inert
 - DJ-085: Sentiment model → google/gemma-4-e4b (12B VLM incompatible with LM Studio)
-- OQ-SGR01: OPEN — Gemma 4 SGR baseline blocked by jinja prompt template error
-  Workaround: LM Studio → My Models → gemma-4-e4b → Prompt Template → set ChatML
+- OQ-SGR01: NEGATIVE — Gemma 4 E4B SGR=0.000 (0 parseable signals on AAPL/JPM; 2 signals XOM, 0 grounded)
 - Fixture: tests/fixtures/baseline/phase12_factorial_results.json
 
 ## Phase 11 Pre-Phase Decisions (DJ-053 to DJ-060)

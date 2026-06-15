@@ -292,10 +292,14 @@ def run_debate_ensemble(
     use_rag: bool = False,
     agents: list[str] | None = None,
     use_graphrag: bool = False,
+    max_rounds: int = 1,
     _debate_llm: object | None = None,
 ) -> EnsembleOutput:
     """
-    Run ensemble with Oxford 1-round structured debate before final vote (P12-E3-T3, DJ-065).
+    Run ensemble with structured debate before final vote (P12-E3-T3, P13-E2-T3, DJ-065, DJ-074).
+
+    max_rounds=1 (default) preserves Phase 12 single-round Oxford behaviour.
+    max_rounds>1 invokes run_debate_multi_round() with vote-stability convergence (DJ-074).
 
     Steps
     -----
@@ -318,7 +322,7 @@ def run_debate_ensemble(
     if use_graphrag:
         assert not use_rag, "use_rag and use_graphrag are mutually exclusive (DJ-068)"
 
-    from hifi.collective.debate import run_debate_round
+    from hifi.collective.debate import run_debate_multi_round, run_debate_round
 
     _tracer = tracer if tracer is not None else get_tracer()
     trace_id = _tracer.start_trace(
@@ -399,15 +403,27 @@ def run_debate_ensemble(
 
     initial_valid = [s for s in initial_candidate if s is not None]
 
-    # --- Oxford 1-round debate ---
-    transcript = run_debate_round(
-        signals=initial_valid,
-        ticker=ticker,
-        as_of_date=as_of_date,
-        data_dir=data_dir,
-        tracer=_tracer,
-        llm=_debate_llm,
-    )
+    # --- Debate (single or multi-round, DJ-074) ---
+    if max_rounds > 1:
+        transcripts = run_debate_multi_round(
+            initial_signals=initial_valid,
+            ticker=ticker,
+            as_of_date=as_of_date,
+            max_rounds=max_rounds,
+            data_dir=data_dir,
+            tracer=_tracer,
+            llm=_debate_llm,
+        )
+        transcript = transcripts[-1]  # final round transcript
+    else:
+        transcript = run_debate_round(
+            signals=initial_valid,
+            ticker=ticker,
+            as_of_date=as_of_date,
+            data_dir=data_dir,
+            tracer=_tracer,
+            llm=_debate_llm,
+        )
 
     # Final signals: revised if debate ran, initial otherwise
     final_signals = (

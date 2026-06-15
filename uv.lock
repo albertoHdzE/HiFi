@@ -715,6 +715,7 @@ dependencies = [
     { name = "pylance" },
     { name = "pyyaml" },
     { name = "quantstats" },
+    { name = "scipy" },
     { name = "yfinance" },
 ]
 
@@ -755,6 +756,7 @@ requires-dist = [
     { name = "pyyaml", specifier = ">=6.0" },
     { name = "quantstats", specifier = ">=0.0.62" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.4" },
+    { name = "scipy", specifier = ">=1.17.1" },
     { name = "yfinance", specifier = ">=1.4.1" },
 ]
 provides-extras = ["dev"]

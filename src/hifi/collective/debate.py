@@ -371,3 +371,86 @@ def run_debate_round(
         n_agents_changed_vote=n_changed,
         debate_skipped=False,
     )
+
+
+# ---------------------------------------------------------------------------
+# Multi-round debate runner (P13-E2-T2, DJ-074)
+# ---------------------------------------------------------------------------
+
+
+def run_debate_multi_round(
+    initial_signals: list[AgentSignal],
+    ticker: str,
+    as_of_date: str,
+    max_rounds: int = 2,
+    data_dir: str | None = None,
+    tracer: AbstractTracer | None = None,
+    llm: object | None = None,
+) -> list[DebateTranscript]:
+    """
+    Run up to max_rounds Oxford debate rounds with vote stability convergence (DJ-074).
+
+    Convergence criterion (vote_stability): stop when the majority decision of
+    the revised signals from round k equals the majority decision of the revised
+    signals from round k-1. The collective decision did not change — additional
+    rounds will not alter the outcome.
+
+    Hard cap: max_rounds (prevents oscillation).
+    Minimum: 1 round always runs.
+
+    Parameters
+    ----------
+    initial_signals : list[AgentSignal]
+        Independent analysis signals (Phase 1 of the debate protocol).
+    ticker : str
+        Ticker being analysed.
+    as_of_date : str
+        ISO 8601 analysis date.
+    max_rounds : int
+        Maximum number of debate rounds. Default=2 (Phase 13 adds one round
+        beyond the Phase 12 single-round baseline). Phase 12 behavior = 1.
+    data_dir : str | None
+        Reserved for future retrieval integration.
+    tracer : AbstractTracer | None
+        Observability tracer.
+    llm : object | None
+        Optional LLM override for deterministic tests.
+
+    Returns
+    -------
+    list[DebateTranscript]
+        One transcript per round actually run (length <= max_rounds).
+        When debate_skipped=True in round 1 (unanimous initial vote),
+        returns a single transcript with debate_skipped=True.
+    """
+    transcripts: list[DebateTranscript] = []
+    current_signals = list(initial_signals)
+    prev_revised_majority: str | None = None
+
+    for _ in range(max(1, max_rounds)):
+        transcript = run_debate_round(
+            signals=current_signals,
+            ticker=ticker,
+            as_of_date=as_of_date,
+            data_dir=data_dir,
+            tracer=tracer,
+            llm=llm,
+        )
+        transcripts.append(transcript)
+
+        # If debate was skipped (unanimous), no further rounds can help.
+        if transcript.debate_skipped:
+            break
+
+        # Majority of revised signals is the collective decision for this round.
+        _, revised_majority = identify_minority(transcript.revised_signals)
+
+        # Vote stability convergence: stop if majority unchanged from last round.
+        if prev_revised_majority is not None and revised_majority == prev_revised_majority:
+            break
+
+        prev_revised_majority = revised_majority
+        # Next round begins from this round's revised signals.
+        current_signals = list(transcript.revised_signals)
+
+    return transcripts
