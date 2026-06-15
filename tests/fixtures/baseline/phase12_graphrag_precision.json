@@ -1,0 +1,638 @@
+{
+  "metadata": {
+    "phase": "12",
+    "epic": "E2-T2",
+    "k": 5,
+    "n_queries": 20,
+    "run_date": "2026-06-15T01:56:25.549410+00:00",
+    "oq_k02_threshold_pp": 5,
+    "precision_levels": {
+      "document_level": "Match on (ticker, filing_type) -- measures document retrieval.",
+      "section_level": "Match on (ticker, section, filing_type) -- measures section granularity."
+    },
+    "oq_k02_uses": "document_level",
+    "section_level_note": "Section-level precision is limited by the upstream SEC parser which produces 'Full Text' (10-K/10-Q) and 'Earnings Release' (8-K), not named sections like 'MD&A' or 'Risk Factors'.",
+    "terminology_note": "GraphRetriever is graph-expanded dense retrieval (2-hop BFS ticker widening + cosine ANN), NOT true GraphRAG (no entity extraction or community detection)."
+  },
+  "rag": {
+    "document_precision_at_k": 0.31,
+    "section_precision_at_k": 0.1
+  },
+  "graph_expanded": {
+    "document_precision_at_k": 0.31,
+    "section_precision_at_k": 0.1
+  },
+  "delta": {
+    "document_level": 0.0,
+    "section_level": 0.0
+  },
+  "queries_improved": 0,
+  "queries_degraded": 0,
+  "queries_unchanged": 20,
+  "oq_k02_threshold_met": false,
+  "dj_016_decision": "KEEP plain RAG",
+  "per_query": {
+    "rag": [
+      {
+        "query_id": "Q01",
+        "ticker": "AAPL",
+        "relevant_section": "MD&A",
+        "relevant_filing_type": "10-Q",
+        "section_precision": 0.0,
+        "document_precision": 0.0,
+        "section_relevant_in_top_k": 0,
+        "doc_relevant_in_top_k": 0,
+        "n_retrieved": 5,
+        "retrieved_sections": [
+          "Earnings Release",
+          "Full Text"
+        ]
+      },
+      {
+        "query_id": "Q02",
+        "ticker": "AAPL",
+        "relevant_section": "Risk Factors",
+        "relevant_filing_type": "10-K",
+        "section_precision": 0.0,
+        "document_precision": 0.4,
+        "section_relevant_in_top_k": 0,
+        "doc_relevant_in_top_k": 2,
+        "n_retrieved": 5,
+        "retrieved_sections": [
+          "Earnings Release",
+          "Full Text"
+        ]
+      },
+      {
+        "query_id": "Q03",
+        "ticker": "AAPL",
+        "relevant_section": "MD&A",
+        "relevant_filing_type": "10-K",
+        "section_precision": 0.0,
+        "document_precision": 0.2,
+        "section_relevant_in_top_k": 0,
+        "doc_relevant_in_top_k": 1,
+        "n_retrieved": 5,
+        "retrieved_sections": [
+          "Earnings Release",
+          "Full Text"
+        ]
+      },
+      {
+        "query_id": "Q04",
+        "ticker": "AAPL",
+        "relevant_section": "Earnings Release",
+        "relevant_filing_type": "8-K",
+        "section_precision": 0.8,
+        "document_precision": 0.8,
+        "section_relevant_in_top_k": 4,
+        "doc_relevant_in_top_k": 4,
+        "n_retrieved": 5,
+        "retrieved_sections": [
+          "Earnings Release",
+          "Full Text"
+        ]
+      },
+      {
+        "query_id": "Q05",
+        "ticker": "AAPL",
+        "relevant_section": "Business",
+        "relevant_filing_type": "10-K",
+        "section_precision": 0.0,
+        "document_precision": 0.2,
+        "section_relevant_in_top_k": 0,
+        "doc_relevant_in_top_k": 1,
+        "n_retrieved": 5,
+        "retrieved_sections": [
+          "Earnings Release",
+          "Full Text"
+        ]
+      },
+      {
+        "query_id": "Q06",
+        "ticker": "JPM",
+        "relevant_section": "MD&A",
+        "relevant_filing_type": "10-Q",
+        "section_precision": 0.0,
+        "document_precision": 0.0,
+        "section_relevant_in_top_k": 0,
+        "doc_relevant_in_top_k": 0,
+        "n_retrieved": 5,
+        "retrieved_sections": [
+          "Full Text"
+        ]
+      },
+      {
+        "query_id": "Q07",
+        "ticker": "JPM",
+        "relevant_section": "Risk Factors",
+        "relevant_filing_type": "10-K",
+        "section_precision": 0.0,
+        "document_precision": 0.6,
+        "section_relevant_in_top_k": 0,
+        "doc_relevant_in_top_k": 3,
+        "n_retrieved": 5,
+        "retrieved_sections": [
+          "Earnings Release",
+          "Full Text"
+        ]
+      },
+      {
+        "query_id": "Q08",
+        "ticker": "JPM",
+        "relevant_section": "Earnings Release",
+        "relevant_filing_type": "8-K",
+        "section_precision": 0.2,
+        "document_precision": 0.2,
+        "section_relevant_in_top_k": 1,
+        "doc_relevant_in_top_k": 1,
+        "n_retrieved": 5,
+        "retrieved_sections": [
+          "Earnings Release",
+          "Full Text"
+        ]
+      },
+      {
+        "query_id": "Q09",
+        "ticker": "JPM",
+        "relevant_section": "MD&A",
+        "relevant_filing_type": "10-Q",
+        "section_precision": 0.0,
+        "document_precision": 0.0,
+        "section_relevant_in_top_k": 0,
+        "doc_relevant_in_top_k": 0,
+        "n_retrieved": 5,
+        "retrieved_sections": [
+          "Earnings Release",
+          "Full Text"
+        ]
+      },
+      {
+        "query_id": "Q10",
+        "ticker": "JPM",
+        "relevant_section": "Business",
+        "relevant_filing_type": "10-K",
+        "section_precision": 0.0,
+        "document_precision": 0.6,
+        "section_relevant_in_top_k": 0,
+        "doc_relevant_in_top_k": 3,
+        "n_retrieved": 5,
+        "retrieved_sections": [
+          "Earnings Release",
+          "Full Text"
+        ]
+      },
+      {
+        "query_id": "Q11",
+        "ticker": "XOM",
+        "relevant_section": "Earnings Release",
+        "relevant_filing_type": "8-K",
+        "section_precision": 0.2,
+        "document_precision": 0.2,
+        "section_relevant_in_top_k": 1,
+        "doc_relevant_in_top_k": 1,
+        "n_retrieved": 5,
+        "retrieved_sections": [
+          "Earnings Release",
+          "Full Text"
+        ]
+      },
+      {
+        "query_id": "Q12",
+        "ticker": "XOM",
+        "relevant_section": "Risk Factors",
+        "relevant_filing_type": "10-K",
+        "section_precision": 0.0,
+        "document_precision": 0.4,
+        "section_relevant_in_top_k": 0,
+        "doc_relevant_in_top_k": 2,
+        "n_retrieved": 5,
+        "retrieved_sections": [
+          "Earnings Release",
+          "Full Text"
+        ]
+      },
+      {
+        "query_id": "Q13",
+        "ticker": "XOM",
+        "relevant_section": "MD&A",
+        "relevant_filing_type": "10-Q",
+        "section_precision": 0.0,
+        "document_precision": 0.4,
+        "section_relevant_in_top_k": 0,
+        "doc_relevant_in_top_k": 2,
+        "n_retrieved": 5,
+        "retrieved_sections": [
+          "Earnings Release",
+          "Full Text"
+        ]
+      },
+      {
+        "query_id": "Q14",
+        "ticker": "XOM",
+        "relevant_section": "Business",
+        "relevant_filing_type": "10-K",
+        "section_precision": 0.0,
+        "document_precision": 0.4,
+        "section_relevant_in_top_k": 0,
+        "doc_relevant_in_top_k": 2,
+        "n_retrieved": 5,
+        "retrieved_sections": [
+          "Earnings Release",
+          "Full Text"
+        ]
+      },
+      {
+        "query_id": "Q15",
+        "ticker": "XOM",
+        "relevant_section": "MD&A",
+        "relevant_filing_type": "10-Q",
+        "section_precision": 0.0,
+        "document_precision": 0.2,
+        "section_relevant_in_top_k": 0,
+        "doc_relevant_in_top_k": 1,
+        "n_retrieved": 5,
+        "retrieved_sections": [
+          "Earnings Release",
+          "Full Text"
+        ]
+      },
+      {
+        "query_id": "Q16",
+        "ticker": "AAPL",
+        "relevant_section": "MD&A",
+        "relevant_filing_type": "10-Q",
+        "section_precision": 0.0,
+        "document_precision": 0.0,
+        "section_relevant_in_top_k": 0,
+        "doc_relevant_in_top_k": 0,
+        "n_retrieved": 5,
+        "retrieved_sections": [
+          "Earnings Release",
+          "Full Text"
+        ]
+      },
+      {
+        "query_id": "Q17",
+        "ticker": "JPM",
+        "relevant_section": "Risk Factors",
+        "relevant_filing_type": "10-K",
+        "section_precision": 0.0,
+        "document_precision": 0.6,
+        "section_relevant_in_top_k": 0,
+        "doc_relevant_in_top_k": 3,
+        "n_retrieved": 5,
+        "retrieved_sections": [
+          "Earnings Release",
+          "Full Text"
+        ]
+      },
+      {
+        "query_id": "Q18",
+        "ticker": "XOM",
+        "relevant_section": "Earnings Release",
+        "relevant_filing_type": "8-K",
+        "section_precision": 0.2,
+        "document_precision": 0.2,
+        "section_relevant_in_top_k": 1,
+        "doc_relevant_in_top_k": 1,
+        "n_retrieved": 5,
+        "retrieved_sections": [
+          "Earnings Release",
+          "Full Text"
+        ]
+      },
+      {
+        "query_id": "Q19",
+        "ticker": "AAPL",
+        "relevant_section": "Business",
+        "relevant_filing_type": "10-K",
+        "section_precision": 0.0,
+        "document_precision": 0.2,
+        "section_relevant_in_top_k": 0,
+        "doc_relevant_in_top_k": 1,
+        "n_retrieved": 5,
+        "retrieved_sections": [
+          "Earnings Release",
+          "Full Text"
+        ]
+      },
+      {
+        "query_id": "Q20",
+        "ticker": "JPM",
+        "relevant_section": "Earnings Release",
+        "relevant_filing_type": "8-K",
+        "section_precision": 0.6,
+        "document_precision": 0.6,
+        "section_relevant_in_top_k": 3,
+        "doc_relevant_in_top_k": 3,
+        "n_retrieved": 5,
+        "retrieved_sections": [
+          "Earnings Release",
+          "Full Text"
+        ]
+      }
+    ],
+    "graph_expanded": [
+      {
+        "query_id": "Q01",
+        "ticker": "AAPL",
+        "relevant_section": "MD&A",
+        "relevant_filing_type": "10-Q",
+        "section_precision": 0.0,
+        "document_precision": 0.0,
+        "section_relevant_in_top_k": 0,
+        "doc_relevant_in_top_k": 0,
+        "n_retrieved": 5,
+        "retrieved_sections": [
+          "Earnings Release",
+          "Full Text"
+        ]
+      },
+      {
+        "query_id": "Q02",
+        "ticker": "AAPL",
+        "relevant_section": "Risk Factors",
+        "relevant_filing_type": "10-K",
+        "section_precision": 0.0,
+        "document_precision": 0.4,
+        "section_relevant_in_top_k": 0,
+        "doc_relevant_in_top_k": 2,
+        "n_retrieved": 5,
+        "retrieved_sections": [
+          "Earnings Release",
+          "Full Text"
+        ]
+      },
+      {
+        "query_id": "Q03",
+        "ticker": "AAPL",
+        "relevant_section": "MD&A",
+        "relevant_filing_type": "10-K",
+        "section_precision": 0.0,
+        "document_precision": 0.2,
+        "section_relevant_in_top_k": 0,
+        "doc_relevant_in_top_k": 1,
+        "n_retrieved": 5,
+        "retrieved_sections": [
+          "Earnings Release",
+          "Full Text"
+        ]
+      },
+      {
+        "query_id": "Q04",
+        "ticker": "AAPL",
+        "relevant_section": "Earnings Release",
+        "relevant_filing_type": "8-K",
+        "section_precision": 0.8,
+        "document_precision": 0.8,
+        "section_relevant_in_top_k": 4,
+        "doc_relevant_in_top_k": 4,
+        "n_retrieved": 5,
+        "retrieved_sections": [
+          "Earnings Release",
+          "Full Text"
+        ]
+      },
+      {
+        "query_id": "Q05",
+        "ticker": "AAPL",
+        "relevant_section": "Business",
+        "relevant_filing_type": "10-K",
+        "section_precision": 0.0,
+        "document_precision": 0.2,
+        "section_relevant_in_top_k": 0,
+        "doc_relevant_in_top_k": 1,
+        "n_retrieved": 5,
+        "retrieved_sections": [
+          "Earnings Release",
+          "Full Text"
+        ]
+      },
+      {
+        "query_id": "Q06",
+        "ticker": "JPM",
+        "relevant_section": "MD&A",
+        "relevant_filing_type": "10-Q",
+        "section_precision": 0.0,
+        "document_precision": 0.0,
+        "section_relevant_in_top_k": 0,
+        "doc_relevant_in_top_k": 0,
+        "n_retrieved": 5,
+        "retrieved_sections": [
+          "Full Text"
+        ]
+      },
+      {
+        "query_id": "Q07",
+        "ticker": "JPM",
+        "relevant_section": "Risk Factors",
+        "relevant_filing_type": "10-K",
+        "section_precision": 0.0,
+        "document_precision": 0.6,
+        "section_relevant_in_top_k": 0,
+        "doc_relevant_in_top_k": 3,
+        "n_retrieved": 5,
+        "retrieved_sections": [
+          "Earnings Release",
+          "Full Text"
+        ]
+      },
+      {
+        "query_id": "Q08",
+        "ticker": "JPM",
+        "relevant_section": "Earnings Release",
+        "relevant_filing_type": "8-K",
+        "section_precision": 0.2,
+        "document_precision": 0.2,
+        "section_relevant_in_top_k": 1,
+        "doc_relevant_in_top_k": 1,
+        "n_retrieved": 5,
+        "retrieved_sections": [
+          "Earnings Release",
+          "Full Text"
+        ]
+      },
+      {
+        "query_id": "Q09",
+        "ticker": "JPM",
+        "relevant_section": "MD&A",
+        "relevant_filing_type": "10-Q",
+        "section_precision": 0.0,
+        "document_precision": 0.0,
+        "section_relevant_in_top_k": 0,
+        "doc_relevant_in_top_k": 0,
+        "n_retrieved": 5,
+        "retrieved_sections": [
+          "Earnings Release",
+          "Full Text"
+        ]
+      },
+      {
+        "query_id": "Q10",
+        "ticker": "JPM",
+        "relevant_section": "Business",
+        "relevant_filing_type": "10-K",
+        "section_precision": 0.0,
+        "document_precision": 0.6,
+        "section_relevant_in_top_k": 0,
+        "doc_relevant_in_top_k": 3,
+        "n_retrieved": 5,
+        "retrieved_sections": [
+          "Earnings Release",
+          "Full Text"
+        ]
+      },
+      {
+        "query_id": "Q11",
+        "ticker": "XOM",
+        "relevant_section": "Earnings Release",
+        "relevant_filing_type": "8-K",
+        "section_precision": 0.2,
+        "document_precision": 0.2,
+        "section_relevant_in_top_k": 1,
+        "doc_relevant_in_top_k": 1,
+        "n_retrieved": 5,
+        "retrieved_sections": [
+          "Earnings Release",
+          "Full Text"
+        ]
+      },
+      {
+        "query_id": "Q12",
+        "ticker": "XOM",
+        "relevant_section": "Risk Factors",
+        "relevant_filing_type": "10-K",
+        "section_precision": 0.0,
+        "document_precision": 0.4,
+        "section_relevant_in_top_k": 0,
+        "doc_relevant_in_top_k": 2,
+        "n_retrieved": 5,
+        "retrieved_sections": [
+          "Earnings Release",
+          "Full Text"
+        ]
+      },
+      {
+        "query_id": "Q13",
+        "ticker": "XOM",
+        "relevant_section": "MD&A",
+        "relevant_filing_type": "10-Q",
+        "section_precision": 0.0,
+        "document_precision": 0.4,
+        "section_relevant_in_top_k": 0,
+        "doc_relevant_in_top_k": 2,
+        "n_retrieved": 5,
+        "retrieved_sections": [
+          "Earnings Release",
+          "Full Text"
+        ]
+      },
+      {
+        "query_id": "Q14",
+        "ticker": "XOM",
+        "relevant_section": "Business",
+        "relevant_filing_type": "10-K",
+        "section_precision": 0.0,
+        "document_precision": 0.4,
+        "section_relevant_in_top_k": 0,
+        "doc_relevant_in_top_k": 2,
+        "n_retrieved": 5,
+        "retrieved_sections": [
+          "Earnings Release",
+          "Full Text"
+        ]
+      },
+      {
+        "query_id": "Q15",
+        "ticker": "XOM",
+        "relevant_section": "MD&A",
+        "relevant_filing_type": "10-Q",
+        "section_precision": 0.0,
+        "document_precision": 0.2,
+        "section_relevant_in_top_k": 0,
+        "doc_relevant_in_top_k": 1,
+        "n_retrieved": 5,
+        "retrieved_sections": [
+          "Earnings Release",
+          "Full Text"
+        ]
+      },
+      {
+        "query_id": "Q16",
+        "ticker": "AAPL",
+        "relevant_section": "MD&A",
+        "relevant_filing_type": "10-Q",
+        "section_precision": 0.0,
+        "document_precision": 0.0,
+        "section_relevant_in_top_k": 0,
+        "doc_relevant_in_top_k": 0,
+        "n_retrieved": 5,
+        "retrieved_sections": [
+          "Earnings Release",
+          "Full Text"
+        ]
+      },
+      {
+        "query_id": "Q17",
+        "ticker": "JPM",
+        "relevant_section": "Risk Factors",
+        "relevant_filing_type": "10-K",
+        "section_precision": 0.0,
+        "document_precision": 0.6,
+        "section_relevant_in_top_k": 0,
+        "doc_relevant_in_top_k": 3,
+        "n_retrieved": 5,
+        "retrieved_sections": [
+          "Earnings Release",
+          "Full Text"
+        ]
+      },
+      {
+        "query_id": "Q18",
+        "ticker": "XOM",
+        "relevant_section": "Earnings Release",
+        "relevant_filing_type": "8-K",
+        "section_precision": 0.2,
+        "document_precision": 0.2,
+        "section_relevant_in_top_k": 1,
+        "doc_relevant_in_top_k": 1,
+        "n_retrieved": 5,
+        "retrieved_sections": [
+          "Earnings Release",
+          "Full Text"
+        ]
+      },
+      {
+        "query_id": "Q19",
+        "ticker": "AAPL",
+        "relevant_section": "Business",
+        "relevant_filing_type": "10-K",
+        "section_precision": 0.0,
+        "document_precision": 0.2,
+        "section_relevant_in_top_k": 0,
+        "doc_relevant_in_top_k": 1,
+        "n_retrieved": 5,
+        "retrieved_sections": [
+          "Earnings Release",
+          "Full Text"
+        ]
+      },
+      {
+        "query_id": "Q20",
+        "ticker": "JPM",
+        "relevant_section": "Earnings Release",
+        "relevant_filing_type": "8-K",
+        "section_precision": 0.6,
+        "document_precision": 0.6,
+        "section_relevant_in_top_k": 3,
+        "doc_relevant_in_top_k": 3,
+        "n_retrieved": 5,
+        "retrieved_sections": [
+          "Earnings Release",
+          "Full Text"
+        ]
+      }
+    ]
+  }
+}

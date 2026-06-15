@@ -1,0 +1,308 @@
+{
+  "metadata": {
+    "phase": "13",
+    "epic": "E0",
+    "tickers": [
+      "AAPL",
+      "JPM",
+      "XOM"
+    ],
+    "as_of_date": "2023-03-31",
+    "run_date": "2026-06-15",
+    "hifi_commit": "d95d5e8"
+  },
+  "reports": {
+    "AAPL": {
+      "risk": {
+        "ticker": "AAPL",
+        "as_of_date": "2023-03-31",
+        "agent_type": "risk",
+        "prompt_version": "risk_v1",
+        "results": [
+          {
+            "claim": {
+              "field_alias": "with a 20-day historical volatility",
+              "canonical_field": null,
+              "value": 0.1956,
+              "context_snippet": "AAPL exhibits moderate risk with a 20-day historical volatility of 0.1956 and a 252-day volatility of 0.347, indi"
+            },
+            "status": "unresolvable",
+            "tool_value": null,
+            "tool_field": null,
+            "call_id_cited": false,
+            "tolerance_used": 0.0
+          },
+          {
+            "claim": {
+              "field_alias": "and a 252-day volatility",
+              "canonical_field": null,
+              "value": 0.347,
+              "context_snippet": " 20-day historical volatility of 0.1956 and a 252-day volatility of 0.347, indicating a relatively high long-term"
+            },
+            "status": "unresolvable",
+            "tool_value": null,
+            "tool_field": null,
+            "call_id_cited": false,
+            "tolerance_used": 0.0
+          },
+          {
+            "claim": {
+              "field_alias": "max drawdown",
+              "canonical_field": "max_drawdown_252d",
+              "value": 0.296,
+              "context_snippet": "a relatively high long-term risk level. The max drawdown of 0.296 suggests some tail risk, while the Shar"
+            },
+            "status": "verified",
+            "tool_value": 0.29620271763837247,
+            "tool_field": "risk_metrics",
+            "call_id_cited": true,
+            "tolerance_used": 0.01
+          }
+        ],
+        "n_claims": 3,
+        "n_verified": 1,
+        "n_hallucinated": 0,
+        "n_unresolvable": 2,
+        "hallucination_rate": 0.0,
+        "grounding_rate": 1.0,
+        "flag_high_hr": false
+      },
+      "macro": {
+        "ticker": "AAPL",
+        "as_of_date": "2023-03-31",
+        "agent_type": "macro",
+        "prompt_version": "macro_v1",
+        "results": [],
+        "n_claims": 0,
+        "n_verified": 0,
+        "n_hallucinated": 0,
+        "n_unresolvable": 0,
+        "hallucination_rate": 0.0,
+        "grounding_rate": 0.0,
+        "flag_high_hr": false
+      },
+      "sentiment": {
+        "ticker": "",
+        "as_of_date": "",
+        "n_signals": 0,
+        "n_grounded": 0,
+        "grounding_rate": 0.0,
+        "results": []
+      }
+    },
+    "JPM": {
+      "risk": {
+        "ticker": "JPM",
+        "as_of_date": "2023-03-31",
+        "agent_type": "risk",
+        "prompt_version": "risk_v1",
+        "results": [
+          {
+            "claim": {
+              "field_alias": "a 20-day annualized historical volatility",
+              "canonical_field": null,
+              "value": 0.396,
+              "context_snippet": "xhibits a high level of volatility with a 20-day annualized historical volatility of 0.396 and a 252-day volatility of 0.285. The "
+            },
+            "status": "unresolvable",
+            "tool_value": null,
+            "tool_field": null,
+            "call_id_cited": false,
+            "tolerance_used": 0.0
+          },
+          {
+            "claim": {
+              "field_alias": "and a 252-day volatility",
+              "canonical_field": null,
+              "value": 0.285,
+              "context_snippet": "nualized historical volatility of 0.396 and a 252-day volatility of 0.285. The maximum drawdown over the past yea"
+            },
+            "status": "unresolvable",
+            "tool_value": null,
+            "tool_field": null,
+            "call_id_cited": false,
+            "tolerance_used": 0.0
+          },
+          {
+            "claim": {
+              "field_alias": "Sharpe ratio",
+              "canonical_field": "sharpe_252d",
+              "value": -0.01,
+              "context_snippet": "dicating a significant tail risk event. Despite a Sharpe ratio of -0.01, suggesting negative risk-adjusted retu"
+            },
+            "status": "verified",
+            "tool_value": -0.010084683316433963,
+            "tool_field": "risk_metrics",
+            "call_id_cited": true,
+            "tolerance_used": 0.01
+          }
+        ],
+        "n_claims": 3,
+        "n_verified": 1,
+        "n_hallucinated": 0,
+        "n_unresolvable": 2,
+        "hallucination_rate": 0.0,
+        "grounding_rate": 1.0,
+        "flag_high_hr": false
+      },
+      "macro": {
+        "ticker": "JPM",
+        "as_of_date": "2023-03-31",
+        "agent_type": "macro",
+        "prompt_version": "macro_v1",
+        "results": [
+          {
+            "claim": {
+              "field_alias": "available for the assessment date",
+              "canonical_field": null,
+              "value": 2023.0,
+              "context_snippet": "No macroeconomic data is available for the assessment date of 2023-03-31. The data source returned error '"
+            },
+            "status": "unresolvable",
+            "tool_value": null,
+            "tool_field": null,
+            "call_id_cited": false,
+            "tolerance_used": 0.0
+          }
+        ],
+        "n_claims": 1,
+        "n_verified": 0,
+        "n_hallucinated": 0,
+        "n_unresolvable": 1,
+        "hallucination_rate": 0.0,
+        "grounding_rate": 0.0,
+        "flag_high_hr": false
+      },
+      "sentiment": {
+        "ticker": "",
+        "as_of_date": "",
+        "n_signals": 0,
+        "n_grounded": 0,
+        "grounding_rate": 0.0,
+        "results": []
+      }
+    },
+    "XOM": {
+      "risk": {
+        "ticker": "XOM",
+        "as_of_date": "2023-03-31",
+        "agent_type": "risk",
+        "prompt_version": "risk_v1",
+        "results": [
+          {
+            "claim": {
+              "field_alias": "with a 20-day historical volatility",
+              "canonical_field": null,
+              "value": 0.32,
+              "context_snippet": "XOM exhibits moderate risk with a 20-day historical volatility of 0.32, indicating potential for significant p"
+            },
+            "status": "unresolvable",
+            "tool_value": null,
+            "tool_field": null,
+            "call_id_cited": false,
+            "tolerance_used": 0.0
+          },
+          {
+            "claim": {
+              "field_alias": "Sharpe ratio",
+              "canonical_field": "sharpe_252d",
+              "value": 1.07,
+              "context_snippet": "easonable level of downside protection, and the Sharpe ratio of 1.07 demonstrates solid risk-adjusted perfor"
+            },
+            "status": "verified",
+            "tool_value": 1.0772469857969287,
+            "tool_field": "risk_metrics",
+            "call_id_cited": true,
+            "tolerance_used": 0.010772469857969287
+          }
+        ],
+        "n_claims": 2,
+        "n_verified": 1,
+        "n_hallucinated": 0,
+        "n_unresolvable": 1,
+        "hallucination_rate": 0.0,
+        "grounding_rate": 1.0,
+        "flag_high_hr": false
+      },
+      "macro": {
+        "ticker": "XOM",
+        "as_of_date": "2023-03-31",
+        "agent_type": "macro",
+        "prompt_version": "macro_v1",
+        "results": [
+          {
+            "claim": {
+              "field_alias": "available for the assessment date",
+              "canonical_field": null,
+              "value": 2023.0,
+              "context_snippet": "No macroeconomic data was available for the assessment date of 2023-03-31. The system returned error 'NO_MA"
+            },
+            "status": "unresolvable",
+            "tool_value": null,
+            "tool_field": null,
+            "call_id_cited": false,
+            "tolerance_used": 0.0
+          }
+        ],
+        "n_claims": 1,
+        "n_verified": 0,
+        "n_hallucinated": 0,
+        "n_unresolvable": 1,
+        "hallucination_rate": 0.0,
+        "grounding_rate": 0.0,
+        "flag_high_hr": false
+      },
+      "sentiment": {
+        "ticker": "XOM",
+        "as_of_date": "2023-03-31",
+        "n_signals": 2,
+        "n_grounded": 0,
+        "grounding_rate": 0.0,
+        "results": [
+          {
+            "signal_text": "The filings contain standard annual and quarterly report certifications from Darren W. Woods, confirming the financial condition of Exxon Mobil Corporation as of year-end 2022.",
+            "grounded": false,
+            "matched_chunk": null
+          },
+          {
+            "signal_text": "The most recent document is an 8-K filing from February 21, 2023, which updates the entity information but does not contain new operational guidance.",
+            "grounded": false,
+            "matched_chunk": null
+          }
+        ]
+      }
+    }
+  },
+  "metrics": {
+    "risk": {
+      "mean_hallucination_rate": 0.0,
+      "mean_grounding_rate": 1.0,
+      "mean_unresolvable_rate": 0.611111,
+      "alias_table_coverage": 0.388889,
+      "n_reports": 3,
+      "total_claims": 8,
+      "total_verified": 3,
+      "total_hallucinated": 0,
+      "total_unresolvable": 5,
+      "n_flagged_high_hr": 0
+    },
+    "macro": {
+      "mean_hallucination_rate": 0.0,
+      "mean_grounding_rate": 0.0,
+      "mean_unresolvable_rate": 0.666667,
+      "alias_table_coverage": 0.333333,
+      "n_reports": 3,
+      "total_claims": 2,
+      "total_verified": 0,
+      "total_hallucinated": 0,
+      "total_unresolvable": 2,
+      "n_flagged_high_hr": 0
+    },
+    "sentiment": {
+      "mean_sgr": 0.0,
+      "n_signals_total": 2,
+      "n_grounded_total": 0,
+      "n_tickers": 3
+    }
+  }
+}

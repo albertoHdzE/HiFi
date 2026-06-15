@@ -43,7 +43,13 @@ agents for citing fields that were unavailable would be a measurement error.
 
 from __future__ import annotations
 
-from hifi.agents.schemas import FundamentalAnalysis, TechnicalAnalysis
+from hifi.agents.schemas import (
+    FundamentalAnalysis,
+    MacroAnalysis,
+    RiskAnalysis,
+    SentimentAnalysis,
+    TechnicalAnalysis,
+)
 from hifi.collective.schemas import EnsembleOutput
 from hifi.verification.extractor import extract_numerical_claims
 from hifi.verification.schemas import (
@@ -51,6 +57,8 @@ from hifi.verification.schemas import (
     Contradiction,
     EnsembleVerificationReport,
     NumericalClaim,
+    SentimentGroundingReport,
+    SentimentGroundingResult,
     VerificationResult,
 )
 
@@ -65,7 +73,7 @@ _MISSING = object()
 
 
 def _named_tool_results(
-    analysis: FundamentalAnalysis | TechnicalAnalysis,
+    analysis: FundamentalAnalysis | TechnicalAnalysis | RiskAnalysis | MacroAnalysis,
 ) -> list[tuple[str, dict]]:
     """
     Return (tool_name, result_dict) pairs for all MCP tool results in analysis.
@@ -81,6 +89,10 @@ def _named_tool_results(
             ("valuation_context", analysis.valuation_context),
             ("macro_snapshot", analysis.macro_snapshot),
         ]
+    if isinstance(analysis, RiskAnalysis):
+        return [("risk_metrics", analysis.risk_metrics)]
+    if isinstance(analysis, MacroAnalysis):
+        return [("macro_snapshot", analysis.macro_snapshot)]
     # TechnicalAnalysis
     return [
         ("technical_indicators", analysis.technical_indicators),
@@ -201,14 +213,14 @@ def verify_claim(
 
 
 def verify_agent(
-    analysis: FundamentalAnalysis | TechnicalAnalysis,
+    analysis: FundamentalAnalysis | TechnicalAnalysis | RiskAnalysis | MacroAnalysis,
 ) -> AgentVerificationReport:
     """
     Verify all claims in one agent's rationale against its tool results.
 
     Parameters
     ----------
-    analysis : FundamentalAnalysis | TechnicalAnalysis
+    analysis : FundamentalAnalysis | TechnicalAnalysis | RiskAnalysis | MacroAnalysis
         The full agent analysis object. Must expose .signal and per-tool
         result dicts (see _named_tool_results).
 
@@ -221,10 +233,13 @@ def verify_agent(
     """
     if isinstance(analysis, FundamentalAnalysis):
         agent_type = "fundamental"
-        prompt_version = analysis.prompt_version
-    else:
+    elif isinstance(analysis, TechnicalAnalysis):
         agent_type = "technical"
-        prompt_version = analysis.prompt_version
+    elif isinstance(analysis, RiskAnalysis):
+        agent_type = "risk"
+    else:  # MacroAnalysis
+        agent_type = "macro"
+    prompt_version = analysis.prompt_version
 
     ticker = ""
     as_of_date = ""
@@ -244,7 +259,12 @@ def verify_agent(
         )
 
     signal = analysis.signal
-    claims = extract_numerical_claims(signal.rationale)
+    # MacroAnalysis has a separate analysis-level rationale field in addition to
+    # signal.rationale; extract claims from both to maximise field coverage.
+    rationale_text = signal.rationale
+    if isinstance(analysis, MacroAnalysis) and analysis.rationale:
+        rationale_text = signal.rationale + " " + analysis.rationale
+    claims = extract_numerical_claims(rationale_text)
     named_results = _named_tool_results(analysis)
 
     verification_results = [
@@ -258,6 +278,84 @@ def verify_agent(
         agent_type=agent_type,
         prompt_version=prompt_version,
         results=verification_results,
+    )
+
+
+# ---------------------------------------------------------------------------
+# P13-E0-T4: verify_sentiment_agent
+# ---------------------------------------------------------------------------
+
+
+def verify_sentiment_agent(
+    analysis: SentimentAnalysis,
+    retrieved_context: str,
+) -> SentimentGroundingReport:
+    """
+    Measure Sentiment Grounding Rate (SGR) for one SentimentAnalysis.
+
+    SentimentAnalysis has no numerical MCP tools — it operates on RAG-retrieved
+    text only. SGR replaces GR for the Sentiment agent: it measures whether
+    notable_signals items are verbatim substrings of retrieved_context.
+
+    Algorithm (DJ-072): normalise both signal texts and context to lowercase
+    and strip whitespace; check substring containment. Edit-distance tolerance
+    is deferred to Phase 14 calibration.
+
+    Parameters
+    ----------
+    analysis : SentimentAnalysis
+        Full Sentiment agent output including notable_signals list.
+    retrieved_context : str
+        The RAG-retrieved text the agent had access to when producing its
+        signal. This is the ground-truth evidence for grounding checks.
+
+    Returns
+    -------
+    SentimentGroundingReport
+        Empty report (n_signals=0, grounding_rate=0.0) when analysis.signal
+        is None. grounding_rate=0.0 when notable_signals is empty or
+        retrieved_context is empty.
+    """
+    ticker = ""
+    as_of_date = ""
+    if analysis.signal is not None:
+        ticker = analysis.signal.ticker
+        as_of_date = analysis.signal.as_of_date
+
+    if analysis.signal is None:
+        return SentimentGroundingReport(
+            ticker=ticker,
+            as_of_date=as_of_date,
+            n_signals=0,
+            n_grounded=0,
+            grounding_rate=0.0,
+            results=[],
+        )
+
+    normalised_context = retrieved_context.lower().strip()
+    results: list[SentimentGroundingResult] = []
+    for signal_text in analysis.notable_signals:
+        normalised_signal = signal_text.lower().strip()
+        grounded = bool(normalised_signal) and (normalised_signal in normalised_context)
+        results.append(
+            SentimentGroundingResult(
+                signal_text=signal_text,
+                grounded=grounded,
+                matched_chunk=normalised_signal if grounded else None,
+            )
+        )
+
+    n_signals = len(results)
+    n_grounded = sum(1 for r in results if r.grounded)
+    grounding_rate = n_grounded / n_signals if n_signals > 0 else 0.0
+
+    return SentimentGroundingReport(
+        ticker=ticker,
+        as_of_date=as_of_date,
+        n_signals=n_signals,
+        n_grounded=n_grounded,
+        grounding_rate=round(grounding_rate, 6),
+        results=results,
     )
 
 
@@ -335,6 +433,7 @@ def detect_contradictions(
 def verify_ensemble(
     output: EnsembleOutput,
     always_verify: bool = True,
+    sentiment_context: str | None = None,
 ) -> EnsembleVerificationReport:
     """
     Verify both agents and detect contradictions for one EnsembleOutput.
@@ -349,6 +448,10 @@ def verify_ensemble(
         performance optimisation hook). In Phase 5 all outputs are verified
         to establish the HR/GR baseline; the flag exists for Phase 9's
         inference-cost-sensitive path.
+    sentiment_context : str | None
+        RAG-retrieved text the Sentiment agent had access to. When provided
+        and output.sentiment_analysis is not None, verify_sentiment_agent()
+        is called and the result stored in sentiment_report (P13-E0-T5).
 
     Returns
     -------
@@ -390,6 +493,12 @@ def verify_ensemble(
     tech_report = verify_agent(output.technical_analysis)
     contradictions = detect_contradictions(fund_report, tech_report)
 
+    sentiment_report = None
+    if sentiment_context is not None and output.sentiment_analysis is not None:
+        sentiment_report = verify_sentiment_agent(
+            output.sentiment_analysis, sentiment_context
+        )
+
     return EnsembleVerificationReport(
         ticker=output.ticker,
         as_of_date=output.as_of_date,
@@ -397,4 +506,5 @@ def verify_ensemble(
         technical_report=tech_report,
         contradictions=contradictions,
         triggered_by_disagreement=triggered,
+        sentiment_report=sentiment_report,
     )

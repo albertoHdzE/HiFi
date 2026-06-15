@@ -395,6 +395,7 @@ def run_technical_analysis(
     data_dir: str | None = None,
     tracer: AbstractTracer | None = None,
     use_rag: bool = False,
+    retrieved_context: str = "",
 ) -> TechnicalAnalysis:
     """
     Run the Technical Analyst Agent for one ticker on one date.
@@ -435,7 +436,7 @@ def run_technical_analysis(
         "as_of_date": as_of_date,
         "data_dir": effective_data_dir,
         "tool_results": {},
-        "retrieved_context": "",
+        "retrieved_context": retrieved_context,
         "llm_response": "",
         "signal": None,
         "time_horizon": None,

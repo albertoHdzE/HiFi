@@ -1,0 +1,310 @@
+{
+  "directed": true,
+  "multigraph": false,
+  "graph": {},
+  "nodes": [
+    {
+      "node_type": "macro_factor",
+      "name": "VIX",
+      "series_id": "VIXCLS",
+      "id": "VIX"
+    },
+    {
+      "node_type": "macro_factor",
+      "name": "FFR",
+      "series_id": "FEDFUNDS",
+      "id": "FFR"
+    },
+    {
+      "node_type": "macro_factor",
+      "name": "CPI",
+      "series_id": "CPIAUCSL",
+      "id": "CPI"
+    },
+    {
+      "node_type": "company",
+      "ticker": "AAPL",
+      "name": "Apple Inc.",
+      "sector": "Technology",
+      "industry": "Consumer Electronics",
+      "id": "AAPL"
+    },
+    {
+      "node_type": "sector",
+      "name": "Technology",
+      "id": "Technology"
+    },
+    {
+      "node_type": "company",
+      "ticker": "AMZN",
+      "name": "Amazon.com, Inc.",
+      "sector": "Consumer Cyclical",
+      "industry": "Internet Retail",
+      "id": "AMZN"
+    },
+    {
+      "node_type": "sector",
+      "name": "Consumer Cyclical",
+      "id": "Consumer Cyclical"
+    },
+    {
+      "node_type": "company",
+      "ticker": "BAC",
+      "name": "Bank of America Corporation",
+      "sector": "Financial Services",
+      "industry": "Banks - Diversified",
+      "id": "BAC"
+    },
+    {
+      "node_type": "sector",
+      "name": "Financial Services",
+      "id": "Financial Services"
+    },
+    {
+      "node_type": "company",
+      "ticker": "CVX",
+      "name": "Chevron Corporation",
+      "sector": "Energy",
+      "industry": "Oil & Gas Integrated",
+      "id": "CVX"
+    },
+    {
+      "node_type": "sector",
+      "name": "Energy",
+      "id": "Energy"
+    },
+    {
+      "node_type": "company",
+      "ticker": "GOOGL",
+      "name": "Alphabet Inc.",
+      "sector": "Communication Services",
+      "industry": "Internet Content & Information",
+      "id": "GOOGL"
+    },
+    {
+      "node_type": "sector",
+      "name": "Communication Services",
+      "id": "Communication Services"
+    },
+    {
+      "node_type": "company",
+      "ticker": "GS",
+      "name": "The Goldman Sachs Group, Inc.",
+      "sector": "Financial Services",
+      "industry": "Capital Markets",
+      "id": "GS"
+    },
+    {
+      "node_type": "company",
+      "ticker": "JPM",
+      "name": "JPMorgan Chase & Co.",
+      "sector": "Financial Services",
+      "industry": "Banks - Diversified",
+      "id": "JPM"
+    },
+    {
+      "node_type": "company",
+      "ticker": "META",
+      "name": "Meta Platforms, Inc.",
+      "sector": "Communication Services",
+      "industry": "Internet Content & Information",
+      "id": "META"
+    },
+    {
+      "node_type": "company",
+      "ticker": "MSFT",
+      "name": "Microsoft Corporation",
+      "sector": "Technology",
+      "industry": "Software - Infrastructure",
+      "id": "MSFT"
+    },
+    {
+      "node_type": "company",
+      "ticker": "NVDA",
+      "name": "NVIDIA Corporation",
+      "sector": "Technology",
+      "industry": "Semiconductors",
+      "id": "NVDA"
+    },
+    {
+      "node_type": "company",
+      "ticker": "XOM",
+      "name": "Exxon Mobil Corporation",
+      "sector": "Energy",
+      "industry": "Oil & Gas Integrated",
+      "id": "XOM"
+    }
+  ],
+  "edges": [
+    {
+      "edge_type": "BELONGS_TO",
+      "source": "AAPL",
+      "target": "Technology"
+    },
+    {
+      "edge_type": "COMPETES_WITH",
+      "source": "AAPL",
+      "target": "MSFT"
+    },
+    {
+      "edge_type": "COMPETES_WITH",
+      "source": "AAPL",
+      "target": "GOOGL"
+    },
+    {
+      "edge_type": "SENSITIVE_TO",
+      "source": "Technology",
+      "target": "FFR"
+    },
+    {
+      "edge_type": "SENSITIVE_TO",
+      "source": "Technology",
+      "target": "VIX"
+    },
+    {
+      "edge_type": "BELONGS_TO",
+      "source": "AMZN",
+      "target": "Consumer Cyclical"
+    },
+    {
+      "edge_type": "COMPETES_WITH",
+      "source": "AMZN",
+      "target": "NVDA"
+    },
+    {
+      "edge_type": "BELONGS_TO",
+      "source": "BAC",
+      "target": "Financial Services"
+    },
+    {
+      "edge_type": "COMPETES_WITH",
+      "source": "BAC",
+      "target": "JPM"
+    },
+    {
+      "edge_type": "COMPETES_WITH",
+      "source": "BAC",
+      "target": "GS"
+    },
+    {
+      "edge_type": "SENSITIVE_TO",
+      "source": "Financial Services",
+      "target": "FFR"
+    },
+    {
+      "edge_type": "BELONGS_TO",
+      "source": "CVX",
+      "target": "Energy"
+    },
+    {
+      "edge_type": "COMPETES_WITH",
+      "source": "CVX",
+      "target": "XOM"
+    },
+    {
+      "edge_type": "SENSITIVE_TO",
+      "source": "Energy",
+      "target": "VIX"
+    },
+    {
+      "edge_type": "SENSITIVE_TO",
+      "source": "Energy",
+      "target": "CPI"
+    },
+    {
+      "edge_type": "BELONGS_TO",
+      "source": "GOOGL",
+      "target": "Communication Services"
+    },
+    {
+      "edge_type": "COMPETES_WITH",
+      "source": "GOOGL",
+      "target": "AAPL"
+    },
+    {
+      "edge_type": "COMPETES_WITH",
+      "source": "GOOGL",
+      "target": "MSFT"
+    },
+    {
+      "edge_type": "COMPETES_WITH",
+      "source": "GOOGL",
+      "target": "META"
+    },
+    {
+      "edge_type": "BELONGS_TO",
+      "source": "GS",
+      "target": "Financial Services"
+    },
+    {
+      "edge_type": "COMPETES_WITH",
+      "source": "GS",
+      "target": "JPM"
+    },
+    {
+      "edge_type": "COMPETES_WITH",
+      "source": "GS",
+      "target": "BAC"
+    },
+    {
+      "edge_type": "BELONGS_TO",
+      "source": "JPM",
+      "target": "Financial Services"
+    },
+    {
+      "edge_type": "COMPETES_WITH",
+      "source": "JPM",
+      "target": "BAC"
+    },
+    {
+      "edge_type": "COMPETES_WITH",
+      "source": "JPM",
+      "target": "GS"
+    },
+    {
+      "edge_type": "BELONGS_TO",
+      "source": "META",
+      "target": "Communication Services"
+    },
+    {
+      "edge_type": "COMPETES_WITH",
+      "source": "META",
+      "target": "GOOGL"
+    },
+    {
+      "edge_type": "BELONGS_TO",
+      "source": "MSFT",
+      "target": "Technology"
+    },
+    {
+      "edge_type": "COMPETES_WITH",
+      "source": "MSFT",
+      "target": "AAPL"
+    },
+    {
+      "edge_type": "COMPETES_WITH",
+      "source": "MSFT",
+      "target": "GOOGL"
+    },
+    {
+      "edge_type": "BELONGS_TO",
+      "source": "NVDA",
+      "target": "Technology"
+    },
+    {
+      "edge_type": "COMPETES_WITH",
+      "source": "NVDA",
+      "target": "AMZN"
+    },
+    {
+      "edge_type": "BELONGS_TO",
+      "source": "XOM",
+      "target": "Energy"
+    },
+    {
+      "edge_type": "COMPETES_WITH",
+      "source": "XOM",
+      "target": "CVX"
+    }
+  ]
+}

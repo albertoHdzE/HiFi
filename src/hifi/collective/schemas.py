@@ -35,6 +35,7 @@ from hifi.agents.schemas import (
     SentimentAnalysis,
     TechnicalAnalysis,
 )
+from hifi.collective.debate import DebateTranscript
 
 
 class EnsembleDecision(BaseModel):
@@ -112,6 +113,8 @@ class EnsembleOutput(BaseModel):
     signals: list[AgentSignal] = Field(default_factory=list)
     aggregation_method: str = "confidence_weighted"
     method_comparison: dict[str, EnsembleDecision] = Field(default_factory=dict)
+    # Phase 12: structured debate transcript (DJ-066). None when no-debate path used.
+    debate_transcript: DebateTranscript | None = None
 
 
 class DecisionRecord(BaseModel):

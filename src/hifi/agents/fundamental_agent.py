@@ -438,6 +438,7 @@ def run_analysis(
     data_dir: str | None = None,
     tracer: AbstractTracer | None = None,
     use_rag: bool = False,
+    retrieved_context: str = "",
 ) -> FundamentalAnalysis:
     """
     Run the Fundamental Analyst Agent for one ticker on one date.
@@ -481,7 +482,7 @@ def run_analysis(
         "snapshot_json": snapshot_json,
         "data_dir": effective_data_dir,
         "tool_results": {},
-        "retrieved_context": "",
+        "retrieved_context": retrieved_context,
         "llm_response": "",
         "signal": None,
         "error": None,

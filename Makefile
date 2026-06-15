@@ -236,3 +236,32 @@ baseline-phase11: ## Phase 11 fine-tuning eval: generate + validate (requires LM
 	uv run pytest tests/unit/test_phase11_baseline.py \
 	             tests/holistic/test_phase11_evaluation.py \
 	             -q --tb=short
+
+
+# ---------------------------------------------------------------------------
+# Phase 12: GraphRAG + Structured Debate (DJ-062, DJ-065, DJ-067)
+# ---------------------------------------------------------------------------
+
+build-graph: ## Build financial knowledge graph for GraphRAG (Phase 12, no LM Studio required)
+	uv run python scripts/build_knowledge_graph.py
+
+graphrag-eval: ## Precision@k: plain RAG vs graph-expanded retrieval (requires LM Studio + built graph)
+	uv run python scripts/check_env.py --check lm-studio
+	uv run python scripts/run_phase12_graphrag_eval.py
+
+eval-phase12: ## Full 2x2 factorial evaluation: 10 dates x 3 tickers x 4 conditions (requires LM Studio)
+	uv run python scripts/check_env.py --check lm-studio
+	$(MAKE) build-graph
+	uv run python scripts/run_phase12_evaluation.py
+
+baseline-phase12: ## Phase 12 baseline: build graph + 1-date pilot run + unit tests (requires LM Studio)
+	uv run python scripts/check_env.py --check lm-studio
+	$(MAKE) build-graph
+	uv run python scripts/run_phase12_baseline.py
+	uv run pytest tests/unit/test_graph_store.py \
+	             tests/unit/test_graph_construction.py \
+	             tests/unit/test_graph_retrieval.py \
+	             tests/unit/test_debate_schemas.py \
+	             tests/unit/test_debate_nodes.py \
+	             tests/unit/test_run_debate.py \
+	             -q --tb=short

@@ -26,6 +26,7 @@ dependencies = [
     "lancedb>=0.8",
     "pylance>=7.0.0",
     "filelock>=3.12",
+    "networkx>=3.6.1",
 ]
 
 [project.optional-dependencies]

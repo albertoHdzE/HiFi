@@ -117,13 +117,22 @@ def run_agent_training(
     horizon: int,
     num_iters: int,
     combine_compliance: bool = True,
+    adapter_name: str | None = None,
 ) -> None:
-    """Train one agent. Optionally combines main JSONL with compliance examples."""
+    """Train one agent. Optionally combines main JSONL with compliance examples.
+
+    Parameters
+    ----------
+    adapter_name : str | None
+        Override the output adapter directory name (default: ``{agent}_v1``).
+        Use ``technical_v2`` for the Phase 12 compliance-fix re-train (DJ-061).
+    """
     import tempfile
 
     train_file = _training_file(data_dir, agent, horizon)
     compliance_file = str(Path(data_dir) / "training" / f"{agent}_compliance.jsonl")
-    adapter_dir = str(Path(data_dir) / "adapters" / f"{agent}_v1")
+    _adapter_name = adapter_name if adapter_name else f"{agent}_v1"
+    adapter_dir = str(Path(data_dir) / "adapters" / _adapter_name)
 
     if combine_compliance and Path(compliance_file).exists():
         # Merge main + compliance JSONL into a temp file
@@ -172,6 +181,15 @@ def main() -> None:
     parser.add_argument("--horizon", type=int, default=60)
     parser.add_argument("--iters", type=int, default=1000, help="Training iterations")
     parser.add_argument("--sweep-iters", type=int, default=300, help="Iterations per rank in sweep")
+    parser.add_argument(
+        "--adapter-name", default=None,
+        help=(
+            "Override output adapter directory name (default: {agent}_v1). "
+            "Use 'technical_v2' for the Phase 12 compliance-fix re-train (DJ-061): "
+            "uv run python scripts/run_phase11_finetune.py --agent technical "
+            "--rank 8 --iters 500 --adapter-name technical_v2"
+        ),
+    )
     args = parser.parse_args()
 
     # Determine rank to use
@@ -192,10 +210,18 @@ def main() -> None:
 
     # Train agents
     if args.agent in ("technical", "both"):
-        run_agent_training("technical", selected_rank, args.data_dir, args.horizon, args.iters)
+        run_agent_training(
+            "technical", selected_rank, args.data_dir, args.horizon, args.iters,
+            adapter_name=args.adapter_name,
+        )
 
     if args.agent in ("fundamental", "both"):
-        run_agent_training("fundamental", selected_rank, args.data_dir, args.horizon, args.iters)
+        # --adapter-name only applies to a single-agent run; ignore for "both"
+        fund_adapter = args.adapter_name if args.agent == "fundamental" else None
+        run_agent_training(
+            "fundamental", selected_rank, args.data_dir, args.horizon, args.iters,
+            adapter_name=fund_adapter,
+        )
 
     print(f"\nFine-tuning complete. Adapters in: {args.data_dir}/adapters/")
 

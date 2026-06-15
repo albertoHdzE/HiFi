@@ -267,6 +267,40 @@ def check_phase11_adapters() -> list[str]:
     return errors
 
 
+def check_knowledge_graph() -> list[str]:
+    """Verify the Phase 12 financial knowledge graph has been built (DJ-062, DJ-063)."""
+    data_dir = os.environ.get("HIFI_DATA_DIR", str(PROJECT_ROOT / "data"))
+    graph_path = Path(data_dir) / "knowledge_graph" / "financial_graph.json"
+    if not graph_path.exists():
+        return [
+            f"Knowledge graph not found: {graph_path}",
+            "Build it first: make build-graph",
+        ]
+    try:
+        import json as _json
+        data = _json.loads(graph_path.read_text())
+        nodes = data.get("nodes", [])
+        if len(nodes) < 10:
+            return [
+                f"Knowledge graph has only {len(nodes)} nodes (expected >= 10).",
+                "Re-build: make build-graph",
+            ]
+    except Exception as exc:
+        return [f"Knowledge graph JSON is invalid: {exc}"]
+    return []
+
+
+def check_phase12_fixture() -> list[str]:
+    """Verify the Phase 12 baseline fixture exists (P12-E5-T1)."""
+    fixture = PROJECT_ROOT / "tests" / "fixtures" / "baseline" / "phase12_baseline.json"
+    if not fixture.exists():
+        return [
+            f"Phase 12 baseline fixture not found: {fixture}",
+            "Generate it first: make baseline-phase12",
+        ]
+    return []
+
+
 _CHECKS = {
     "langfuse": check_langfuse,
     "lm-studio": check_lm_studio,
@@ -284,6 +318,8 @@ _CHECKS = {
     "finetune-venv": check_finetune_venv,
     "phase11-data": check_phase11_data,
     "phase11-adapters": check_phase11_adapters,
+    "knowledge-graph": check_knowledge_graph,
+    "phase12-fixture": check_phase12_fixture,
 }
 
 

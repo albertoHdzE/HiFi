@@ -237,6 +237,53 @@ class AgentVerificationReport(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# P13-E0-T3: SentimentGroundingReport
+# ---------------------------------------------------------------------------
+
+
+class SentimentGroundingResult(BaseModel):
+    """
+    Grounding check for one item from SentimentAnalysis.notable_signals (P13-E0-T3).
+
+    signal_text is the original item from notable_signals. grounded is True
+    when signal_text (normalised to lowercase, stripped) appears verbatim as a
+    substring of the retrieved_context passed to verify_sentiment_agent().
+    matched_chunk is the normalised form of signal_text when grounded, else None.
+
+    Phase 13 uses exact normalised substring matching. Edit-distance tolerance
+    calibration is deferred to Phase 14 (DJ-072).
+    """
+
+    signal_text: str
+    grounded: bool
+    matched_chunk: str | None = None
+
+
+class SentimentGroundingReport(BaseModel):
+    """
+    Sentiment Grounding Rate (SGR) report for one SentimentAnalysis (P13-E0-T3).
+
+    SGR replaces GR for the Sentiment Agent: SentimentAnalysis has no numerical
+    MCP tools, so the standard claim-extraction / tolerance-check pipeline produces
+    zero extractable claims. SGR measures whether notable_signals items are verbatim
+    substrings of the RAG-retrieved context the agent had access to (DJ-072).
+
+    Epistemological equivalence to GR: both metrics measure whether the agent
+    grounds its output in tool-provided evidence. HR=0.0 by definition for
+    Sentiment (no numerical claims possible).
+
+    grounding_rate = n_grounded / n_signals; 0.0 if n_signals == 0.
+    """
+
+    ticker: str
+    as_of_date: str
+    n_signals: int
+    n_grounded: int
+    grounding_rate: float
+    results: list[SentimentGroundingResult]
+
+
+# ---------------------------------------------------------------------------
 # P5-E1-T3: EnsembleVerificationReport
 # ---------------------------------------------------------------------------
 
@@ -269,6 +316,9 @@ class EnsembleVerificationReport(BaseModel):
     technical_report: AgentVerificationReport
     contradictions: list[Contradiction]
     triggered_by_disagreement: bool
+    # Phase 13 E0-T5: optional Sentiment grounding report (None when
+    # sentiment_context was not provided to verify_ensemble).
+    sentiment_report: SentimentGroundingReport | None = None
 
     # Derived -- auto-computed by model_validator.
     n_contradictions: int = 0

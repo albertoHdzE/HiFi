@@ -211,6 +211,76 @@ class KnowledgeStore:
                 logger.warning("Failed to reconstruct DocumentChunk: %s", exc)
         return chunks
 
+    def search_tickers(
+        self,
+        query_embedding: list[float],
+        tickers: list[str],
+        top_k: int = 5,
+    ) -> list[DocumentChunk]:
+        """
+        Cosine ANN search across multiple tickers. Returns up to top_k chunks merged.
+
+        Used by GraphRetriever to search the expanded ticker neighborhood from
+        FinancialGraph.expand_query_tickers() (P12-E1-T3, DJ-068).
+
+        Parameters
+        ----------
+        query_embedding : list[float]
+            Query vector (same dimensionality as stored embeddings).
+        tickers : list[str]
+            Ticker symbols to include in search.
+        top_k : int
+            Maximum number of results to return.
+
+        Returns
+        -------
+        list[DocumentChunk]
+            Most similar chunks across all provided tickers, ranked by similarity.
+        """
+        if not tickers:
+            return []
+        stats = self.get_stats()
+        if stats["n_chunks"] == 0:
+            return []
+
+        escaped = [t.replace('"', '\\"') for t in tickers]
+        ticker_list = ", ".join(f'"{t}"' for t in escaped)
+        where_clause = f"ticker IN ({ticker_list})"
+
+        try:
+            results = (
+                self._table.search(query_embedding, vector_column_name="embedding")
+                .metric("cosine")
+                .where(where_clause, prefilter=True)
+                .limit(top_k)
+                .to_list()
+            )
+        except Exception as exc:
+            logger.warning("LanceDB search_tickers failed: %s", exc)
+            return []
+
+        chunks: list[DocumentChunk] = []
+        for row in results:
+            try:
+                text = row["text"]
+                char_count = len(text)
+                chunk = DocumentChunk(
+                    chunk_id=row["chunk_id"],
+                    ticker=row["ticker"],
+                    filing_type=row["filing_type"],
+                    period=date.fromisoformat(row["period"]),
+                    section=row["section"],
+                    chunk_index=int(row["chunk_index"]),
+                    text=text,
+                    char_count=char_count,
+                    approx_tokens=ceil(char_count / 4),
+                    chunking_config=row["chunking_config"],
+                )
+                chunks.append(chunk)
+            except Exception as exc:
+                logger.warning("Failed to reconstruct DocumentChunk: %s", exc)
+        return chunks
+
     def get_stats(self) -> dict[str, int]:
         """
         Return summary statistics for the current table.
