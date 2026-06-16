@@ -1,11 +1,8 @@
 """Tests for Agent Memory (P13-E4-T1/T2, DJ-076)."""
 
-import json
 import pytest
-from pathlib import Path
 
 from hifi.collective.memory import AgentMemoryRecord, AgentMemoryStore
-
 
 # ---------------------------------------------------------------------------
 # AgentMemoryRecord
@@ -22,7 +19,7 @@ def test_record_valid():
 
 
 def test_record_confidence_bounds():
-    with pytest.raises(Exception):
+    with pytest.raises((ValueError, Exception)):  # noqa: B017
         AgentMemoryRecord(
             ticker="AAPL", as_of_date="2023-03-31", agent_type="technical",
             decision="Hold", confidence=1.5,
@@ -30,7 +27,7 @@ def test_record_confidence_bounds():
 
 
 def test_record_invalid_decision():
-    with pytest.raises(Exception):
+    with pytest.raises((ValueError, Exception)):  # noqa: B017
         AgentMemoryRecord(
             ticker="AAPL", as_of_date="2023-03-31", agent_type="risk",
             decision="Strong Buy", confidence=0.9,

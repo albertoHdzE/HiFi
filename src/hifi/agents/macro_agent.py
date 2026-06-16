@@ -65,6 +65,7 @@ class MacroAnalystState(TypedDict, total=False):
     macro_rationale: str | None
     error: str | None
     start_time: float
+    memory_prefix: str  # P13-E4-T3: in-context decision history prefix (DJ-076)
 
 
 # ---------------------------------------------------------------------------
@@ -183,6 +184,11 @@ def generate_analysis_node(state: MacroAnalystState) -> dict:
         data_gaps_list=data_gaps_list,
     )
 
+    # P13-E4-T3: prepend agent memory prefix when available (DJ-076)
+    memory_prefix = state.get("memory_prefix", "")
+    if memory_prefix:
+        user_text = memory_prefix + "\n\n" + user_text
+
     # Reasoning-distilled model: use max_tokens=4096 to avoid truncation (DJ-032)
     llm = make_llm(_macro_model(), max_tokens=4096)
     messages = [SystemMessage(content=system_text), HumanMessage(content=user_text)]
@@ -288,6 +294,7 @@ def run_macro_analysis(
     as_of_date: str,
     data_dir: str | None = None,
     tracer: AbstractTracer | None = None,
+    memory_prefix: str = "",
 ) -> MacroAnalysis:
     """
     Run the Macro Analyst Agent for one ticker on one date.
@@ -334,6 +341,7 @@ def run_macro_analysis(
         "macro_rationale": None,
         "error": None,
         "start_time": start,
+        "memory_prefix": memory_prefix,
     }
 
     with trace_context(trace_id):

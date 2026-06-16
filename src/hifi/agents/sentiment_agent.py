@@ -146,6 +146,7 @@ def _call_llm_for_sentiment(
     as_of_date: str,
     retrieved_context: str,
     model_id: str,
+    memory_prefix: str = "",
 ) -> tuple[AgentSignal | None, str, list[str]]:
     """
     Call the LLM with the retrieved context.
@@ -158,6 +159,10 @@ def _call_llm_for_sentiment(
         as_of_date=as_of_date,
         retrieved_context=retrieved_context,
     )
+
+    # P13-E4-T3: prepend agent memory prefix when available (DJ-076)
+    if memory_prefix:
+        user_text = memory_prefix + "\n\n" + user_text
 
     llm = make_llm(_sentiment_model(), max_tokens=1024)
 
@@ -211,6 +216,7 @@ def run_sentiment_analysis(
     as_of_date: str,
     data_dir: str | None = None,
     tracer: AbstractTracer | None = None,
+    memory_prefix: str = "",
 ) -> SentimentAnalysis:
     """
     Run the Sentiment Analyst Agent for one ticker on one date.
@@ -261,7 +267,7 @@ def run_sentiment_analysis(
 
         llm_model_id = make_llm(_sentiment_model(), max_tokens=1024).model_name
         signal, sentiment_summary, notable_signals = _call_llm_for_sentiment(
-            ticker, as_of_date, retrieved_context, llm_model_id
+            ticker, as_of_date, retrieved_context, llm_model_id, memory_prefix
         )
 
     _tracer.flush()

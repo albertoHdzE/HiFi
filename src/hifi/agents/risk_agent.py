@@ -65,6 +65,7 @@ class RiskAnalystState(TypedDict, total=False):
     recommended_position_size: float | None
     error: str | None
     start_time: float
+    memory_prefix: str  # P13-E4-T3: in-context decision history prefix (DJ-076)
 
 
 # ---------------------------------------------------------------------------
@@ -189,6 +190,11 @@ def generate_analysis_node(state: RiskAnalystState) -> dict:
         data_gaps_list=data_gaps_list,
     )
 
+    # P13-E4-T3: prepend agent memory prefix when available (DJ-076)
+    memory_prefix = state.get("memory_prefix", "")
+    if memory_prefix:
+        user_text = memory_prefix + "\n\n" + user_text
+
     llm = make_llm(_risk_model(), max_tokens=1024)
     messages = [SystemMessage(content=system_text), HumanMessage(content=user_text)]
     response = llm.invoke(messages)
@@ -293,6 +299,7 @@ def run_risk_analysis(
     as_of_date: str,
     data_dir: str | None = None,
     tracer: AbstractTracer | None = None,
+    memory_prefix: str = "",
 ) -> RiskAnalysis:
     """
     Run the Risk Analyst Agent for one ticker on one date.
@@ -336,6 +343,7 @@ def run_risk_analysis(
         "recommended_position_size": None,
         "error": None,
         "start_time": start,
+        "memory_prefix": memory_prefix,
     }
 
     with trace_context(trace_id):

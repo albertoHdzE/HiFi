@@ -68,6 +68,7 @@ class TechnicalAnalystState(TypedDict, total=False):
     time_horizon: str | None   # "short-term" | "medium-term" | "long-term"
     error: str | None
     start_time: float          # wall-clock start for latency measurement
+    memory_prefix: str         # P13-E4-T3: in-context decision history prefix (DJ-076)
 
 
 # ---------------------------------------------------------------------------
@@ -267,6 +268,11 @@ def generate_analysis_node(state: TechnicalAnalystState) -> dict:
             data_gaps_list=data_gaps_list,
         )
 
+    # P13-E4-T3: prepend agent memory prefix when available (DJ-076)
+    memory_prefix = state.get("memory_prefix", "")
+    if memory_prefix:
+        user_text = memory_prefix + "\n\n" + user_text
+
     _url = _technical_url()
     llm = make_llm(_technical_model(), max_tokens=4096, base_url=_url) if _url \
         else make_llm(_technical_model(), max_tokens=4096)
@@ -396,6 +402,7 @@ def run_technical_analysis(
     tracer: AbstractTracer | None = None,
     use_rag: bool = False,
     retrieved_context: str = "",
+    memory_prefix: str = "",
 ) -> TechnicalAnalysis:
     """
     Run the Technical Analyst Agent for one ticker on one date.
@@ -442,6 +449,7 @@ def run_technical_analysis(
         "time_horizon": None,
         "error": None,
         "start_time": start,
+        "memory_prefix": memory_prefix,
     }
 
     with trace_context(trace_id):

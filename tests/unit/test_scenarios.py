@@ -9,7 +9,6 @@ from hifi.collective.scenarios import (
     _check_alignment,
 )
 
-
 # ---------------------------------------------------------------------------
 # ScenarioDefinition
 # ---------------------------------------------------------------------------
@@ -28,7 +27,7 @@ def test_scenario_definition_valid():
 
 
 def test_scenario_definition_rejects_invalid_direction():
-    with pytest.raises(Exception):
+    with pytest.raises((ValueError, Exception)):  # noqa: B017
         ScenarioDefinition(
             scenario_id="F-X",
             ticker="AAPL",

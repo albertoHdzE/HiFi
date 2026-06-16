@@ -1,9 +1,8 @@
 """Tests for multi-round debate (P13-E2-T2, DJ-074)."""
 
-import pytest
 
 from hifi.agents.schemas import AgentSignal
-from hifi.collective.debate import identify_minority, run_debate_multi_round
+from hifi.collective.debate import run_debate_multi_round
 
 
 def _sig(agent: str, decision: str, conf: float = 0.7) -> AgentSignal:
@@ -142,6 +141,7 @@ def test_multi_round_ensemble_max_rounds_param():
     """run_debate_ensemble max_rounds parameter reaches debate layer without error."""
     # We just test the signature — no LM Studio needed for this import-level check.
     import inspect
+
     from hifi.agents.ensemble_runner import run_debate_ensemble
     sig = inspect.signature(run_debate_ensemble)
     assert "max_rounds" in sig.parameters

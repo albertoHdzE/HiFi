@@ -466,6 +466,41 @@ it does not address the diversity bottleneck (same family). Deferred to Phase 14
 
 ---
 
+### DJ-086: SGR=0.000 Root Cause Diagnosis and Model Selection
+
+**Problem:** Phase 13 E0 baseline (2026-06-15) shows SGR=0.000 for Gemma 4 E4B on
+AAPL/JPM/XOM at 2023-03-31. Two distinct failure modes were observed:
+1. AAPL/JPM: 0 parseable signals — `_extract_json()` returned None. The model either
+   produced prose without a JSON object, or JSON with unexpected structure.
+2. XOM: 2 signals parsed, 0 grounded — signals are paraphrases, not verbatim quotes.
+   SGR uses exact substring matching (DJ-072); paraphrases fail the grounding check.
+
+**Evidence:** gemma-4-12b-it-mlx (full 12B) is confirmed loaded in LM Studio alongside
+E4B. It was previously thought incompatible but IS available as of 2026-06-15.
+
+**Diagnostic tool:** `scripts/diagnose_sentiment_sgr.py` — tests both models on AAPL
+and prints raw LLM output before JSON parsing, JSON extraction result, and grounding
+check for each notable_signals item. Run with:
+```
+uv run python scripts/diagnose_sentiment_sgr.py --all-tickers
+```
+
+**Decision options (to be resolved after running diagnostic):**
+
+| Option | When to choose | Action |
+|---|---|---|
+| A: Keep E4B, fix prompt | E4B produces JSON with notable_signals on 2nd look; 12B not better | Add explicit "copy verbatim" instruction to sentiment_v1.md |
+| B: Switch to 12B-it | 12B-it produces parseable JSON with more faithful quotations than E4B | Update _DEFAULT_SENTIMENT_MODEL in sentiment_agent.py |
+| C: Fix prompt for both; use whichever has higher SGR | Both models produce paraphrases | Prompt fix first, then compare |
+| D: E4B fails JSON; 12B parses | JSON compliance gap between model sizes | Switch to 12B-it (larger model follows instructions better) |
+
+**Decision gate:** Must complete diagnostic before re-running baseline. Record final
+choice in this file and update MEMORY.md + STATUS.md.
+
+**Status:** PENDING — diagnostic script created; must run against LM Studio.
+
+---
+
 ## Deferred from Phase 13
 
 - **Risk Agent fine-tuning** (gemma-3-4b): LoRA dynamics for small non-reasoning
