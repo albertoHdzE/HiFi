@@ -1,7 +1,7 @@
 # HiFi Project Status
 
-**Last Updated:** 2026-06-15 (Wave 2 session 2)
-**Current Phase:** Phase 13 (IN PROGRESS — Wave 2 partial; E2-T4/E4-T4/E6-T2 LLM evals running)
+**Last Updated:** 2026-06-16 (Phase 13 COMPLETE; Phase 14 architecture decisions DJ-088–DJ-094)
+**Current Phase:** Phase 14 (PLANNING — branch: phase14/heterogeneous-ensemble)
 
 ---
 
@@ -35,12 +35,12 @@ HiFi is a fully local multi-agent financial intelligence platform. Read these in
 | 11 | Fine-Tuning | COMPLETE | plans/PHASE_11_PLAN.md | doc/bitacora/PHASE_11_FINE_TUNING.md |
 | 12 | GraphRAG + Structured Debate | COMPLETE | plans/PHASE_12_PLAN.md | doc/bitacora/PHASE_12_GRAPHRAG_DEBATE.md |
 | 12.1 | Completion and Correction | COMPLETE | plans/PHASE_12.1_PLAN.md | doc/bitacora/PHASE_12.1_COMPLETION.md |
-| 13 | Verification Completeness, Sentiment Intelligence, System Resilience | IN PROGRESS (Wave 2: code complete; E2-T4/E4-T4/E6-T2 evals pending) | plans/PHASE_13_PLAN.md | doc/bitacora/PHASE_13_ADVANCED_FEATURES.md |
-| 14 | Paper Trading | NOT STARTED | -- | -- |
-| 15 | Containerization | NOT STARTED | -- | -- |
-| 16 | Open Source Release | NOT STARTED | -- | -- |
-| 17 | Capstone Deliverable | NOT STARTED | -- | -- |
-| 18 | Publication | NOT STARTED | -- | -- |
+| 13 | Verification Completeness, Sentiment Intelligence, System Resilience | COMPLETE | plans/PHASE_13_PLAN.md | doc/bitacora/PHASE_13_ADVANCED_FEATURES.md |
+| 14 | Infrastructure: Model Diversity, Scale Expansion, MCP Tools (DJ-088) | PLANNING | plans/PHASE_14_CONTEXT.md | -- |
+| 15 | Historical Walk-Forward Simulation (DJ-088) | NOT STARTED | -- | -- |
+| 16 | Live Paper Trading — IBKR (DJ-088) | NOT STARTED | -- | -- |
+| 17 | Ablation Studies + Capstone Deliverable | NOT STARTED | -- | -- |
+| 18 | Publication + Open Source Release | NOT STARTED | -- | -- |
 
 ---
 
