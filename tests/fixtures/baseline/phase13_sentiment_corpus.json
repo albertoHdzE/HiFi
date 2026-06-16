@@ -1,0 +1,23 @@
+{
+  "metadata": {
+    "generated_at": "2026-06-16T01:53:15.459316+00:00",
+    "phase": 13,
+    "ticket": "E1-T1",
+    "description": "Sentiment corpus validation gate (DJ-073)",
+    "source_dir": "/Users/alberto/Documents/projects/HiFi/tests/fixtures/sec",
+    "n_fixture_files": 9
+  },
+  "class_distribution": {
+    "Buy": 0,
+    "Hold": 263,
+    "Sell": 0
+  },
+  "n_total_examples": 263,
+  "n_sell_examples": 0,
+  "gate_min_total": 200,
+  "gate_min_sell": 30,
+  "gate_passed": false,
+  "decision": "ABORT",
+  "abort_reason": "Fixture corpus insufficient: 263 examples (need 200), 0 Sell (need 30). Full EDGAR corpus not ingested in current environment (chunks_a LanceDB table: 0 rows). Sentiment FT deferred to Phase 14.",
+  "oq_s01": "ANSWERED \u2014 MD&A corpus yields < 200 examples from fixture corpus (3 tickers, fixture files only). Full ingestion required for go/no-go."
+}
