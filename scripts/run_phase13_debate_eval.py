@@ -91,6 +91,7 @@ def main() -> None:
     dates = all_dates[:5]  # First 5 of 10 quarterly dates
     baseline_herding_1round: float = factorial["conditions"]["C"]["mean_herding_coefficient"]
     print(f"Phase 12 condition C herding (1-round): {baseline_herding_1round:.4f}")
+    print(f"Agents: fundamental + technical (matches Phase 12 condition C)")
     print(f"Evaluation: {len(dates)} dates × {len(TICKERS)} tickers = {len(dates)*len(TICKERS)} runs")
     print(f"Dates: {dates}\n")
 
@@ -112,19 +113,23 @@ def main() -> None:
                     snapshot_json=snapshots[ticker],
                     max_rounds=2,
                     use_rag=True,
+                    agents=["fundamental", "technical"],  # match Phase 12 condition C setup
                 )
                 decisions = [s.decision for s in (out.signals or []) if s.decision]
                 h = _herding(decisions)
-                n_rounds = len(out.debate_transcripts) if out.debate_transcripts else 1
-                converged = (out.debate_transcripts[-1].converged
-                             if out.debate_transcripts else True)
-                print(f" decision={out.collective_decision} herding={h:.3f} rounds={n_rounds} converged={converged}")
+                dt = out.debate_transcript
+                # max_rounds=2: debate ran if dt exists and not skipped.
+                # n_rounds_run is approximate (only final transcript stored).
+                n_rounds = 2 if (dt and not dt.debate_skipped) else 1
+                vote_delta = dt.vote_delta if dt else "unchanged"
+                cd = out.ensemble_decision.collective_decision
+                print(f" decision={cd} herding={h:.3f} rounds={n_rounds} vote_delta={vote_delta}")
                 results.append({
                     "ticker": ticker, "as_of_date": date,
-                    "collective_decision": out.collective_decision,
+                    "collective_decision": out.ensemble_decision.collective_decision,
                     "herding_coefficient_2round": h,
                     "n_rounds_run": n_rounds,
-                    "converged": converged,
+                    "vote_delta": vote_delta,
                     "agent_decisions": decisions,
                 })
             except Exception as exc:

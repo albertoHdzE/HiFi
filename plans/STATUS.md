@@ -1,7 +1,7 @@
 # HiFi Project Status
 
-**Last Updated:** 2026-06-15
-**Current Phase:** Phase 13 (IN PROGRESS — Wave 1 complete)
+**Last Updated:** 2026-06-15 (Wave 2 session 2)
+**Current Phase:** Phase 13 (IN PROGRESS — Wave 2 partial; E2-T4/E4-T4/E6-T2 LLM evals running)
 
 ---
 
@@ -35,7 +35,7 @@ HiFi is a fully local multi-agent financial intelligence platform. Read these in
 | 11 | Fine-Tuning | COMPLETE | plans/PHASE_11_PLAN.md | doc/bitacora/PHASE_11_FINE_TUNING.md |
 | 12 | GraphRAG + Structured Debate | COMPLETE | plans/PHASE_12_PLAN.md | doc/bitacora/PHASE_12_GRAPHRAG_DEBATE.md |
 | 12.1 | Completion and Correction | COMPLETE | plans/PHASE_12.1_PLAN.md | doc/bitacora/PHASE_12.1_COMPLETION.md |
-| 13 | Verification Completeness, Sentiment Intelligence, System Resilience | IN PROGRESS (Wave 1: E0+E2+E4+E5+E6 code complete) | plans/PHASE_13_PLAN.md | -- |
+| 13 | Verification Completeness, Sentiment Intelligence, System Resilience | IN PROGRESS (Wave 2: code complete; E2-T4/E4-T4/E6-T2 evals pending) | plans/PHASE_13_PLAN.md | doc/bitacora/PHASE_13_ADVANCED_FEATURES.md |
 | 14 | Paper Trading | NOT STARTED | -- | -- |
 | 15 | Containerization | NOT STARTED | -- | -- |
 | 16 | Open Source Release | NOT STARTED | -- | -- |
@@ -69,6 +69,80 @@ HiFi is a fully local multi-agent financial intelligence platform. Read these in
 - Replication notebook: notebooks/phase11_finetune_replication.ipynb
 - Bug fixes: serve_finetune_models.sh (log-level casing, deprecated module path),
   lm_client.py (base_url param), agent finetune URL routing, eval GR field path
+
+## Phase 13 Status (IN PROGRESS — 2026-06-15 Wave 2 session 2)
+
+**Tests:** 1271 passed, 0 skipped, 0 lint errors (src/ + tests/ only)
+**Commit:** 9b344ee (Phase 13 Wave 2 partial), new scripts added this session
+
+### Architecture decisions: DJ-071 through DJ-087 (see plans/PHASE_13_CONTEXT.md)
+
+### Completed work
+
+- E0: verify_agent() extended to Risk + Macro + Sentiment (SGR metric) ✓
+- E1: ABORT — OQ-S01 NEGATIVE (0 Sell examples; FT deferred to Phase 14) ✓
+- E2: run_debate_multi_round() + max_rounds in ensemble_runner ✓ (code)
+- E4: AgentMemoryRecord + AgentMemoryStore + injection into all 5 agents ✓ (code)
+- E5: DriftMonitor KS/chi-sq/CUSUM + calibration against 2022 regime ✓
+- E6: ScenarioEvaluator + PHASE13_SCENARIOS (7 scenarios) ✓ (code)
+- E7: Dataset Family E README + Dataset Family G MANIFEST.md ✓
+- DJ-086/DJ-087: Gemma 4 E4B diagnosis → revert Sentiment to qwen2.5-coder + verbatim Rule 5 ✓
+
+### E0 Baselines (2023-03-31)
+
+- Risk: HR=0.000, GR=1.000 (max_drawdown verified), alias_coverage=38.9%
+- Macro: HR=0.000, GR=0.000, n_claims=0-1 (FRED data absent/sparse)
+- Sentiment (verbatim Rule 5, DJ-087): mean_SGR=0.667
+  - AAPL: SGR=0.000 (8-K boilerplate context, no quotable signals)
+  - JPM: SGR=1.000 (2/2 grounded)
+  - XOM: SGR=1.000 (2/2 grounded)
+
+### E5-T5 Drift Calibration (2022 regime)
+
+- KS test (vol+RSI, 2020-21 vs 2022-23): p=0.000 ALERT ✓
+- Chi-squared (momentum decisions): p=0.000 ALERT ✓
+- CUSUM (frac < 50d MA): C_k=48.57 >> threshold=0.534 ALERT ✓
+- OQ-DR01: YES — all three monitors detect 2022 rate-shock regime change
+
+### LLM eval results (COMPLETE 2026-06-16)
+
+- E2-T4 OQ-D04: NEGLIGIBLE — 2-round herding=0.929 vs 1-round=0.950, Δ=-0.021 (14/15 runs)
+- E4-T4 OQ-M03: YES — memory changed 9/30 pairs (30%), fundamental most susceptible
+- E6-T2 Dataset F: 4/7 aligned (57%); crash=67%, rate_shock=67%, earnings_beat=0%
+  - Hold bias observed; F-001c/F-002c/F-003 misaligned (snapshot date mismatch + FRED sparsity)
+
+### All Phase 13 OQ answers
+
+| OQ | Answer |
+|---|---|
+| OQ-S01 | NEGATIVE — 0 Sell examples; Sentiment FT deferred to Phase 14 |
+| OQ-D04 | NEGLIGIBLE — Δ=-0.021 (|Δ|<0.05); herding set by model diversity not round count |
+| OQ-M03 | YES — 30% pairs changed; memory anchors Fundamental Agent toward prior decisions |
+| OQ-DR01 | YES — all 3 monitors detect 2022 rate-shock (CUSUM C_k=48.57 >> threshold=0.534) |
+
+### DJ Index (Phase 13)
+
+| DJ# | Decision |
+|---|---|
+| DJ-071 | Phase 13 scope and wave structure |
+| DJ-072 | Verification extension strategy (Risk + Macro branches) |
+| DJ-073 | SGR metric for Sentiment verification |
+| DJ-074 | Multi-round debate with vote-stability convergence |
+| DJ-075 | OQ-D04 hypothesis pre-registration (NEGLIGIBLE) |
+| DJ-076 | Agent memory: in-context prefix, JSON append-only store |
+| DJ-077 | OQ-M03 experimental design (synthetic priors) |
+| DJ-078 | Scenario methodology: historical events, not generative synthetic |
+| DJ-079 | Drift monitor trio: KS + chi-sq + CUSUM |
+| DJ-080 | Gemma 4 as Sentiment base (SUPERSEDED by DJ-087) |
+| DJ-081 | Phase 12.1 technical_v2 compliance ratio fix |
+| DJ-082 | Phase 12.1 retraining at 500 iters rank 8 |
+| DJ-083 | Phase 12.1 factorial experiment design |
+| DJ-084 | Phase 12.1 herding threshold definition |
+| DJ-085 | Sentiment model → gemma-4-e4b (SUPERSEDED by DJ-087) |
+| DJ-086 | E4B diagnosis: chat-template failure in LM Studio |
+| DJ-087 | Revert Sentiment to qwen2.5-coder + verbatim Rule 5 |
+
+---
 
 ## Phase 12.1 Results (COMPLETE 2026-06-15)
 

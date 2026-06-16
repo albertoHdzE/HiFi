@@ -1,0 +1,682 @@
+{
+  "metadata": {
+    "generated_at": "2026-06-16T04:07:52.258378+00:00",
+    "phase": 13,
+    "ticket": "E4-T4",
+    "description": "Agent memory influence evaluation: no-memory vs. with-memory",
+    "dates_evaluated": [
+      "2020-03-31",
+      "2020-06-30",
+      "2020-09-30",
+      "2020-12-31",
+      "2021-03-31",
+      "2021-06-30",
+      "2021-09-30",
+      "2021-12-31",
+      "2022-03-31",
+      "2022-06-30"
+    ],
+    "tickers": [
+      "AAPL",
+      "JPM",
+      "XOM"
+    ],
+    "agents": [
+      "fundamental",
+      "technical"
+    ],
+    "n_synthetic_priors_per_agent_per_ticker": 3,
+    "synthetic_priors": [
+      {
+        "as_of_date": "2019-09-30",
+        "decision": "Buy",
+        "confidence": 0.75,
+        "actual_60d_return": 0.05,
+        "outcome_correct": true
+      },
+      {
+        "as_of_date": "2019-12-31",
+        "decision": "Hold",
+        "confidence": 0.6,
+        "actual_60d_return": -0.02,
+        "outcome_correct": false
+      },
+      {
+        "as_of_date": "2020-01-31",
+        "decision": "Sell",
+        "confidence": 0.7,
+        "actual_60d_return": -0.08,
+        "outcome_correct": true
+      }
+    ],
+    "n_pairs_planned": 30,
+    "n_pairs_completed": 30,
+    "n_pairs_failed": 0
+  },
+  "n_pairs_changed": 9,
+  "changed_fraction": 0.3,
+  "oq_m03": "YES \u2014 memory prefix has measurable influence on agent decisions",
+  "per_pair_results": [
+    {
+      "ticker": "AAPL",
+      "as_of_date": "2020-03-31",
+      "decisions_no_memory": {
+        "fundamental": "Hold",
+        "technical": "Hold"
+      },
+      "decisions_with_memory": {
+        "fundamental": "Hold",
+        "technical": "Hold"
+      },
+      "collective_no_memory": "Hold",
+      "collective_with_memory": "Hold",
+      "changed_agents": [],
+      "any_changed": false,
+      "memory_prefixes_used": {
+        "fundamental": "[Agent Memory \u2014 last 3 decisions for AAPL]\n2020-01-31: Sell (confidence=0.70) \u2192 ...",
+        "technical": "[Agent Memory \u2014 last 3 decisions for AAPL]\n2020-01-31: Sell (confidence=0.70) \u2192 ..."
+      }
+    },
+    {
+      "ticker": "JPM",
+      "as_of_date": "2020-03-31",
+      "decisions_no_memory": {
+        "fundamental": "Hold",
+        "technical": "Hold"
+      },
+      "decisions_with_memory": {
+        "fundamental": "Buy",
+        "technical": "Hold"
+      },
+      "collective_no_memory": "Hold",
+      "collective_with_memory": "Buy",
+      "changed_agents": [
+        "fundamental"
+      ],
+      "any_changed": true,
+      "memory_prefixes_used": {
+        "fundamental": "[Agent Memory \u2014 last 3 decisions for JPM]\n2020-01-31: Sell (confidence=0.70) \u2192 a...",
+        "technical": "[Agent Memory \u2014 last 3 decisions for JPM]\n2020-01-31: Sell (confidence=0.70) \u2192 a..."
+      }
+    },
+    {
+      "ticker": "XOM",
+      "as_of_date": "2020-03-31",
+      "decisions_no_memory": {
+        "fundamental": "Buy",
+        "technical": "Hold"
+      },
+      "decisions_with_memory": {
+        "fundamental": "Buy",
+        "technical": "Hold"
+      },
+      "collective_no_memory": "Buy",
+      "collective_with_memory": "Buy",
+      "changed_agents": [],
+      "any_changed": false,
+      "memory_prefixes_used": {
+        "fundamental": "[Agent Memory \u2014 last 3 decisions for XOM]\n2020-01-31: Sell (confidence=0.70) \u2192 a...",
+        "technical": "[Agent Memory \u2014 last 3 decisions for XOM]\n2020-01-31: Sell (confidence=0.70) \u2192 a..."
+      }
+    },
+    {
+      "ticker": "AAPL",
+      "as_of_date": "2020-06-30",
+      "decisions_no_memory": {
+        "fundamental": "Hold",
+        "technical": "Hold"
+      },
+      "decisions_with_memory": {
+        "fundamental": "Hold",
+        "technical": "Hold"
+      },
+      "collective_no_memory": "Hold",
+      "collective_with_memory": "Hold",
+      "changed_agents": [],
+      "any_changed": false,
+      "memory_prefixes_used": {
+        "fundamental": "[Agent Memory \u2014 last 3 decisions for AAPL]\n2020-01-31: Sell (confidence=0.70) \u2192 ...",
+        "technical": "[Agent Memory \u2014 last 3 decisions for AAPL]\n2020-01-31: Sell (confidence=0.70) \u2192 ..."
+      }
+    },
+    {
+      "ticker": "JPM",
+      "as_of_date": "2020-06-30",
+      "decisions_no_memory": {
+        "fundamental": "Hold",
+        "technical": "Hold"
+      },
+      "decisions_with_memory": {
+        "fundamental": "Buy",
+        "technical": "Sell"
+      },
+      "collective_no_memory": "Hold",
+      "collective_with_memory": "Hold",
+      "changed_agents": [
+        "fundamental",
+        "technical"
+      ],
+      "any_changed": true,
+      "memory_prefixes_used": {
+        "fundamental": "[Agent Memory \u2014 last 3 decisions for JPM]\n2020-01-31: Sell (confidence=0.70) \u2192 a...",
+        "technical": "[Agent Memory \u2014 last 3 decisions for JPM]\n2020-01-31: Sell (confidence=0.70) \u2192 a..."
+      }
+    },
+    {
+      "ticker": "XOM",
+      "as_of_date": "2020-06-30",
+      "decisions_no_memory": {
+        "fundamental": "Buy",
+        "technical": "Hold"
+      },
+      "decisions_with_memory": {
+        "fundamental": "Buy",
+        "technical": "Sell"
+      },
+      "collective_no_memory": "Buy",
+      "collective_with_memory": "Buy",
+      "changed_agents": [
+        "technical"
+      ],
+      "any_changed": true,
+      "memory_prefixes_used": {
+        "fundamental": "[Agent Memory \u2014 last 3 decisions for XOM]\n2020-01-31: Sell (confidence=0.70) \u2192 a...",
+        "technical": "[Agent Memory \u2014 last 3 decisions for XOM]\n2020-01-31: Sell (confidence=0.70) \u2192 a..."
+      }
+    },
+    {
+      "ticker": "AAPL",
+      "as_of_date": "2020-09-30",
+      "decisions_no_memory": {
+        "fundamental": "Hold",
+        "technical": "Hold"
+      },
+      "decisions_with_memory": {
+        "fundamental": "Hold",
+        "technical": "Hold"
+      },
+      "collective_no_memory": "Hold",
+      "collective_with_memory": "Hold",
+      "changed_agents": [],
+      "any_changed": false,
+      "memory_prefixes_used": {
+        "fundamental": "[Agent Memory \u2014 last 3 decisions for AAPL]\n2020-01-31: Sell (confidence=0.70) \u2192 ...",
+        "technical": "[Agent Memory \u2014 last 3 decisions for AAPL]\n2020-01-31: Sell (confidence=0.70) \u2192 ..."
+      }
+    },
+    {
+      "ticker": "JPM",
+      "as_of_date": "2020-09-30",
+      "decisions_no_memory": {
+        "fundamental": "Hold",
+        "technical": "Hold"
+      },
+      "decisions_with_memory": {
+        "fundamental": "Buy",
+        "technical": "Sell"
+      },
+      "collective_no_memory": "Hold",
+      "collective_with_memory": "Hold",
+      "changed_agents": [
+        "fundamental",
+        "technical"
+      ],
+      "any_changed": true,
+      "memory_prefixes_used": {
+        "fundamental": "[Agent Memory \u2014 last 3 decisions for JPM]\n2020-01-31: Sell (confidence=0.70) \u2192 a...",
+        "technical": "[Agent Memory \u2014 last 3 decisions for JPM]\n2020-01-31: Sell (confidence=0.70) \u2192 a..."
+      }
+    },
+    {
+      "ticker": "XOM",
+      "as_of_date": "2020-09-30",
+      "decisions_no_memory": {
+        "fundamental": "Buy",
+        "technical": "Hold"
+      },
+      "decisions_with_memory": {
+        "fundamental": "Buy",
+        "technical": "Sell"
+      },
+      "collective_no_memory": "Buy",
+      "collective_with_memory": "Buy",
+      "changed_agents": [
+        "technical"
+      ],
+      "any_changed": true,
+      "memory_prefixes_used": {
+        "fundamental": "[Agent Memory \u2014 last 3 decisions for XOM]\n2020-01-31: Sell (confidence=0.70) \u2192 a...",
+        "technical": "[Agent Memory \u2014 last 3 decisions for XOM]\n2020-01-31: Sell (confidence=0.70) \u2192 a..."
+      }
+    },
+    {
+      "ticker": "AAPL",
+      "as_of_date": "2020-12-31",
+      "decisions_no_memory": {
+        "fundamental": "Hold",
+        "technical": "Hold"
+      },
+      "decisions_with_memory": {
+        "fundamental": "Hold",
+        "technical": "Hold"
+      },
+      "collective_no_memory": "Hold",
+      "collective_with_memory": "Hold",
+      "changed_agents": [],
+      "any_changed": false,
+      "memory_prefixes_used": {
+        "fundamental": "[Agent Memory \u2014 last 3 decisions for AAPL]\n2020-01-31: Sell (confidence=0.70) \u2192 ...",
+        "technical": "[Agent Memory \u2014 last 3 decisions for AAPL]\n2020-01-31: Sell (confidence=0.70) \u2192 ..."
+      }
+    },
+    {
+      "ticker": "JPM",
+      "as_of_date": "2020-12-31",
+      "decisions_no_memory": {
+        "fundamental": "Hold",
+        "technical": "Hold"
+      },
+      "decisions_with_memory": {
+        "fundamental": "Hold",
+        "technical": "Hold"
+      },
+      "collective_no_memory": "Hold",
+      "collective_with_memory": "Hold",
+      "changed_agents": [],
+      "any_changed": false,
+      "memory_prefixes_used": {
+        "fundamental": "[Agent Memory \u2014 last 3 decisions for JPM]\n2020-01-31: Sell (confidence=0.70) \u2192 a...",
+        "technical": "[Agent Memory \u2014 last 3 decisions for JPM]\n2020-01-31: Sell (confidence=0.70) \u2192 a..."
+      }
+    },
+    {
+      "ticker": "XOM",
+      "as_of_date": "2020-12-31",
+      "decisions_no_memory": {
+        "fundamental": "Buy",
+        "technical": "Sell"
+      },
+      "decisions_with_memory": {
+        "fundamental": "Buy",
+        "technical": "Hold"
+      },
+      "collective_no_memory": "Buy",
+      "collective_with_memory": "Buy",
+      "changed_agents": [
+        "technical"
+      ],
+      "any_changed": true,
+      "memory_prefixes_used": {
+        "fundamental": "[Agent Memory \u2014 last 3 decisions for XOM]\n2020-01-31: Sell (confidence=0.70) \u2192 a...",
+        "technical": "[Agent Memory \u2014 last 3 decisions for XOM]\n2020-01-31: Sell (confidence=0.70) \u2192 a..."
+      }
+    },
+    {
+      "ticker": "AAPL",
+      "as_of_date": "2021-03-31",
+      "decisions_no_memory": {
+        "fundamental": "Hold",
+        "technical": "Hold"
+      },
+      "decisions_with_memory": {
+        "fundamental": "Hold",
+        "technical": "Hold"
+      },
+      "collective_no_memory": "Hold",
+      "collective_with_memory": "Hold",
+      "changed_agents": [],
+      "any_changed": false,
+      "memory_prefixes_used": {
+        "fundamental": "[Agent Memory \u2014 last 3 decisions for AAPL]\n2020-01-31: Sell (confidence=0.70) \u2192 ...",
+        "technical": "[Agent Memory \u2014 last 3 decisions for AAPL]\n2020-01-31: Sell (confidence=0.70) \u2192 ..."
+      }
+    },
+    {
+      "ticker": "JPM",
+      "as_of_date": "2021-03-31",
+      "decisions_no_memory": {
+        "fundamental": "Hold",
+        "technical": "Hold"
+      },
+      "decisions_with_memory": {
+        "fundamental": "Hold",
+        "technical": "Hold"
+      },
+      "collective_no_memory": "Hold",
+      "collective_with_memory": "Hold",
+      "changed_agents": [],
+      "any_changed": false,
+      "memory_prefixes_used": {
+        "fundamental": "[Agent Memory \u2014 last 3 decisions for JPM]\n2020-01-31: Sell (confidence=0.70) \u2192 a...",
+        "technical": "[Agent Memory \u2014 last 3 decisions for JPM]\n2020-01-31: Sell (confidence=0.70) \u2192 a..."
+      }
+    },
+    {
+      "ticker": "XOM",
+      "as_of_date": "2021-03-31",
+      "decisions_no_memory": {
+        "fundamental": "Buy",
+        "technical": "Hold"
+      },
+      "decisions_with_memory": {
+        "fundamental": "Buy",
+        "technical": "Hold"
+      },
+      "collective_no_memory": "Buy",
+      "collective_with_memory": "Buy",
+      "changed_agents": [],
+      "any_changed": false,
+      "memory_prefixes_used": {
+        "fundamental": "[Agent Memory \u2014 last 3 decisions for XOM]\n2020-01-31: Sell (confidence=0.70) \u2192 a...",
+        "technical": "[Agent Memory \u2014 last 3 decisions for XOM]\n2020-01-31: Sell (confidence=0.70) \u2192 a..."
+      }
+    },
+    {
+      "ticker": "AAPL",
+      "as_of_date": "2021-06-30",
+      "decisions_no_memory": {
+        "fundamental": "Hold",
+        "technical": "Hold"
+      },
+      "decisions_with_memory": {
+        "fundamental": "Hold",
+        "technical": "Hold"
+      },
+      "collective_no_memory": "Hold",
+      "collective_with_memory": "Hold",
+      "changed_agents": [],
+      "any_changed": false,
+      "memory_prefixes_used": {
+        "fundamental": "[Agent Memory \u2014 last 3 decisions for AAPL]\n2020-01-31: Sell (confidence=0.70) \u2192 ...",
+        "technical": "[Agent Memory \u2014 last 3 decisions for AAPL]\n2020-01-31: Sell (confidence=0.70) \u2192 ..."
+      }
+    },
+    {
+      "ticker": "JPM",
+      "as_of_date": "2021-06-30",
+      "decisions_no_memory": {
+        "fundamental": "Hold",
+        "technical": "Hold"
+      },
+      "decisions_with_memory": {
+        "fundamental": "Hold",
+        "technical": "Hold"
+      },
+      "collective_no_memory": "Hold",
+      "collective_with_memory": "Hold",
+      "changed_agents": [],
+      "any_changed": false,
+      "memory_prefixes_used": {
+        "fundamental": "[Agent Memory \u2014 last 3 decisions for JPM]\n2020-01-31: Sell (confidence=0.70) \u2192 a...",
+        "technical": "[Agent Memory \u2014 last 3 decisions for JPM]\n2020-01-31: Sell (confidence=0.70) \u2192 a..."
+      }
+    },
+    {
+      "ticker": "XOM",
+      "as_of_date": "2021-06-30",
+      "decisions_no_memory": {
+        "fundamental": "Buy",
+        "technical": "Hold"
+      },
+      "decisions_with_memory": {
+        "fundamental": "Buy",
+        "technical": "Hold"
+      },
+      "collective_no_memory": "Buy",
+      "collective_with_memory": "Buy",
+      "changed_agents": [],
+      "any_changed": false,
+      "memory_prefixes_used": {
+        "fundamental": "[Agent Memory \u2014 last 3 decisions for XOM]\n2020-01-31: Sell (confidence=0.70) \u2192 a...",
+        "technical": "[Agent Memory \u2014 last 3 decisions for XOM]\n2020-01-31: Sell (confidence=0.70) \u2192 a..."
+      }
+    },
+    {
+      "ticker": "AAPL",
+      "as_of_date": "2021-09-30",
+      "decisions_no_memory": {
+        "fundamental": "Hold",
+        "technical": "Hold"
+      },
+      "decisions_with_memory": {
+        "fundamental": "Hold",
+        "technical": "Hold"
+      },
+      "collective_no_memory": "Hold",
+      "collective_with_memory": "Hold",
+      "changed_agents": [],
+      "any_changed": false,
+      "memory_prefixes_used": {
+        "fundamental": "[Agent Memory \u2014 last 3 decisions for AAPL]\n2020-01-31: Sell (confidence=0.70) \u2192 ...",
+        "technical": "[Agent Memory \u2014 last 3 decisions for AAPL]\n2020-01-31: Sell (confidence=0.70) \u2192 ..."
+      }
+    },
+    {
+      "ticker": "JPM",
+      "as_of_date": "2021-09-30",
+      "decisions_no_memory": {
+        "fundamental": "Hold",
+        "technical": "Buy"
+      },
+      "decisions_with_memory": {
+        "fundamental": "Hold",
+        "technical": "Hold"
+      },
+      "collective_no_memory": "Buy",
+      "collective_with_memory": "Hold",
+      "changed_agents": [
+        "technical"
+      ],
+      "any_changed": true,
+      "memory_prefixes_used": {
+        "fundamental": "[Agent Memory \u2014 last 3 decisions for JPM]\n2020-01-31: Sell (confidence=0.70) \u2192 a...",
+        "technical": "[Agent Memory \u2014 last 3 decisions for JPM]\n2020-01-31: Sell (confidence=0.70) \u2192 a..."
+      }
+    },
+    {
+      "ticker": "XOM",
+      "as_of_date": "2021-09-30",
+      "decisions_no_memory": {
+        "fundamental": "Buy",
+        "technical": "Hold"
+      },
+      "decisions_with_memory": {
+        "fundamental": "Buy",
+        "technical": "Hold"
+      },
+      "collective_no_memory": "Buy",
+      "collective_with_memory": "Buy",
+      "changed_agents": [],
+      "any_changed": false,
+      "memory_prefixes_used": {
+        "fundamental": "[Agent Memory \u2014 last 3 decisions for XOM]\n2020-01-31: Sell (confidence=0.70) \u2192 a...",
+        "technical": "[Agent Memory \u2014 last 3 decisions for XOM]\n2020-01-31: Sell (confidence=0.70) \u2192 a..."
+      }
+    },
+    {
+      "ticker": "AAPL",
+      "as_of_date": "2021-12-31",
+      "decisions_no_memory": {
+        "fundamental": "Hold",
+        "technical": "Hold"
+      },
+      "decisions_with_memory": {
+        "fundamental": "Hold",
+        "technical": "Hold"
+      },
+      "collective_no_memory": "Hold",
+      "collective_with_memory": "Hold",
+      "changed_agents": [],
+      "any_changed": false,
+      "memory_prefixes_used": {
+        "fundamental": "[Agent Memory \u2014 last 3 decisions for AAPL]\n2020-01-31: Sell (confidence=0.70) \u2192 ...",
+        "technical": "[Agent Memory \u2014 last 3 decisions for AAPL]\n2020-01-31: Sell (confidence=0.70) \u2192 ..."
+      }
+    },
+    {
+      "ticker": "JPM",
+      "as_of_date": "2021-12-31",
+      "decisions_no_memory": {
+        "fundamental": "Hold",
+        "technical": "Hold"
+      },
+      "decisions_with_memory": {
+        "fundamental": "Hold",
+        "technical": "Hold"
+      },
+      "collective_no_memory": "Hold",
+      "collective_with_memory": "Hold",
+      "changed_agents": [],
+      "any_changed": false,
+      "memory_prefixes_used": {
+        "fundamental": "[Agent Memory \u2014 last 3 decisions for JPM]\n2020-01-31: Sell (confidence=0.70) \u2192 a...",
+        "technical": "[Agent Memory \u2014 last 3 decisions for JPM]\n2020-01-31: Sell (confidence=0.70) \u2192 a..."
+      }
+    },
+    {
+      "ticker": "XOM",
+      "as_of_date": "2021-12-31",
+      "decisions_no_memory": {
+        "fundamental": "Buy",
+        "technical": "Hold"
+      },
+      "decisions_with_memory": {
+        "fundamental": "Buy",
+        "technical": "Hold"
+      },
+      "collective_no_memory": "Buy",
+      "collective_with_memory": "Buy",
+      "changed_agents": [],
+      "any_changed": false,
+      "memory_prefixes_used": {
+        "fundamental": "[Agent Memory \u2014 last 3 decisions for XOM]\n2020-01-31: Sell (confidence=0.70) \u2192 a...",
+        "technical": "[Agent Memory \u2014 last 3 decisions for XOM]\n2020-01-31: Sell (confidence=0.70) \u2192 a..."
+      }
+    },
+    {
+      "ticker": "AAPL",
+      "as_of_date": "2022-03-31",
+      "decisions_no_memory": {
+        "fundamental": "Hold",
+        "technical": "Hold"
+      },
+      "decisions_with_memory": {
+        "fundamental": "Hold",
+        "technical": "Buy"
+      },
+      "collective_no_memory": "Hold",
+      "collective_with_memory": "Buy",
+      "changed_agents": [
+        "technical"
+      ],
+      "any_changed": true,
+      "memory_prefixes_used": {
+        "fundamental": "[Agent Memory \u2014 last 3 decisions for AAPL]\n2020-01-31: Sell (confidence=0.70) \u2192 ...",
+        "technical": "[Agent Memory \u2014 last 3 decisions for AAPL]\n2020-01-31: Sell (confidence=0.70) \u2192 ..."
+      }
+    },
+    {
+      "ticker": "JPM",
+      "as_of_date": "2022-03-31",
+      "decisions_no_memory": {
+        "fundamental": "Hold",
+        "technical": "Hold"
+      },
+      "decisions_with_memory": {
+        "fundamental": "Hold",
+        "technical": "Hold"
+      },
+      "collective_no_memory": "Hold",
+      "collective_with_memory": "Hold",
+      "changed_agents": [],
+      "any_changed": false,
+      "memory_prefixes_used": {
+        "fundamental": "[Agent Memory \u2014 last 3 decisions for JPM]\n2020-01-31: Sell (confidence=0.70) \u2192 a...",
+        "technical": "[Agent Memory \u2014 last 3 decisions for JPM]\n2020-01-31: Sell (confidence=0.70) \u2192 a..."
+      }
+    },
+    {
+      "ticker": "XOM",
+      "as_of_date": "2022-03-31",
+      "decisions_no_memory": {
+        "fundamental": "Buy",
+        "technical": "Hold"
+      },
+      "decisions_with_memory": {
+        "fundamental": "Buy",
+        "technical": "Hold"
+      },
+      "collective_no_memory": "Buy",
+      "collective_with_memory": "Buy",
+      "changed_agents": [],
+      "any_changed": false,
+      "memory_prefixes_used": {
+        "fundamental": "[Agent Memory \u2014 last 3 decisions for XOM]\n2020-01-31: Sell (confidence=0.70) \u2192 a...",
+        "technical": "[Agent Memory \u2014 last 3 decisions for XOM]\n2020-01-31: Sell (confidence=0.70) \u2192 a..."
+      }
+    },
+    {
+      "ticker": "AAPL",
+      "as_of_date": "2022-06-30",
+      "decisions_no_memory": {
+        "fundamental": "Hold",
+        "technical": "Hold"
+      },
+      "decisions_with_memory": {
+        "fundamental": "Hold",
+        "technical": "Hold"
+      },
+      "collective_no_memory": "Hold",
+      "collective_with_memory": "Hold",
+      "changed_agents": [],
+      "any_changed": false,
+      "memory_prefixes_used": {
+        "fundamental": "[Agent Memory \u2014 last 3 decisions for AAPL]\n2020-01-31: Sell (confidence=0.70) \u2192 ...",
+        "technical": "[Agent Memory \u2014 last 3 decisions for AAPL]\n2020-01-31: Sell (confidence=0.70) \u2192 ..."
+      }
+    },
+    {
+      "ticker": "JPM",
+      "as_of_date": "2022-06-30",
+      "decisions_no_memory": {
+        "fundamental": "Hold",
+        "technical": "Hold"
+      },
+      "decisions_with_memory": {
+        "fundamental": "Buy",
+        "technical": "Sell"
+      },
+      "collective_no_memory": "Hold",
+      "collective_with_memory": "Sell",
+      "changed_agents": [
+        "fundamental",
+        "technical"
+      ],
+      "any_changed": true,
+      "memory_prefixes_used": {
+        "fundamental": "[Agent Memory \u2014 last 3 decisions for JPM]\n2020-01-31: Sell (confidence=0.70) \u2192 a...",
+        "technical": "[Agent Memory \u2014 last 3 decisions for JPM]\n2020-01-31: Sell (confidence=0.70) \u2192 a..."
+      }
+    },
+    {
+      "ticker": "XOM",
+      "as_of_date": "2022-06-30",
+      "decisions_no_memory": {
+        "fundamental": "Buy",
+        "technical": "Hold"
+      },
+      "decisions_with_memory": {
+        "fundamental": "Buy",
+        "technical": "Hold"
+      },
+      "collective_no_memory": "Buy",
+      "collective_with_memory": "Buy",
+      "changed_agents": [],
+      "any_changed": false,
+      "memory_prefixes_used": {
+        "fundamental": "[Agent Memory \u2014 last 3 decisions for XOM]\n2020-01-31: Sell (confidence=0.70) \u2192 a...",
+        "technical": "[Agent Memory \u2014 last 3 decisions for XOM]\n2020-01-31: Sell (confidence=0.70) \u2192 a..."
+      }
+    }
+  ]
+}

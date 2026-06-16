@@ -1,0 +1,417 @@
+{
+  "scenario_id": "F-001c",
+  "ticker": "XOM",
+  "as_of_date": "2020-03-16",
+  "collective_decision": "Hold",
+  "expected_direction": "Sell",
+  "aligned": false,
+  "ensemble_output": {
+    "ticker": "XOM",
+    "as_of_date": "2020-03-16",
+    "fundamental_analysis": {
+      "signal": {
+        "ticker": "XOM",
+        "as_of_date": "2020-03-16",
+        "decision": "Buy",
+        "confidence": 0.85,
+        "rationale": "XOM has a P/E ratio of 2.43, which is at the lowest point in the last year and significantly below its 52-week high multiple. The ROE of 0.33 indicates strong profitability, and the net margin of 0.14 suggests efficient cost management.",
+        "key_concern": "The absence of revenue and earnings growth data makes it difficult to assess the sustainability of XOM's profitability.",
+        "data_gaps": [
+          "ev_ebitda",
+          "current_ratio",
+          "revenue_growth_yoy",
+          "earnings_growth_yoy",
+          "gross_margin",
+          "operating_margin"
+        ],
+        "call_ids": [
+          "53c823f394d0",
+          "516867136b4a",
+          "508e3da4a6c7",
+          "adbb7eb13a84"
+        ],
+        "model_id": "qwen2.5-coder-32b-instruct-mlx",
+        "agent_type": "fundamental"
+      },
+      "financial_ratios": {
+        "pe": 2.4322991310625386,
+        "pb": 2.6100832260628675,
+        "ps": 1.1036558600363704,
+        "ev_ebitda": null,
+        "roe": 0.3306500886835096,
+        "roa": 0.151029487870766,
+        "debt_equity": 0.9963458834835119,
+        "current_ratio": null,
+        "call_id": "53c823f394d0"
+      },
+      "growth_metrics": {
+        "revenue_growth_yoy": null,
+        "earnings_growth_yoy": null,
+        "gross_margin": null,
+        "operating_margin": null,
+        "net_margin": 0.13981313099642567,
+        "call_id": "516867136b4a"
+      },
+      "valuation_context": {
+        "current_pe": 2.4322991310625386,
+        "pe_1y_min": 2.4322991310625386,
+        "pe_1y_max": 5.880112641284765,
+        "pe_1y_percentile": 0.0,
+        "price_to_52w_high": 0.4136483906762537,
+        "price_to_52w_low": 1.0,
+        "call_id": "508e3da4a6c7"
+      },
+      "macro_snapshot": {
+        "error": "NO_MACRO_DATA",
+        "detail": "No macro parquet files in data/macro",
+        "call_id": "adbb7eb13a84"
+      },
+      "prompt_version": "fundamental_v1",
+      "latency_ms": 12188.9
+    },
+    "technical_analysis": {
+      "signal": {
+        "ticker": "XOM",
+        "as_of_date": "2020-03-16",
+        "decision": "Hold",
+        "confidence": 0.5,
+        "rationale": "Insufficient market data or asset context provided to make a specific recommendation; neutral stance advised.",
+        "key_concern": "Lack of underlying investment details",
+        "data_gaps": [
+          "beta"
+        ],
+        "call_ids": [
+          "c5a0961d2e79",
+          "0e2873d01e5b"
+        ],
+        "model_id": "mlx-qwen3.5-35b-a3b-claude-4.6-opus-reasoning-distilled",
+        "agent_type": "technical"
+      },
+      "technical_indicators": {
+        "sma": 37.74196987152099,
+        "ema": 36.296825684921764,
+        "rsi": 19.499173258556013,
+        "macd": -4.69784067705325,
+        "macd_signal": -3.6426791412567976,
+        "macd_hist": -1.0551615357964526,
+        "bb_upper": 49.79081999160396,
+        "bb_mid": 37.74196987152099,
+        "bb_lower": 25.693119751438026,
+        "atr": 12.997319093762977,
+        "call_id": "c5a0961d2e79"
+      },
+      "risk_metrics": {
+        "hist_vol_20d": 0.7683136342303292,
+        "hist_vol_60d": 0.50204584225263,
+        "hist_vol_252d": 0.3014431242576574,
+        "beta": null,
+        "max_drawdown_252d": 0.7387362289428712,
+        "sharpe_252d": -2.4719004591082903,
+        "var_95_20d": 0.1062783311043789,
+        "call_id": "0e2873d01e5b"
+      },
+      "time_horizon": "medium-term",
+      "prompt_version": "technical_v1",
+      "latency_ms": 113682.7
+    },
+    "ensemble_decision": {
+      "collective_decision": "Hold",
+      "collective_confidence": 0.4,
+      "n_valid_signals": 5,
+      "agreement": false,
+      "disagreement_entropy": 1.370951,
+      "opinion_dispersion": 0.24,
+      "agent_decisions": [
+        "Buy",
+        "Hold",
+        "Sell",
+        "Hold",
+        "Hold"
+      ],
+      "agent_confidences": [
+        0.85,
+        0.5,
+        0.95,
+        0.1,
+        0.6
+      ],
+      "winning_score": 1.2,
+      "total_score": 3.0,
+      "contrarian_confidence_discount": 1.0,
+      "review_flagged": false
+    },
+    "latency_ms": 209473.4,
+    "risk_analysis": {
+      "signal": {
+        "ticker": "XOM",
+        "as_of_date": "2020-03-16",
+        "decision": "Sell",
+        "confidence": 0.95,
+        "rationale": "XOM exhibits high risk due to a 20-day historical volatility of 0.7683, significantly exceeding the threshold for high risk. The max drawdown over 252 days is 0.7387, indicating substantial tail risk and a Sharpe ratio of -2.4719, reflecting poor risk-adjusted performance. The 95% Value at Risk (var_95_20d) is 0.1063, suggesting a notable probability of losses exceeding 9% in the next 20 days.",
+        "key_concern": "The combination of high volatility and a negative Sharpe ratio indicates a significant risk profile that warrants caution.",
+        "data_gaps": [
+          "beta"
+        ],
+        "call_ids": [
+          "0e2873d01e5b"
+        ],
+        "model_id": "google/gemma-3-4b",
+        "agent_type": "risk"
+      },
+      "risk_assessment": "XOM's volatility is elevated, with a 20-day historical value of 0.7683 and a 252-day baseline of 0.3014, suggesting a potentially unstable investment. The max drawdown of 0.7387 and Sharpe ratio of -2.4719 highlight poor risk-adjusted performance, indicating a need for reduced exposure.",
+      "recommended_position_size": 0.02,
+      "risk_metrics": {
+        "hist_vol_20d": 0.7683136342303292,
+        "hist_vol_60d": 0.50204584225263,
+        "hist_vol_252d": 0.3014431242576574,
+        "beta": null,
+        "max_drawdown_252d": 0.7387362289428712,
+        "sharpe_252d": -2.4719004591082903,
+        "var_95_20d": 0.1062783311043789,
+        "call_id": "0e2873d01e5b"
+      },
+      "prompt_version": "risk_v1",
+      "latency_ms": 11566.9
+    },
+    "macro_analysis": {
+      "signal": {
+        "ticker": "XOM",
+        "as_of_date": "2020-03-16",
+        "decision": "Hold",
+        "confidence": 0.1,
+        "rationale": "No macroeconomic data was available for the assessment date of 2020-03-16. The data source returned error 'NO_MACRO_DATA' with detail 'No macro parquet files in data/macro', meaning all key indicators (fed_funds_rate, cpi_yoy, unemployment_rate, yield_curve_slope, vix, gdp_growth) are unavailable. Without any macro values to cite, I cannot form a meaningful regime assessment or investment recommendation.",
+        "key_concern": "Complete absence of macroeconomic data prevents any reliable assessment of the investment environment.",
+        "data_gaps": [],
+        "call_ids": [
+          "adbb7eb13a84"
+        ],
+        "model_id": "qwen3.5-27b-claude-4.6-opus-reasoning-distilled-qx64-hi-mlx",
+        "agent_type": "macro"
+      },
+      "regime_assessment": "Unable to classify - insufficient data",
+      "rationale": "No regime can be identified when all macroeconomic indicators are unavailable; any classification would require inventing data which violates my core rules.",
+      "macro_snapshot": {
+        "error": "NO_MACRO_DATA",
+        "detail": "No macro parquet files in data/macro",
+        "call_id": "adbb7eb13a84"
+      },
+      "prompt_version": "macro_v1",
+      "latency_ms": 30935.2
+    },
+    "sentiment_analysis": {
+      "signal": {
+        "ticker": "XOM",
+        "as_of_date": "2020-03-16",
+        "decision": "Hold",
+        "confidence": 0.6,
+        "rationale": "The provided filings do not contain specific forward guidance or notable qualitative signals that indicate a clear bullish or bearish sentiment. The filings primarily consist of boilerplate information and certifications.",
+        "key_concern": "The filings lack specific forward-looking statements or detailed qualitative risk signals, making it difficult to gauge management's tone and future outlook.",
+        "data_gaps": [],
+        "call_ids": [],
+        "model_id": "qwen2.5-coder-32b-instruct-mlx",
+        "agent_type": "sentiment"
+      },
+      "sentiment_summary": "The management tone is neutral, with no specific forward guidance or qualitative risk signals provided. The filings are primarily procedural and do not offer insights into future performance.",
+      "notable_signals": [
+        "I have reviewed this quarterly report on Form 10-Q of Exxon Mobil Corporation;",
+        "I have reviewed this annual report on Form 10-K of Exxon Mobil Corporation;"
+      ],
+      "prompt_version": "sentiment_v1",
+      "latency_ms": 41098.9
+    },
+    "contrarian_analysis": null,
+    "signals": [
+      {
+        "ticker": "XOM",
+        "as_of_date": "2020-03-16",
+        "decision": "Buy",
+        "confidence": 0.85,
+        "rationale": "XOM has a P/E ratio of 2.43, which is at the lowest point in the last year and significantly below its 52-week high multiple. The ROE of 0.33 indicates strong profitability, and the net margin of 0.14 suggests efficient cost management.",
+        "key_concern": "The absence of revenue and earnings growth data makes it difficult to assess the sustainability of XOM's profitability.",
+        "data_gaps": [
+          "ev_ebitda",
+          "current_ratio",
+          "revenue_growth_yoy",
+          "earnings_growth_yoy",
+          "gross_margin",
+          "operating_margin"
+        ],
+        "call_ids": [
+          "53c823f394d0",
+          "516867136b4a",
+          "508e3da4a6c7",
+          "adbb7eb13a84"
+        ],
+        "model_id": "qwen2.5-coder-32b-instruct-mlx",
+        "agent_type": "fundamental"
+      },
+      {
+        "ticker": "XOM",
+        "as_of_date": "2020-03-16",
+        "decision": "Hold",
+        "confidence": 0.5,
+        "rationale": "Insufficient market data or asset context provided to make a specific recommendation; neutral stance advised.",
+        "key_concern": "Lack of underlying investment details",
+        "data_gaps": [
+          "beta"
+        ],
+        "call_ids": [
+          "c5a0961d2e79",
+          "0e2873d01e5b"
+        ],
+        "model_id": "mlx-qwen3.5-35b-a3b-claude-4.6-opus-reasoning-distilled",
+        "agent_type": "technical"
+      },
+      {
+        "ticker": "XOM",
+        "as_of_date": "2020-03-16",
+        "decision": "Sell",
+        "confidence": 0.95,
+        "rationale": "XOM exhibits high risk due to a 20-day historical volatility of 0.7683, significantly exceeding the threshold for high risk. The max drawdown over 252 days is 0.7387, indicating substantial tail risk and a Sharpe ratio of -2.4719, reflecting poor risk-adjusted performance. The 95% Value at Risk (var_95_20d) is 0.1063, suggesting a notable probability of losses exceeding 9% in the next 20 days.",
+        "key_concern": "The combination of high volatility and a negative Sharpe ratio indicates a significant risk profile that warrants caution.",
+        "data_gaps": [
+          "beta"
+        ],
+        "call_ids": [
+          "0e2873d01e5b"
+        ],
+        "model_id": "google/gemma-3-4b",
+        "agent_type": "risk"
+      },
+      {
+        "ticker": "XOM",
+        "as_of_date": "2020-03-16",
+        "decision": "Hold",
+        "confidence": 0.1,
+        "rationale": "No macroeconomic data was available for the assessment date of 2020-03-16. The data source returned error 'NO_MACRO_DATA' with detail 'No macro parquet files in data/macro', meaning all key indicators (fed_funds_rate, cpi_yoy, unemployment_rate, yield_curve_slope, vix, gdp_growth) are unavailable. Without any macro values to cite, I cannot form a meaningful regime assessment or investment recommendation.",
+        "key_concern": "Complete absence of macroeconomic data prevents any reliable assessment of the investment environment.",
+        "data_gaps": [],
+        "call_ids": [
+          "adbb7eb13a84"
+        ],
+        "model_id": "qwen3.5-27b-claude-4.6-opus-reasoning-distilled-qx64-hi-mlx",
+        "agent_type": "macro"
+      },
+      {
+        "ticker": "XOM",
+        "as_of_date": "2020-03-16",
+        "decision": "Hold",
+        "confidence": 0.6,
+        "rationale": "The provided filings do not contain specific forward guidance or notable qualitative signals that indicate a clear bullish or bearish sentiment. The filings primarily consist of boilerplate information and certifications.",
+        "key_concern": "The filings lack specific forward-looking statements or detailed qualitative risk signals, making it difficult to gauge management's tone and future outlook.",
+        "data_gaps": [],
+        "call_ids": [],
+        "model_id": "qwen2.5-coder-32b-instruct-mlx",
+        "agent_type": "sentiment"
+      }
+    ],
+    "aggregation_method": "confidence_weighted",
+    "method_comparison": {
+      "majority": {
+        "collective_decision": "Hold",
+        "collective_confidence": 0.6,
+        "n_valid_signals": 5,
+        "agreement": false,
+        "disagreement_entropy": 1.370951,
+        "opinion_dispersion": 0.24,
+        "agent_decisions": [
+          "Buy",
+          "Hold",
+          "Sell",
+          "Hold",
+          "Hold"
+        ],
+        "agent_confidences": [
+          0.85,
+          0.5,
+          0.95,
+          0.1,
+          0.6
+        ],
+        "winning_score": 3.0,
+        "total_score": 5.0,
+        "contrarian_confidence_discount": 1.0,
+        "review_flagged": false
+      },
+      "confidence_weighted": {
+        "collective_decision": "Hold",
+        "collective_confidence": 0.4,
+        "n_valid_signals": 5,
+        "agreement": false,
+        "disagreement_entropy": 1.370951,
+        "opinion_dispersion": 0.24,
+        "agent_decisions": [
+          "Buy",
+          "Hold",
+          "Sell",
+          "Hold",
+          "Hold"
+        ],
+        "agent_confidences": [
+          0.85,
+          0.5,
+          0.95,
+          0.1,
+          0.6
+        ],
+        "winning_score": 1.2,
+        "total_score": 3.0,
+        "contrarian_confidence_discount": 1.0,
+        "review_flagged": false
+      },
+      "performance_weighted": {
+        "collective_decision": "Hold",
+        "collective_confidence": 0.625,
+        "n_valid_signals": 5,
+        "agreement": false,
+        "disagreement_entropy": 1.370951,
+        "opinion_dispersion": 0.24,
+        "agent_decisions": [
+          "Buy",
+          "Hold",
+          "Sell",
+          "Hold",
+          "Hold"
+        ],
+        "agent_confidences": [
+          0.85,
+          0.5,
+          0.95,
+          0.1,
+          0.6
+        ],
+        "winning_score": 0.75,
+        "total_score": 1.2,
+        "contrarian_confidence_discount": 1.0,
+        "review_flagged": false
+      },
+      "contrarian_adjusted": {
+        "collective_decision": "Hold",
+        "collective_confidence": 0.4,
+        "n_valid_signals": 5,
+        "agreement": false,
+        "disagreement_entropy": 1.370951,
+        "opinion_dispersion": 0.24,
+        "agent_decisions": [
+          "Buy",
+          "Hold",
+          "Sell",
+          "Hold",
+          "Hold"
+        ],
+        "agent_confidences": [
+          0.85,
+          0.5,
+          0.95,
+          0.1,
+          0.6
+        ],
+        "winning_score": 1.2,
+        "total_score": 3.0,
+        "contrarian_confidence_discount": 1.0,
+        "review_flagged": false
+      }
+    },
+    "debate_transcript": null
+  }
+}

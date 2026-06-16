@@ -1,0 +1,417 @@
+{
+  "scenario_id": "F-002",
+  "ticker": "AAPL",
+  "as_of_date": "2022-03-31",
+  "collective_decision": "Hold",
+  "expected_direction": "Risk-Off",
+  "aligned": true,
+  "ensemble_output": {
+    "ticker": "AAPL",
+    "as_of_date": "2022-03-31",
+    "fundamental_analysis": {
+      "signal": {
+        "ticker": "AAPL",
+        "as_of_date": "2022-03-31",
+        "decision": "Hold",
+        "confidence": 0.75,
+        "rationale": "Apple Inc. (AAPL) has a high P/E ratio of 92.88, which is above the one-year maximum of 96.81, indicating that it may be overvalued relative to its earnings. The ROE of 0.592 suggests strong profitability, but the high valuation metrics raise concerns.",
+        "key_concern": "The absence of revenue and earnings growth data makes it difficult to assess the sustainability of AAPL's profitability.",
+        "data_gaps": [
+          "ev_ebitda",
+          "current_ratio",
+          "revenue_growth_yoy",
+          "earnings_growth_yoy",
+          "gross_margin",
+          "operating_margin"
+        ],
+        "call_ids": [
+          "3818f00bd03f",
+          "ca334fdd8d6f",
+          "0259647c0d46",
+          "4d8bd78d0fb5"
+        ],
+        "model_id": "qwen2.5-coder-32b-instruct-mlx",
+        "agent_type": "fundamental"
+      },
+      "financial_ratios": {
+        "pe": 92.87765989912317,
+        "pb": 46.376697189769494,
+        "ps": 20.059067552110896,
+        "ev_ebitda": null,
+        "roe": 0.592003473318598,
+        "roa": 0.08651264466599567,
+        "debt_equity": 5.731705873065993,
+        "current_ratio": null,
+        "call_id": "3818f00bd03f"
+      },
+      "growth_metrics": {
+        "revenue_growth_yoy": null,
+        "earnings_growth_yoy": null,
+        "gross_margin": null,
+        "operating_margin": null,
+        "net_margin": 0.2560561312460522,
+        "call_id": "ca334fdd8d6f"
+      },
+      "valuation_context": {
+        "current_pe": 92.87765989912317,
+        "pe_1y_min": 65.30318970375873,
+        "pe_1y_max": 96.81382686533827,
+        "pe_1y_percentile": 0.875084500956572,
+        "price_to_52w_high": 0.959342925554528,
+        "price_to_52w_low": 1.429471947844048,
+        "call_id": "0259647c0d46"
+      },
+      "macro_snapshot": {
+        "error": "NO_MACRO_DATA",
+        "detail": "No macro parquet files in data/macro",
+        "call_id": "4d8bd78d0fb5"
+      },
+      "prompt_version": "fundamental_v1",
+      "latency_ms": 12451.0
+    },
+    "technical_analysis": {
+      "signal": {
+        "ticker": "AAPL",
+        "as_of_date": "2022-03-31",
+        "decision": "Hold",
+        "confidence": 0.65,
+        "rationale": "RSI of 59.54 indicates healthy upward momentum in the 50-70 range, while MACD of 3.08 crossing above signal line of 1.25 with positive histogram of 1.83 confirms bullish momentum. Sharpe ratio of 1.59 demonstrates good risk-adjusted returns, and max drawdown of only 0.17 is well below the -30% significant risk threshold.",
+        "key_concern": "EMA of 165.50 trading above SMA of 161.82 indicates recent momentum is softening despite the overall bullish technical setup.",
+        "data_gaps": [
+          "beta"
+        ],
+        "call_ids": [
+          "792543ce943d",
+          "f64754239c9b"
+        ],
+        "model_id": "mlx-qwen3.5-35b-a3b-claude-4.6-opus-reasoning-distilled",
+        "agent_type": "technical"
+      },
+      "technical_indicators": {
+        "sma": 161.81664810180663,
+        "ema": 165.50486612097853,
+        "rsi": 59.538879959490835,
+        "macd": 3.0781118451279497,
+        "macd_signal": 1.2486054399555644,
+        "macd_hist": 1.8295064051723853,
+        "bb_upper": 178.49273797322806,
+        "bb_mid": 161.81664810180663,
+        "bb_lower": 145.1405582303852,
+        "atr": 5.936559083890094,
+        "call_id": "792543ce943d"
+      },
+      "risk_metrics": {
+        "hist_vol_20d": 0.32961832715728806,
+        "hist_vol_60d": 0.3036009857406898,
+        "hist_vol_252d": 0.24263865127699516,
+        "beta": null,
+        "max_drawdown_252d": 0.17140851267556023,
+        "sharpe_252d": 1.5898871950284925,
+        "var_95_20d": 0.0314870620075721,
+        "call_id": "f64754239c9b"
+      },
+      "time_horizon": "medium-term",
+      "prompt_version": "technical_v1",
+      "latency_ms": 36344.3
+    },
+    "ensemble_decision": {
+      "collective_decision": "Hold",
+      "collective_confidence": 1.0,
+      "n_valid_signals": 5,
+      "agreement": true,
+      "disagreement_entropy": 0.0,
+      "opinion_dispersion": 0.188,
+      "agent_decisions": [
+        "Hold",
+        "Hold",
+        "Hold",
+        "Hold",
+        "Hold"
+      ],
+      "agent_confidences": [
+        0.75,
+        0.65,
+        0.75,
+        0.1,
+        0.6
+      ],
+      "winning_score": 2.85,
+      "total_score": 2.85,
+      "contrarian_confidence_discount": 1.0,
+      "review_flagged": false
+    },
+    "latency_ms": 137556.1,
+    "risk_analysis": {
+      "signal": {
+        "ticker": "AAPL",
+        "as_of_date": "2022-03-31",
+        "decision": "Hold",
+        "confidence": 0.75,
+        "rationale": "AAPL exhibits moderate risk with a 20-day historical volatility of 0.33, indicating potential for significant price fluctuations. The max drawdown over 252 days is 0.17, suggesting a reasonable level of downside protection, and the Sharpe ratio of 1.59 demonstrates strong risk-adjusted performance. The Value at Risk (VAR) of 0.03 indicates a relatively low probability of substantial losses over the next 20 days.",
+        "key_concern": "The lack of beta data prevents a complete assessment of market sensitivity.",
+        "data_gaps": [
+          "beta"
+        ],
+        "call_ids": [
+          "f64754239c9b"
+        ],
+        "model_id": "google/gemma-3-4b",
+        "agent_type": "risk"
+      },
+      "risk_assessment": "The portfolio demonstrates a stable volatility profile with a Sharpe ratio exceeding 1.5, suggesting good risk-adjusted returns. However, the max drawdown is not exceptionally low, and market sensitivity remains unknown due to missing beta data.",
+      "recommended_position_size": 0.05,
+      "risk_metrics": {
+        "hist_vol_20d": 0.32961832715728806,
+        "hist_vol_60d": 0.3036009857406898,
+        "hist_vol_252d": 0.24263865127699516,
+        "beta": null,
+        "max_drawdown_252d": 0.17140851267556023,
+        "sharpe_252d": 1.5898871950284925,
+        "var_95_20d": 0.0314870620075721,
+        "call_id": "f64754239c9b"
+      },
+      "prompt_version": "risk_v1",
+      "latency_ms": 10827.1
+    },
+    "macro_analysis": {
+      "signal": {
+        "ticker": "AAPL",
+        "as_of_date": "2022-03-31",
+        "decision": "Hold",
+        "confidence": 0.1,
+        "rationale": "No macroeconomic data is available for assessment - the system returned error 'NO_MACRO_DATA' with detail 'No macro parquet files in data/macro'. All required fields (fed_funds_rate, cpi_yoy, unemployment_rate, yield_curve_slope, vix, gdp_growth) are absent. Without any macro inputs, no meaningful regime assessment or equity implication analysis can be performed.",
+        "key_concern": "Complete absence of macroeconomic data prevents any valid assessment of the investment environment as of 2022-03-31.",
+        "data_gaps": [],
+        "call_ids": [
+          "4d8bd78d0fb5"
+        ],
+        "model_id": "qwen3.5-27b-claude-4.6-opus-reasoning-distilled-qx64-hi-mlx",
+        "agent_type": "macro"
+      },
+      "regime_assessment": "Unknown - insufficient data",
+      "rationale": "Cannot determine regime classification or equity implications when all six required macro indicators are unavailable due to data pipeline failure.",
+      "macro_snapshot": {
+        "error": "NO_MACRO_DATA",
+        "detail": "No macro parquet files in data/macro",
+        "call_id": "4d8bd78d0fb5"
+      },
+      "prompt_version": "macro_v1",
+      "latency_ms": 31719.7
+    },
+    "sentiment_analysis": {
+      "signal": {
+        "ticker": "AAPL",
+        "as_of_date": "2022-03-31",
+        "decision": "Hold",
+        "confidence": 0.6,
+        "rationale": "The filings do not contain any specific forward guidance on revenue, margins, or market expansion. The language is primarily procedural and does not provide insights into management's outlook or risk factors.",
+        "key_concern": "The filings lack specific forward-looking statements and are primarily focused on procedural matters, which does not provide clear insight into management's tone or risk assessment.",
+        "data_gaps": [],
+        "call_ids": [],
+        "model_id": "qwen2.5-coder-32b-instruct-mlx",
+        "agent_type": "sentiment"
+      },
+      "sentiment_summary": "The management tone is neutral with no specific forward guidance or risk signals provided. The filings are procedural and do not offer qualitative insights into the company's future prospects or current risks.",
+      "notable_signals": [
+        "The Nasdaq Stock Market LLC",
+        "A management proposal to ratify the appointment of Ernst & Young LLP as Apple\u2019s independent registered public accounting firm for fiscal year 2023 was approved."
+      ],
+      "prompt_version": "sentiment_v1",
+      "latency_ms": 46213.4
+    },
+    "contrarian_analysis": null,
+    "signals": [
+      {
+        "ticker": "AAPL",
+        "as_of_date": "2022-03-31",
+        "decision": "Hold",
+        "confidence": 0.75,
+        "rationale": "Apple Inc. (AAPL) has a high P/E ratio of 92.88, which is above the one-year maximum of 96.81, indicating that it may be overvalued relative to its earnings. The ROE of 0.592 suggests strong profitability, but the high valuation metrics raise concerns.",
+        "key_concern": "The absence of revenue and earnings growth data makes it difficult to assess the sustainability of AAPL's profitability.",
+        "data_gaps": [
+          "ev_ebitda",
+          "current_ratio",
+          "revenue_growth_yoy",
+          "earnings_growth_yoy",
+          "gross_margin",
+          "operating_margin"
+        ],
+        "call_ids": [
+          "3818f00bd03f",
+          "ca334fdd8d6f",
+          "0259647c0d46",
+          "4d8bd78d0fb5"
+        ],
+        "model_id": "qwen2.5-coder-32b-instruct-mlx",
+        "agent_type": "fundamental"
+      },
+      {
+        "ticker": "AAPL",
+        "as_of_date": "2022-03-31",
+        "decision": "Hold",
+        "confidence": 0.65,
+        "rationale": "RSI of 59.54 indicates healthy upward momentum in the 50-70 range, while MACD of 3.08 crossing above signal line of 1.25 with positive histogram of 1.83 confirms bullish momentum. Sharpe ratio of 1.59 demonstrates good risk-adjusted returns, and max drawdown of only 0.17 is well below the -30% significant risk threshold.",
+        "key_concern": "EMA of 165.50 trading above SMA of 161.82 indicates recent momentum is softening despite the overall bullish technical setup.",
+        "data_gaps": [
+          "beta"
+        ],
+        "call_ids": [
+          "792543ce943d",
+          "f64754239c9b"
+        ],
+        "model_id": "mlx-qwen3.5-35b-a3b-claude-4.6-opus-reasoning-distilled",
+        "agent_type": "technical"
+      },
+      {
+        "ticker": "AAPL",
+        "as_of_date": "2022-03-31",
+        "decision": "Hold",
+        "confidence": 0.75,
+        "rationale": "AAPL exhibits moderate risk with a 20-day historical volatility of 0.33, indicating potential for significant price fluctuations. The max drawdown over 252 days is 0.17, suggesting a reasonable level of downside protection, and the Sharpe ratio of 1.59 demonstrates strong risk-adjusted performance. The Value at Risk (VAR) of 0.03 indicates a relatively low probability of substantial losses over the next 20 days.",
+        "key_concern": "The lack of beta data prevents a complete assessment of market sensitivity.",
+        "data_gaps": [
+          "beta"
+        ],
+        "call_ids": [
+          "f64754239c9b"
+        ],
+        "model_id": "google/gemma-3-4b",
+        "agent_type": "risk"
+      },
+      {
+        "ticker": "AAPL",
+        "as_of_date": "2022-03-31",
+        "decision": "Hold",
+        "confidence": 0.1,
+        "rationale": "No macroeconomic data is available for assessment - the system returned error 'NO_MACRO_DATA' with detail 'No macro parquet files in data/macro'. All required fields (fed_funds_rate, cpi_yoy, unemployment_rate, yield_curve_slope, vix, gdp_growth) are absent. Without any macro inputs, no meaningful regime assessment or equity implication analysis can be performed.",
+        "key_concern": "Complete absence of macroeconomic data prevents any valid assessment of the investment environment as of 2022-03-31.",
+        "data_gaps": [],
+        "call_ids": [
+          "4d8bd78d0fb5"
+        ],
+        "model_id": "qwen3.5-27b-claude-4.6-opus-reasoning-distilled-qx64-hi-mlx",
+        "agent_type": "macro"
+      },
+      {
+        "ticker": "AAPL",
+        "as_of_date": "2022-03-31",
+        "decision": "Hold",
+        "confidence": 0.6,
+        "rationale": "The filings do not contain any specific forward guidance on revenue, margins, or market expansion. The language is primarily procedural and does not provide insights into management's outlook or risk factors.",
+        "key_concern": "The filings lack specific forward-looking statements and are primarily focused on procedural matters, which does not provide clear insight into management's tone or risk assessment.",
+        "data_gaps": [],
+        "call_ids": [],
+        "model_id": "qwen2.5-coder-32b-instruct-mlx",
+        "agent_type": "sentiment"
+      }
+    ],
+    "aggregation_method": "confidence_weighted",
+    "method_comparison": {
+      "majority": {
+        "collective_decision": "Hold",
+        "collective_confidence": 1.0,
+        "n_valid_signals": 5,
+        "agreement": true,
+        "disagreement_entropy": 0.0,
+        "opinion_dispersion": 0.188,
+        "agent_decisions": [
+          "Hold",
+          "Hold",
+          "Hold",
+          "Hold",
+          "Hold"
+        ],
+        "agent_confidences": [
+          0.75,
+          0.65,
+          0.75,
+          0.1,
+          0.6
+        ],
+        "winning_score": 5.0,
+        "total_score": 5.0,
+        "contrarian_confidence_discount": 1.0,
+        "review_flagged": false
+      },
+      "confidence_weighted": {
+        "collective_decision": "Hold",
+        "collective_confidence": 1.0,
+        "n_valid_signals": 5,
+        "agreement": true,
+        "disagreement_entropy": 0.0,
+        "opinion_dispersion": 0.188,
+        "agent_decisions": [
+          "Hold",
+          "Hold",
+          "Hold",
+          "Hold",
+          "Hold"
+        ],
+        "agent_confidences": [
+          0.75,
+          0.65,
+          0.75,
+          0.1,
+          0.6
+        ],
+        "winning_score": 2.85,
+        "total_score": 2.85,
+        "contrarian_confidence_discount": 1.0,
+        "review_flagged": false
+      },
+      "performance_weighted": {
+        "collective_decision": "Hold",
+        "collective_confidence": 1.0,
+        "n_valid_signals": 5,
+        "agreement": true,
+        "disagreement_entropy": 0.0,
+        "opinion_dispersion": 0.188,
+        "agent_decisions": [
+          "Hold",
+          "Hold",
+          "Hold",
+          "Hold",
+          "Hold"
+        ],
+        "agent_confidences": [
+          0.75,
+          0.65,
+          0.75,
+          0.1,
+          0.6
+        ],
+        "winning_score": 1.1625,
+        "total_score": 1.1625,
+        "contrarian_confidence_discount": 1.0,
+        "review_flagged": false
+      },
+      "contrarian_adjusted": {
+        "collective_decision": "Hold",
+        "collective_confidence": 1.0,
+        "n_valid_signals": 5,
+        "agreement": true,
+        "disagreement_entropy": 0.0,
+        "opinion_dispersion": 0.188,
+        "agent_decisions": [
+          "Hold",
+          "Hold",
+          "Hold",
+          "Hold",
+          "Hold"
+        ],
+        "agent_confidences": [
+          0.75,
+          0.65,
+          0.75,
+          0.1,
+          0.6
+        ],
+        "winning_score": 2.85,
+        "total_score": 2.85,
+        "contrarian_confidence_discount": 1.0,
+        "review_flagged": false
+      }
+    },
+    "debate_transcript": null
+  }
+}

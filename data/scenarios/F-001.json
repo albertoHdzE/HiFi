@@ -1,0 +1,417 @@
+{
+  "scenario_id": "F-001",
+  "ticker": "AAPL",
+  "as_of_date": "2020-03-16",
+  "collective_decision": "Hold",
+  "expected_direction": "Risk-Off",
+  "aligned": true,
+  "ensemble_output": {
+    "ticker": "AAPL",
+    "as_of_date": "2020-03-16",
+    "fundamental_analysis": {
+      "signal": {
+        "ticker": "AAPL",
+        "as_of_date": "2020-03-16",
+        "decision": "Hold",
+        "confidence": 0.65,
+        "rationale": "Apple Inc. (AAPL) has a P/E ratio of 32.21, which is above the one-year average but within the range seen over the past year. The ROE of 0.592 indicates strong profitability, but the debt-to-equity ratio of 5.731 suggests a high level of leverage.",
+        "key_concern": "The absence of revenue and earnings growth data makes it difficult to assess the sustainability of AAPL's profitability.",
+        "data_gaps": [
+          "ev_ebitda",
+          "current_ratio",
+          "revenue_growth_yoy",
+          "earnings_growth_yoy",
+          "gross_margin",
+          "operating_margin"
+        ],
+        "call_ids": [
+          "e2e02a7e6726",
+          "ca334fdd8d6f",
+          "71cef493f4c2",
+          "adbb7eb13a84"
+        ],
+        "model_id": "qwen2.5-coder-32b-instruct-mlx",
+        "agent_type": "fundamental"
+      },
+      "financial_ratios": {
+        "pe": 32.20877748854617,
+        "pb": 46.376697189769494,
+        "ps": 20.059067552110896,
+        "ev_ebitda": null,
+        "roe": 0.592003473318598,
+        "roa": 0.08651264466599567,
+        "debt_equity": 5.731705873065993,
+        "current_ratio": null,
+        "call_id": "e2e02a7e6726"
+      },
+      "growth_metrics": {
+        "revenue_growth_yoy": null,
+        "earnings_growth_yoy": null,
+        "gross_margin": null,
+        "operating_margin": null,
+        "net_margin": 0.2560561312460522,
+        "call_id": "ca334fdd8d6f"
+      },
+      "valuation_context": {
+        "current_pe": 32.20877748854617,
+        "pe_1y_min": 23.045213171776307,
+        "pe_1y_max": 43.51063992114778,
+        "pe_1y_percentile": 0.4477582817593232,
+        "price_to_52w_high": 0.7402506041491593,
+        "price_to_52w_low": 1.3976341745448713,
+        "call_id": "71cef493f4c2"
+      },
+      "macro_snapshot": {
+        "error": "NO_MACRO_DATA",
+        "detail": "No macro parquet files in data/macro",
+        "call_id": "adbb7eb13a84"
+      },
+      "prompt_version": "fundamental_v1",
+      "latency_ms": 30323.4
+    },
+    "technical_analysis": {
+      "signal": {
+        "ticker": "AAPL",
+        "as_of_date": "2020-03-16",
+        "decision": "Hold",
+        "confidence": 0.52,
+        "rationale": "Bearish momentum dominates with MACD of -3.09 below signal line at -2.09 and negative histogram of -0.996, while RSI of 37.06 indicates weak recovery from oversold conditions rather than healthy upward momentum. The SMA of 69.64 above EMA of 68.61 suggests softening recent momentum, and the Sharpe ratio of 0.948 falls below the 1.0 threshold for good risk-adjusted returns.",
+        "key_concern": "Maximum drawdown of 58.5% over the trailing year indicates extreme downside risk and significant capital erosion potential in adverse market conditions.",
+        "data_gaps": [
+          "beta"
+        ],
+        "call_ids": [
+          "300b62591cf5",
+          "57e3c5e98e15"
+        ],
+        "model_id": "mlx-qwen3.5-35b-a3b-claude-4.6-opus-reasoning-distilled",
+        "agent_type": "technical"
+      },
+      "technical_indicators": {
+        "sma": 69.64406318664551,
+        "ema": 68.60595837946057,
+        "rsi": 37.06225779664481,
+        "macd": -3.089116168039169,
+        "macd_signal": -2.092956360567863,
+        "macd_hist": -0.9961598074713058,
+        "bb_upper": 80.28350758826203,
+        "bb_mid": 69.64406318664551,
+        "bb_lower": 59.004618785028995,
+        "atr": 4.796322973295572,
+        "call_id": "300b62591cf5"
+      },
+      "risk_metrics": {
+        "hist_vol_20d": 0.9784858523987578,
+        "hist_vol_60d": 0.6015315510730462,
+        "hist_vol_252d": 0.3607302364279931,
+        "beta": null,
+        "max_drawdown_252d": 0.5854626083374024,
+        "sharpe_252d": 0.9481774561395953,
+        "var_95_20d": 0.11416528786573835,
+        "call_id": "57e3c5e98e15"
+      },
+      "time_horizon": "short-term",
+      "prompt_version": "technical_v1",
+      "latency_ms": 37802.0
+    },
+    "ensemble_decision": {
+      "collective_decision": "Hold",
+      "collective_confidence": 1.0,
+      "n_valid_signals": 5,
+      "agreement": true,
+      "disagreement_entropy": 0.0,
+      "opinion_dispersion": 0.1456,
+      "agent_decisions": [
+        "Hold",
+        "Hold",
+        "Hold",
+        "Hold",
+        "Hold"
+      ],
+      "agent_confidences": [
+        0.65,
+        0.52,
+        0.65,
+        0.15,
+        0.6
+      ],
+      "winning_score": 2.57,
+      "total_score": 2.57,
+      "contrarian_confidence_discount": 1.0,
+      "review_flagged": false
+    },
+    "latency_ms": 159712.0,
+    "risk_analysis": {
+      "signal": {
+        "ticker": "AAPL",
+        "as_of_date": "2020-03-16",
+        "decision": "Hold",
+        "confidence": 0.65,
+        "rationale": "AAPL exhibits high volatility with a 20-day historical volatility of 0.978, significantly exceeding the low risk threshold. The maximum drawdown over 252 days is 0.585, indicating a substantial risk of significant losses. Despite a Sharpe ratio of 0.948, the high volatility and drawdown suggest that returns may not adequately compensate for the associated risk. The 95% VaR of 0.114 indicates a notable chance of losses exceeding 9%.",
+        "key_concern": "The high volatility and substantial drawdown risk present a significant obstacle to achieving attractive risk-adjusted returns.",
+        "data_gaps": [
+          "beta"
+        ],
+        "call_ids": [
+          "57e3c5e98e15"
+        ],
+        "model_id": "google/gemma-3-4b",
+        "agent_type": "risk"
+      },
+      "risk_assessment": "AAPL's risk profile is characterized by elevated volatility and a moderate drawdown potential. The Sharpe ratio, while positive, is not sufficiently high to justify a large position given the observed risk metrics.",
+      "recommended_position_size": 0.05,
+      "risk_metrics": {
+        "hist_vol_20d": 0.9784858523987578,
+        "hist_vol_60d": 0.6015315510730462,
+        "hist_vol_252d": 0.3607302364279931,
+        "beta": null,
+        "max_drawdown_252d": 0.5854626083374024,
+        "sharpe_252d": 0.9481774561395953,
+        "var_95_20d": 0.11416528786573835,
+        "call_id": "57e3c5e98e15"
+      },
+      "prompt_version": "risk_v1",
+      "latency_ms": 10712.9
+    },
+    "macro_analysis": {
+      "signal": {
+        "ticker": "AAPL",
+        "as_of_date": "2020-03-16",
+        "decision": "Hold",
+        "confidence": 0.15,
+        "rationale": "The macro snapshot returned error 'NO_MACRO_DATA' with detail 'No macro parquet files in data/macro', meaning all required fields (fed_funds_rate, cpi_yoy, unemployment_rate, yield_curve_slope, vix, gdp_growth) are unavailable. Per my rules, I cannot invent or estimate values that are not present in the data. With zero macroeconomic data points to analyze, I cannot form a directional investment view.",
+        "key_concern": "Complete absence of macroeconomic data prevents any regime assessment or informed equity decision.",
+        "data_gaps": [],
+        "call_ids": [
+          "adbb7eb13a84"
+        ],
+        "model_id": "qwen3.5-27b-claude-4.6-opus-reasoning-distilled-qx64-hi-mlx",
+        "agent_type": "macro"
+      },
+      "regime_assessment": "Unable to determine - no macro data available",
+      "rationale": "The framework requires at minimum fed_funds_rate, inflation, and GDP data to classify regime; all fields are absent due to data pipeline failure.",
+      "macro_snapshot": {
+        "error": "NO_MACRO_DATA",
+        "detail": "No macro parquet files in data/macro",
+        "call_id": "adbb7eb13a84"
+      },
+      "prompt_version": "macro_v1",
+      "latency_ms": 35958.6
+    },
+    "sentiment_analysis": {
+      "signal": {
+        "ticker": "AAPL",
+        "as_of_date": "2020-03-16",
+        "decision": "Hold",
+        "confidence": 0.6,
+        "rationale": "The filing passages do not contain any specific forward guidance, management tone signals, or notable risk disclosures that indicate a clear bullish or bearish sentiment. The content is primarily procedural and does not provide insights into management's outlook or risk factors.",
+        "key_concern": "The filings do not include any forward-looking statements or specific risk factors that could signal management's concerns or optimism.",
+        "data_gaps": [],
+        "call_ids": [],
+        "model_id": "qwen2.5-coder-32b-instruct-mlx",
+        "agent_type": "sentiment"
+      },
+      "sentiment_summary": "The overall sentiment is neutral as there are no specific forward guidance statements or management tone signals provided in the given passages.",
+      "notable_signals": [
+        "The Nasdaq Stock Market LLC",
+        "A management proposal to ratify the appointment of Ernst & Young LLP as Apple\u2019s independent registered public accounting firm for fiscal year 2023 was approved."
+      ],
+      "prompt_version": "sentiment_v1",
+      "latency_ms": 44909.8
+    },
+    "contrarian_analysis": null,
+    "signals": [
+      {
+        "ticker": "AAPL",
+        "as_of_date": "2020-03-16",
+        "decision": "Hold",
+        "confidence": 0.65,
+        "rationale": "Apple Inc. (AAPL) has a P/E ratio of 32.21, which is above the one-year average but within the range seen over the past year. The ROE of 0.592 indicates strong profitability, but the debt-to-equity ratio of 5.731 suggests a high level of leverage.",
+        "key_concern": "The absence of revenue and earnings growth data makes it difficult to assess the sustainability of AAPL's profitability.",
+        "data_gaps": [
+          "ev_ebitda",
+          "current_ratio",
+          "revenue_growth_yoy",
+          "earnings_growth_yoy",
+          "gross_margin",
+          "operating_margin"
+        ],
+        "call_ids": [
+          "e2e02a7e6726",
+          "ca334fdd8d6f",
+          "71cef493f4c2",
+          "adbb7eb13a84"
+        ],
+        "model_id": "qwen2.5-coder-32b-instruct-mlx",
+        "agent_type": "fundamental"
+      },
+      {
+        "ticker": "AAPL",
+        "as_of_date": "2020-03-16",
+        "decision": "Hold",
+        "confidence": 0.52,
+        "rationale": "Bearish momentum dominates with MACD of -3.09 below signal line at -2.09 and negative histogram of -0.996, while RSI of 37.06 indicates weak recovery from oversold conditions rather than healthy upward momentum. The SMA of 69.64 above EMA of 68.61 suggests softening recent momentum, and the Sharpe ratio of 0.948 falls below the 1.0 threshold for good risk-adjusted returns.",
+        "key_concern": "Maximum drawdown of 58.5% over the trailing year indicates extreme downside risk and significant capital erosion potential in adverse market conditions.",
+        "data_gaps": [
+          "beta"
+        ],
+        "call_ids": [
+          "300b62591cf5",
+          "57e3c5e98e15"
+        ],
+        "model_id": "mlx-qwen3.5-35b-a3b-claude-4.6-opus-reasoning-distilled",
+        "agent_type": "technical"
+      },
+      {
+        "ticker": "AAPL",
+        "as_of_date": "2020-03-16",
+        "decision": "Hold",
+        "confidence": 0.65,
+        "rationale": "AAPL exhibits high volatility with a 20-day historical volatility of 0.978, significantly exceeding the low risk threshold. The maximum drawdown over 252 days is 0.585, indicating a substantial risk of significant losses. Despite a Sharpe ratio of 0.948, the high volatility and drawdown suggest that returns may not adequately compensate for the associated risk. The 95% VaR of 0.114 indicates a notable chance of losses exceeding 9%.",
+        "key_concern": "The high volatility and substantial drawdown risk present a significant obstacle to achieving attractive risk-adjusted returns.",
+        "data_gaps": [
+          "beta"
+        ],
+        "call_ids": [
+          "57e3c5e98e15"
+        ],
+        "model_id": "google/gemma-3-4b",
+        "agent_type": "risk"
+      },
+      {
+        "ticker": "AAPL",
+        "as_of_date": "2020-03-16",
+        "decision": "Hold",
+        "confidence": 0.15,
+        "rationale": "The macro snapshot returned error 'NO_MACRO_DATA' with detail 'No macro parquet files in data/macro', meaning all required fields (fed_funds_rate, cpi_yoy, unemployment_rate, yield_curve_slope, vix, gdp_growth) are unavailable. Per my rules, I cannot invent or estimate values that are not present in the data. With zero macroeconomic data points to analyze, I cannot form a directional investment view.",
+        "key_concern": "Complete absence of macroeconomic data prevents any regime assessment or informed equity decision.",
+        "data_gaps": [],
+        "call_ids": [
+          "adbb7eb13a84"
+        ],
+        "model_id": "qwen3.5-27b-claude-4.6-opus-reasoning-distilled-qx64-hi-mlx",
+        "agent_type": "macro"
+      },
+      {
+        "ticker": "AAPL",
+        "as_of_date": "2020-03-16",
+        "decision": "Hold",
+        "confidence": 0.6,
+        "rationale": "The filing passages do not contain any specific forward guidance, management tone signals, or notable risk disclosures that indicate a clear bullish or bearish sentiment. The content is primarily procedural and does not provide insights into management's outlook or risk factors.",
+        "key_concern": "The filings do not include any forward-looking statements or specific risk factors that could signal management's concerns or optimism.",
+        "data_gaps": [],
+        "call_ids": [],
+        "model_id": "qwen2.5-coder-32b-instruct-mlx",
+        "agent_type": "sentiment"
+      }
+    ],
+    "aggregation_method": "confidence_weighted",
+    "method_comparison": {
+      "majority": {
+        "collective_decision": "Hold",
+        "collective_confidence": 1.0,
+        "n_valid_signals": 5,
+        "agreement": true,
+        "disagreement_entropy": 0.0,
+        "opinion_dispersion": 0.1456,
+        "agent_decisions": [
+          "Hold",
+          "Hold",
+          "Hold",
+          "Hold",
+          "Hold"
+        ],
+        "agent_confidences": [
+          0.65,
+          0.52,
+          0.65,
+          0.15,
+          0.6
+        ],
+        "winning_score": 5.0,
+        "total_score": 5.0,
+        "contrarian_confidence_discount": 1.0,
+        "review_flagged": false
+      },
+      "confidence_weighted": {
+        "collective_decision": "Hold",
+        "collective_confidence": 1.0,
+        "n_valid_signals": 5,
+        "agreement": true,
+        "disagreement_entropy": 0.0,
+        "opinion_dispersion": 0.1456,
+        "agent_decisions": [
+          "Hold",
+          "Hold",
+          "Hold",
+          "Hold",
+          "Hold"
+        ],
+        "agent_confidences": [
+          0.65,
+          0.52,
+          0.65,
+          0.15,
+          0.6
+        ],
+        "winning_score": 2.57,
+        "total_score": 2.57,
+        "contrarian_confidence_discount": 1.0,
+        "review_flagged": false
+      },
+      "performance_weighted": {
+        "collective_decision": "Hold",
+        "collective_confidence": 1.0,
+        "n_valid_signals": 5,
+        "agreement": true,
+        "disagreement_entropy": 0.0,
+        "opinion_dispersion": 0.1456,
+        "agent_decisions": [
+          "Hold",
+          "Hold",
+          "Hold",
+          "Hold",
+          "Hold"
+        ],
+        "agent_confidences": [
+          0.65,
+          0.52,
+          0.65,
+          0.15,
+          0.6
+        ],
+        "winning_score": 1.0925,
+        "total_score": 1.0925,
+        "contrarian_confidence_discount": 1.0,
+        "review_flagged": false
+      },
+      "contrarian_adjusted": {
+        "collective_decision": "Hold",
+        "collective_confidence": 1.0,
+        "n_valid_signals": 5,
+        "agreement": true,
+        "disagreement_entropy": 0.0,
+        "opinion_dispersion": 0.1456,
+        "agent_decisions": [
+          "Hold",
+          "Hold",
+          "Hold",
+          "Hold",
+          "Hold"
+        ],
+        "agent_confidences": [
+          0.65,
+          0.52,
+          0.65,
+          0.15,
+          0.6
+        ],
+        "winning_score": 2.57,
+        "total_score": 2.57,
+        "contrarian_confidence_discount": 1.0,
+        "review_flagged": false
+      }
+    },
+    "debate_transcript": null
+  }
+}

@@ -1,0 +1,202 @@
+{
+  "metadata": {
+    "generated_at": "2026-06-16T02:42:19.544009+00:00",
+    "phase": 13,
+    "ticket": "E2-T4",
+    "description": "Multi-round debate evaluation: herding 1-round vs 2-round",
+    "dates_evaluated": [
+      "2020-03-31",
+      "2020-06-30",
+      "2020-09-30",
+      "2020-12-31",
+      "2021-03-31"
+    ],
+    "tickers": [
+      "AAPL",
+      "JPM",
+      "XOM"
+    ],
+    "n_runs_planned": 15,
+    "n_runs_completed": 14,
+    "n_runs_failed": 1
+  },
+  "baseline_1round_herding_condition_c": 0.95,
+  "mean_herding_2round": 0.9285714285714286,
+  "delta_2round_minus_1round": -0.021428571428571352,
+  "oq_d04": "NEGLIGIBLE \u2014 second round does not meaningfully change herding",
+  "per_run_results": [
+    {
+      "ticker": "AAPL",
+      "as_of_date": "2020-03-31",
+      "collective_decision": "Hold",
+      "herding_coefficient_2round": 1.0,
+      "n_rounds_run": 1,
+      "vote_delta": "unchanged",
+      "agent_decisions": [
+        "Hold",
+        "Hold"
+      ]
+    },
+    {
+      "ticker": "JPM",
+      "as_of_date": "2020-03-31",
+      "collective_decision": "Hold",
+      "herding_coefficient_2round": 1.0,
+      "n_rounds_run": 1,
+      "vote_delta": "unchanged",
+      "agent_decisions": [
+        "Hold",
+        "Hold"
+      ]
+    },
+    {
+      "ticker": "XOM",
+      "as_of_date": "2020-03-31",
+      "error": "Error code: 400 - {'error': 'Model unloaded.'}"
+    },
+    {
+      "ticker": "AAPL",
+      "as_of_date": "2020-06-30",
+      "collective_decision": "Hold",
+      "herding_coefficient_2round": 1.0,
+      "n_rounds_run": 1,
+      "vote_delta": "unchanged",
+      "agent_decisions": [
+        "Hold",
+        "Hold"
+      ]
+    },
+    {
+      "ticker": "JPM",
+      "as_of_date": "2020-06-30",
+      "collective_decision": "Hold",
+      "herding_coefficient_2round": 1.0,
+      "n_rounds_run": 1,
+      "vote_delta": "unchanged",
+      "agent_decisions": [
+        "Hold",
+        "Hold"
+      ]
+    },
+    {
+      "ticker": "XOM",
+      "as_of_date": "2020-06-30",
+      "collective_decision": "Hold",
+      "herding_coefficient_2round": 1.0,
+      "n_rounds_run": 1,
+      "vote_delta": "unchanged",
+      "agent_decisions": [
+        "Hold",
+        "Hold"
+      ]
+    },
+    {
+      "ticker": "AAPL",
+      "as_of_date": "2020-09-30",
+      "collective_decision": "Hold",
+      "herding_coefficient_2round": 1.0,
+      "n_rounds_run": 1,
+      "vote_delta": "unchanged",
+      "agent_decisions": [
+        "Hold",
+        "Hold"
+      ]
+    },
+    {
+      "ticker": "JPM",
+      "as_of_date": "2020-09-30",
+      "collective_decision": "Hold",
+      "herding_coefficient_2round": 1.0,
+      "n_rounds_run": 1,
+      "vote_delta": "unchanged",
+      "agent_decisions": [
+        "Hold",
+        "Hold"
+      ]
+    },
+    {
+      "ticker": "XOM",
+      "as_of_date": "2020-09-30",
+      "collective_decision": "Hold",
+      "herding_coefficient_2round": 1.0,
+      "n_rounds_run": 1,
+      "vote_delta": "unchanged",
+      "agent_decisions": [
+        "Hold",
+        "Hold"
+      ]
+    },
+    {
+      "ticker": "AAPL",
+      "as_of_date": "2020-12-31",
+      "collective_decision": "Hold",
+      "herding_coefficient_2round": 0.5,
+      "n_rounds_run": 2,
+      "vote_delta": "unchanged",
+      "agent_decisions": [
+        "Hold",
+        "Buy"
+      ]
+    },
+    {
+      "ticker": "JPM",
+      "as_of_date": "2020-12-31",
+      "collective_decision": "Hold",
+      "herding_coefficient_2round": 1.0,
+      "n_rounds_run": 1,
+      "vote_delta": "unchanged",
+      "agent_decisions": [
+        "Hold",
+        "Hold"
+      ]
+    },
+    {
+      "ticker": "XOM",
+      "as_of_date": "2020-12-31",
+      "collective_decision": "Buy",
+      "herding_coefficient_2round": 0.5,
+      "n_rounds_run": 1,
+      "vote_delta": "unchanged",
+      "agent_decisions": [
+        "Buy",
+        "Hold"
+      ]
+    },
+    {
+      "ticker": "AAPL",
+      "as_of_date": "2021-03-31",
+      "collective_decision": "Hold",
+      "herding_coefficient_2round": 1.0,
+      "n_rounds_run": 1,
+      "vote_delta": "unchanged",
+      "agent_decisions": [
+        "Hold",
+        "Hold"
+      ]
+    },
+    {
+      "ticker": "JPM",
+      "as_of_date": "2021-03-31",
+      "collective_decision": "Hold",
+      "herding_coefficient_2round": 1.0,
+      "n_rounds_run": 1,
+      "vote_delta": "unchanged",
+      "agent_decisions": [
+        "Hold",
+        "Hold"
+      ]
+    },
+    {
+      "ticker": "XOM",
+      "as_of_date": "2021-03-31",
+      "collective_decision": "Hold",
+      "herding_coefficient_2round": 1.0,
+      "n_rounds_run": 1,
+      "vote_delta": "unchanged",
+      "agent_decisions": [
+        "Hold",
+        "Hold"
+      ]
+    }
+  ]
+}

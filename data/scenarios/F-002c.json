@@ -1,0 +1,416 @@
+{
+  "scenario_id": "F-002c",
+  "ticker": "XOM",
+  "as_of_date": "2022-03-31",
+  "collective_decision": "Hold",
+  "expected_direction": "Buy",
+  "aligned": false,
+  "ensemble_output": {
+    "ticker": "XOM",
+    "as_of_date": "2022-03-31",
+    "fundamental_analysis": {
+      "signal": {
+        "ticker": "XOM",
+        "as_of_date": "2022-03-31",
+        "decision": "Buy",
+        "confidence": 0.85,
+        "rationale": "XOM has a P/E ratio of 5.82, which is near the upper end of its one-year range (3.72 to 6.19) and indicates that the stock is undervalued relative to its earnings. The ROE of 0.33 and ROA of 0.15 suggest strong profitability and efficiency in using assets.",
+        "key_concern": "Revenue growth, earnings growth, gross margin, and operating margin data are unavailable, which introduces uncertainty about the company's future performance.",
+        "data_gaps": [
+          "ev_ebitda",
+          "current_ratio",
+          "revenue_growth_yoy",
+          "earnings_growth_yoy",
+          "gross_margin",
+          "operating_margin"
+        ],
+        "call_ids": [
+          "e18c53891bae",
+          "516867136b4a",
+          "eb2702f55dcc",
+          "4d8bd78d0fb5"
+        ],
+        "model_id": "qwen2.5-coder-32b-instruct-mlx",
+        "agent_type": "fundamental"
+      },
+      "financial_ratios": {
+        "pe": 5.824400305916123,
+        "pb": 2.6100832260628675,
+        "ps": 1.1036558600363704,
+        "ev_ebitda": null,
+        "roe": 0.3306500886835096,
+        "roa": 0.151029487870766,
+        "debt_equity": 0.9963458834835119,
+        "current_ratio": null,
+        "call_id": "e18c53891bae"
+      },
+      "growth_metrics": {
+        "revenue_growth_yoy": null,
+        "earnings_growth_yoy": null,
+        "gross_margin": null,
+        "operating_margin": null,
+        "net_margin": 0.13981313099642567,
+        "call_id": "516867136b4a"
+      },
+      "valuation_context": {
+        "current_pe": 5.824400305916123,
+        "pe_1y_min": 3.7186177392268216,
+        "pe_1y_max": 6.19040894071205,
+        "pe_1y_percentile": 0.851925747378661,
+        "price_to_52w_high": 0.9408748859241233,
+        "price_to_52w_low": 1.5662809985753303,
+        "call_id": "eb2702f55dcc"
+      },
+      "macro_snapshot": {
+        "error": "NO_MACRO_DATA",
+        "detail": "No macro parquet files in data/macro",
+        "call_id": "4d8bd78d0fb5"
+      },
+      "prompt_version": "fundamental_v1",
+      "latency_ms": 13585.9
+    },
+    "technical_analysis": {
+      "signal": {
+        "ticker": "XOM",
+        "as_of_date": "2022-03-31",
+        "decision": "Hold",
+        "confidence": 0.65,
+        "rationale": "RSI of 53.45 indicates healthy upward momentum in the 50-70 range, while price trades near the Bollinger Band mid-point of 71.54 suggesting balanced positioning. However, MACD histogram of -0.081 and bearish crossover (MACD 0.998 below signal 1.079) indicate short-term momentum is weakening despite the Sharpe ratio of 1.58 showing good risk-adjusted returns.",
+        "key_concern": "Maximum drawdown of 55.46% over the trailing 252 days represents significant downside risk in adverse market conditions.",
+        "data_gaps": [
+          "beta"
+        ],
+        "call_ids": [
+          "ca43d7169105",
+          "510c12590721"
+        ],
+        "model_id": "mlx-qwen3.5-35b-a3b-claude-4.6-opus-reasoning-distilled",
+        "agent_type": "technical"
+      },
+      "technical_indicators": {
+        "sma": 71.53551712036133,
+        "ema": 70.88967202949884,
+        "rsi": 53.44698874906569,
+        "macd": 0.9981255926767432,
+        "macd_signal": 1.0793190880294845,
+        "macd_hist": -0.08119349535274134,
+        "bb_upper": 76.59785456648572,
+        "bb_mid": 71.53551712036133,
+        "bb_lower": 66.47317967423695,
+        "atr": 12.043626746298166,
+        "call_id": "ca43d7169105"
+      },
+      "risk_metrics": {
+        "hist_vol_20d": 0.46487037095268746,
+        "hist_vol_60d": 0.34815274207179114,
+        "hist_vol_252d": 0.29154854768228905,
+        "beta": null,
+        "max_drawdown_252d": 0.5546101379394531,
+        "sharpe_252d": 1.5795032191892053,
+        "var_95_20d": 0.04680905644459119,
+        "call_id": "510c12590721"
+      },
+      "time_horizon": "medium-term",
+      "prompt_version": "technical_v1",
+      "latency_ms": 39893.1
+    },
+    "ensemble_decision": {
+      "collective_decision": "Hold",
+      "collective_confidence": 0.701754,
+      "n_valid_signals": 5,
+      "agreement": false,
+      "disagreement_entropy": 0.721928,
+      "opinion_dispersion": 0.188,
+      "agent_decisions": [
+        "Buy",
+        "Hold",
+        "Hold",
+        "Hold",
+        "Hold"
+      ],
+      "agent_confidences": [
+        0.85,
+        0.65,
+        0.65,
+        0.1,
+        0.6
+      ],
+      "winning_score": 2.0,
+      "total_score": 2.85,
+      "contrarian_confidence_discount": 1.0,
+      "review_flagged": false
+    },
+    "latency_ms": 138144.6,
+    "risk_analysis": {
+      "signal": {
+        "ticker": "XOM",
+        "as_of_date": "2022-03-31",
+        "decision": "Hold",
+        "confidence": 0.65,
+        "rationale": "XOM exhibits high volatility with a 20-day annualized historical volatility of 0.465 and a 252-day volatility of 0.292. The maximum drawdown over the past year is 0.555, indicating significant tail risk. Despite a strong Sharpe ratio of 1.58, the high volatility and substantial drawdown suggest caution.",
+        "key_concern": "The significant maximum drawdown of 0.555 highlights a substantial risk of downside losses.",
+        "data_gaps": [
+          "beta"
+        ],
+        "call_ids": [
+          "510c12590721"
+        ],
+        "model_id": "google/gemma-3-4b",
+        "agent_type": "risk"
+      },
+      "risk_assessment": "XOM demonstrates elevated volatility and a notable drawdown risk, though its Sharpe ratio suggests relatively good risk-adjusted performance. The portfolio is exposed to potential significant losses during periods of market turbulence.",
+      "recommended_position_size": 0.05,
+      "risk_metrics": {
+        "hist_vol_20d": 0.46487037095268746,
+        "hist_vol_60d": 0.34815274207179114,
+        "hist_vol_252d": 0.29154854768228905,
+        "beta": null,
+        "max_drawdown_252d": 0.5546101379394531,
+        "sharpe_252d": 1.5795032191892053,
+        "var_95_20d": 0.04680905644459119,
+        "call_id": "510c12590721"
+      },
+      "prompt_version": "risk_v1",
+      "latency_ms": 11170.4
+    },
+    "macro_analysis": {
+      "signal": {
+        "ticker": "XOM",
+        "as_of_date": "2022-03-31",
+        "decision": "Hold",
+        "confidence": 0.1,
+        "rationale": "The macro data snapshot returned an error 'NO_MACRO_DATA' with detail 'No macro parquet files in data/macro', meaning all key indicators (fed_funds_rate, cpi_yoy, unemployment_rate, yield_curve_slope, vix, gdp_growth) are unavailable. Without any actual macroeconomic values to cite, I cannot form a meaningful assessment of the regime or its implications for XOM.",
+        "key_concern": "Complete absence of macroeconomic data prevents any reliable regime classification or investment assessment.",
+        "data_gaps": [],
+        "call_ids": [
+          "4d8bd78d0fb5"
+        ],
+        "model_id": "qwen3.5-27b-claude-4.6-opus-reasoning-distilled-qx64-hi-mlx",
+        "agent_type": "macro"
+      },
+      "regime_assessment": "Unknown - insufficient data",
+      "rationale": "No regime can be identified when all six core macro indicators are unavailable due to data pipeline failure.",
+      "macro_snapshot": {
+        "error": "NO_MACRO_DATA",
+        "detail": "No macro parquet files in data/macro",
+        "call_id": "4d8bd78d0fb5"
+      },
+      "prompt_version": "macro_v1",
+      "latency_ms": 31506.8
+    },
+    "sentiment_analysis": {
+      "signal": {
+        "ticker": "XOM",
+        "as_of_date": "2022-03-31",
+        "decision": "Hold",
+        "confidence": 0.6,
+        "rationale": "The filings do not contain specific forward guidance or notable qualitative signals that indicate a strong bullish or bearish sentiment. The provided excerpts are primarily boilerplate information and certifications.",
+        "key_concern": "The filings lack specific forward-looking statements or detailed qualitative risk signals, making it difficult to gauge management's tone and future outlook.",
+        "data_gaps": [],
+        "call_ids": [],
+        "model_id": "qwen2.5-coder-32b-instruct-mlx",
+        "agent_type": "sentiment"
+      },
+      "sentiment_summary": "The management tone is neutral, with no specific forward guidance or qualitative risk signals provided in the excerpts.",
+      "notable_signals": [
+        "The report does not contain any untrue statement of a material fact or omit to state a material fact necessary to make the statements made, in light of the circumstances under which such statements were made, not misleading with respect to the period covered by this report;"
+      ],
+      "prompt_version": "sentiment_v1",
+      "latency_ms": 41987.8
+    },
+    "contrarian_analysis": null,
+    "signals": [
+      {
+        "ticker": "XOM",
+        "as_of_date": "2022-03-31",
+        "decision": "Buy",
+        "confidence": 0.85,
+        "rationale": "XOM has a P/E ratio of 5.82, which is near the upper end of its one-year range (3.72 to 6.19) and indicates that the stock is undervalued relative to its earnings. The ROE of 0.33 and ROA of 0.15 suggest strong profitability and efficiency in using assets.",
+        "key_concern": "Revenue growth, earnings growth, gross margin, and operating margin data are unavailable, which introduces uncertainty about the company's future performance.",
+        "data_gaps": [
+          "ev_ebitda",
+          "current_ratio",
+          "revenue_growth_yoy",
+          "earnings_growth_yoy",
+          "gross_margin",
+          "operating_margin"
+        ],
+        "call_ids": [
+          "e18c53891bae",
+          "516867136b4a",
+          "eb2702f55dcc",
+          "4d8bd78d0fb5"
+        ],
+        "model_id": "qwen2.5-coder-32b-instruct-mlx",
+        "agent_type": "fundamental"
+      },
+      {
+        "ticker": "XOM",
+        "as_of_date": "2022-03-31",
+        "decision": "Hold",
+        "confidence": 0.65,
+        "rationale": "RSI of 53.45 indicates healthy upward momentum in the 50-70 range, while price trades near the Bollinger Band mid-point of 71.54 suggesting balanced positioning. However, MACD histogram of -0.081 and bearish crossover (MACD 0.998 below signal 1.079) indicate short-term momentum is weakening despite the Sharpe ratio of 1.58 showing good risk-adjusted returns.",
+        "key_concern": "Maximum drawdown of 55.46% over the trailing 252 days represents significant downside risk in adverse market conditions.",
+        "data_gaps": [
+          "beta"
+        ],
+        "call_ids": [
+          "ca43d7169105",
+          "510c12590721"
+        ],
+        "model_id": "mlx-qwen3.5-35b-a3b-claude-4.6-opus-reasoning-distilled",
+        "agent_type": "technical"
+      },
+      {
+        "ticker": "XOM",
+        "as_of_date": "2022-03-31",
+        "decision": "Hold",
+        "confidence": 0.65,
+        "rationale": "XOM exhibits high volatility with a 20-day annualized historical volatility of 0.465 and a 252-day volatility of 0.292. The maximum drawdown over the past year is 0.555, indicating significant tail risk. Despite a strong Sharpe ratio of 1.58, the high volatility and substantial drawdown suggest caution.",
+        "key_concern": "The significant maximum drawdown of 0.555 highlights a substantial risk of downside losses.",
+        "data_gaps": [
+          "beta"
+        ],
+        "call_ids": [
+          "510c12590721"
+        ],
+        "model_id": "google/gemma-3-4b",
+        "agent_type": "risk"
+      },
+      {
+        "ticker": "XOM",
+        "as_of_date": "2022-03-31",
+        "decision": "Hold",
+        "confidence": 0.1,
+        "rationale": "The macro data snapshot returned an error 'NO_MACRO_DATA' with detail 'No macro parquet files in data/macro', meaning all key indicators (fed_funds_rate, cpi_yoy, unemployment_rate, yield_curve_slope, vix, gdp_growth) are unavailable. Without any actual macroeconomic values to cite, I cannot form a meaningful assessment of the regime or its implications for XOM.",
+        "key_concern": "Complete absence of macroeconomic data prevents any reliable regime classification or investment assessment.",
+        "data_gaps": [],
+        "call_ids": [
+          "4d8bd78d0fb5"
+        ],
+        "model_id": "qwen3.5-27b-claude-4.6-opus-reasoning-distilled-qx64-hi-mlx",
+        "agent_type": "macro"
+      },
+      {
+        "ticker": "XOM",
+        "as_of_date": "2022-03-31",
+        "decision": "Hold",
+        "confidence": 0.6,
+        "rationale": "The filings do not contain specific forward guidance or notable qualitative signals that indicate a strong bullish or bearish sentiment. The provided excerpts are primarily boilerplate information and certifications.",
+        "key_concern": "The filings lack specific forward-looking statements or detailed qualitative risk signals, making it difficult to gauge management's tone and future outlook.",
+        "data_gaps": [],
+        "call_ids": [],
+        "model_id": "qwen2.5-coder-32b-instruct-mlx",
+        "agent_type": "sentiment"
+      }
+    ],
+    "aggregation_method": "confidence_weighted",
+    "method_comparison": {
+      "majority": {
+        "collective_decision": "Hold",
+        "collective_confidence": 0.8,
+        "n_valid_signals": 5,
+        "agreement": false,
+        "disagreement_entropy": 0.721928,
+        "opinion_dispersion": 0.188,
+        "agent_decisions": [
+          "Buy",
+          "Hold",
+          "Hold",
+          "Hold",
+          "Hold"
+        ],
+        "agent_confidences": [
+          0.85,
+          0.65,
+          0.65,
+          0.1,
+          0.6
+        ],
+        "winning_score": 4.0,
+        "total_score": 5.0,
+        "contrarian_confidence_discount": 1.0,
+        "review_flagged": false
+      },
+      "confidence_weighted": {
+        "collective_decision": "Hold",
+        "collective_confidence": 0.701754,
+        "n_valid_signals": 5,
+        "agreement": false,
+        "disagreement_entropy": 0.721928,
+        "opinion_dispersion": 0.188,
+        "agent_decisions": [
+          "Buy",
+          "Hold",
+          "Hold",
+          "Hold",
+          "Hold"
+        ],
+        "agent_confidences": [
+          0.85,
+          0.65,
+          0.65,
+          0.1,
+          0.6
+        ],
+        "winning_score": 2.0,
+        "total_score": 2.85,
+        "contrarian_confidence_discount": 1.0,
+        "review_flagged": false
+      },
+      "performance_weighted": {
+        "collective_decision": "Hold",
+        "collective_confidence": 0.817204,
+        "n_valid_signals": 5,
+        "agreement": false,
+        "disagreement_entropy": 0.721928,
+        "opinion_dispersion": 0.188,
+        "agent_decisions": [
+          "Buy",
+          "Hold",
+          "Hold",
+          "Hold",
+          "Hold"
+        ],
+        "agent_confidences": [
+          0.85,
+          0.65,
+          0.65,
+          0.1,
+          0.6
+        ],
+        "winning_score": 0.95,
+        "total_score": 1.1625,
+        "contrarian_confidence_discount": 1.0,
+        "review_flagged": false
+      },
+      "contrarian_adjusted": {
+        "collective_decision": "Hold",
+        "collective_confidence": 0.701754,
+        "n_valid_signals": 5,
+        "agreement": false,
+        "disagreement_entropy": 0.721928,
+        "opinion_dispersion": 0.188,
+        "agent_decisions": [
+          "Buy",
+          "Hold",
+          "Hold",
+          "Hold",
+          "Hold"
+        ],
+        "agent_confidences": [
+          0.85,
+          0.65,
+          0.65,
+          0.1,
+          0.6
+        ],
+        "winning_score": 2.0,
+        "total_score": 2.85,
+        "contrarian_confidence_discount": 1.0,
+        "review_flagged": false
+      }
+    },
+    "debate_transcript": null
+  }
+}

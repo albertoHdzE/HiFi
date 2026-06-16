@@ -1,0 +1,417 @@
+{
+  "scenario_id": "F-002b",
+  "ticker": "JPM",
+  "as_of_date": "2022-03-31",
+  "collective_decision": "Hold",
+  "expected_direction": "Hold",
+  "aligned": true,
+  "ensemble_output": {
+    "ticker": "JPM",
+    "as_of_date": "2022-03-31",
+    "fundamental_analysis": {
+      "signal": {
+        "ticker": "JPM",
+        "as_of_date": "2022-03-31",
+        "decision": "Hold",
+        "confidence": 0.65,
+        "rationale": "JPM has a P/E ratio of 11.27, which is within the 1-year range of 10.61 to 14.21, indicating it is not overvalued. The ROE of 0.129 suggests strong profitability, but the ROA of 0.0103 is relatively low, indicating inefficiency in asset utilization.",
+        "key_concern": "The absence of data on revenue and earnings growth, as well as margins, introduces significant uncertainty about the company's future performance.",
+        "data_gaps": [
+          "ev_ebitda",
+          "current_ratio",
+          "revenue_growth_yoy",
+          "earnings_growth_yoy",
+          "gross_margin",
+          "operating_margin"
+        ],
+        "call_ids": [
+          "b555e8d0af93",
+          "950b1b5eb3dd",
+          "78f02fa7b2c6",
+          "4d8bd78d0fb5"
+        ],
+        "model_id": "qwen2.5-coder-32b-instruct-mlx",
+        "agent_type": "fundamental"
+      },
+      "financial_ratios": {
+        "pe": 11.275434848984181,
+        "pb": 1.3356164383561644,
+        "ps": 3.0304207622673762,
+        "ev_ebitda": null,
+        "roe": 0.12902739726027398,
+        "roa": 0.010277861814098807,
+        "debt_equity": 11.551369863013699,
+        "current_ratio": null,
+        "call_id": "b555e8d0af93"
+      },
+      "growth_metrics": {
+        "revenue_growth_yoy": null,
+        "earnings_growth_yoy": null,
+        "gross_margin": null,
+        "operating_margin": null,
+        "net_margin": 0.29275418625432226,
+        "call_id": "950b1b5eb3dd"
+      },
+      "valuation_context": {
+        "current_pe": 11.275434848984181,
+        "pe_1y_min": 10.612076348367065,
+        "pe_1y_max": 14.208436623597757,
+        "pe_1y_percentile": 0.18445273828261394,
+        "price_to_52w_high": 0.7935732232677615,
+        "price_to_52w_low": 1.0625097746040237,
+        "call_id": "78f02fa7b2c6"
+      },
+      "macro_snapshot": {
+        "error": "NO_MACRO_DATA",
+        "detail": "No macro parquet files in data/macro",
+        "call_id": "4d8bd78d0fb5"
+      },
+      "prompt_version": "fundamental_v1",
+      "latency_ms": 13857.1
+    },
+    "technical_analysis": {
+      "signal": {
+        "ticker": "JPM",
+        "as_of_date": "2022-03-31",
+        "decision": "Hold",
+        "confidence": 0.52,
+        "rationale": "Short-term momentum shows bullish signals with MACD (-0.927) above signal line (-1.605) and positive histogram (0.679), while RSI at 42.57 indicates recovering momentum in the weakly bearish zone. However, EMA (125.21) trading above SMA (122.49) suggests the recent uptrend may be losing steam, and the negative Sharpe ratio of -0.284 indicates poor risk-adjusted returns over the past year.",
+        "key_concern": "The negative Sharpe ratio of -0.284 combined with a 25% maximum drawdown indicates the stock has underperformed on a risk-adjusted basis over the trailing year.",
+        "data_gaps": [
+          "beta"
+        ],
+        "call_ids": [
+          "abb6974ea8d3",
+          "061c5ac9f0b6"
+        ],
+        "model_id": "mlx-qwen3.5-35b-a3b-claude-4.6-opus-reasoning-distilled",
+        "agent_type": "technical"
+      },
+      "technical_indicators": {
+        "sma": 122.49327430725097,
+        "ema": 125.21015742424171,
+        "rsi": 42.569715902228694,
+        "macd": -0.9266520001449265,
+        "macd_signal": -1.605199740239457,
+        "macd_hist": 0.6785477400945306,
+        "bb_upper": 131.34124876826962,
+        "bb_mid": 122.49327430725097,
+        "bb_lower": 113.6452998462323,
+        "atr": 15.954878141808836,
+        "call_id": "abb6974ea8d3"
+      },
+      "risk_metrics": {
+        "hist_vol_20d": 0.3475991222202666,
+        "hist_vol_60d": 0.32003855858460367,
+        "hist_vol_252d": 0.2392368213523492,
+        "beta": null,
+        "max_drawdown_252d": 0.2486374634132541,
+        "sharpe_252d": -0.283508276403821,
+        "var_95_20d": 0.0365069500947433,
+        "call_id": "061c5ac9f0b6"
+      },
+      "time_horizon": "short-term",
+      "prompt_version": "technical_v1",
+      "latency_ms": 38521.5
+    },
+    "ensemble_decision": {
+      "collective_decision": "Hold",
+      "collective_confidence": 1.0,
+      "n_valid_signals": 5,
+      "agreement": true,
+      "disagreement_entropy": 0.0,
+      "opinion_dispersion": 0.1656,
+      "agent_decisions": [
+        "Hold",
+        "Hold",
+        "Hold",
+        "Hold",
+        "Hold"
+      ],
+      "agent_confidences": [
+        0.65,
+        0.52,
+        0.65,
+        0.1,
+        0.65
+      ],
+      "winning_score": 2.57,
+      "total_score": 2.57,
+      "contrarian_confidence_discount": 1.0,
+      "review_flagged": false
+    },
+    "latency_ms": 138526.2,
+    "risk_analysis": {
+      "signal": {
+        "ticker": "JPM",
+        "as_of_date": "2022-03-31",
+        "decision": "Hold",
+        "confidence": 0.65,
+        "rationale": "The risk profile indicates a moderate level of risk with a 20-day volatility of 0.348 and a max drawdown of 0.249 over the past year. The Sharpe ratio is -0.28, suggesting a negative risk-adjusted return.  The 95% VaR of 0.037 indicates a relatively low probability of significant losses, but the negative Sharpe ratio warrants caution.",
+        "key_concern": "The negative Sharpe ratio highlights a lack of reward relative to the level of risk taken.",
+        "data_gaps": [
+          "beta"
+        ],
+        "call_ids": [
+          "061c5ac9f0b6"
+        ],
+        "model_id": "google/gemma-3-4b",
+        "agent_type": "risk"
+      },
+      "risk_assessment": "Volatility is elevated, indicating a period of potential price swings. The max drawdown suggests some downside risk, but the Sharpe ratio indicates that returns have not adequately compensated for this risk. ",
+      "recommended_position_size": 0.05,
+      "risk_metrics": {
+        "hist_vol_20d": 0.3475991222202666,
+        "hist_vol_60d": 0.32003855858460367,
+        "hist_vol_252d": 0.2392368213523492,
+        "beta": null,
+        "max_drawdown_252d": 0.2486374634132541,
+        "sharpe_252d": -0.283508276403821,
+        "var_95_20d": 0.0365069500947433,
+        "call_id": "061c5ac9f0b6"
+      },
+      "prompt_version": "risk_v1",
+      "latency_ms": 10943.8
+    },
+    "macro_analysis": {
+      "signal": {
+        "ticker": "JPM",
+        "as_of_date": "2022-03-31",
+        "decision": "Hold",
+        "confidence": 0.1,
+        "rationale": "The macro data snapshot returned an error 'NO_MACRO_DATA' with detail 'No macro parquet files in data/macro', meaning all key indicators (fed_funds_rate, cpi_yoy, unemployment_rate, yield_curve_slope, vix, gdp_growth) are unavailable. Without any macroeconomic values to cite, I cannot form a meaningful assessment of the investment environment as of 2022-03-31.",
+        "key_concern": "Complete absence of macroeconomic data prevents any regime classification or informed equity assessment.",
+        "data_gaps": [],
+        "call_ids": [
+          "4d8bd78d0fb5"
+        ],
+        "model_id": "qwen3.5-27b-claude-4.6-opus-reasoning-distilled-qx64-hi-mlx",
+        "agent_type": "macro"
+      },
+      "regime_assessment": "Unknown - insufficient data",
+      "rationale": "No regime can be identified when all six core macro indicators are unavailable; any equity recommendation would be speculative without the required data foundation.",
+      "macro_snapshot": {
+        "error": "NO_MACRO_DATA",
+        "detail": "No macro parquet files in data/macro",
+        "call_id": "4d8bd78d0fb5"
+      },
+      "prompt_version": "macro_v1",
+      "latency_ms": 35416.7
+    },
+    "sentiment_analysis": {
+      "signal": {
+        "ticker": "JPM",
+        "as_of_date": "2022-03-31",
+        "decision": "Hold",
+        "confidence": 0.65,
+        "rationale": "The filings do not contain specific forward guidance or emphasis on new products and market expansion. Instead, they focus on administrative details and compensation policies.",
+        "key_concern": "The filings indicate that JPMorgan Chase\u2019s annual pre-tax pre-provision income at the Firm level is negative, which suggests ongoing financial challenges.",
+        "data_gaps": [],
+        "call_ids": [],
+        "model_id": "qwen2.5-coder-32b-instruct-mlx",
+        "agent_type": "sentiment"
+      },
+      "sentiment_summary": "The management tone is cautious and defensive, with no specific forward guidance provided. The risk language is elevated due to the mention of negative financial performance.",
+      "notable_signals": [
+        "\u2022For any calendar year ending during the vesting period, JPMorgan Chase\u2019s annual pre-tax pre-provision income at the Firm level is negative.",
+        "\u2022The Firm does not meet the Firmwide Financial Threshold."
+      ],
+      "prompt_version": "sentiment_v1",
+      "latency_ms": 39786.3
+    },
+    "contrarian_analysis": null,
+    "signals": [
+      {
+        "ticker": "JPM",
+        "as_of_date": "2022-03-31",
+        "decision": "Hold",
+        "confidence": 0.65,
+        "rationale": "JPM has a P/E ratio of 11.27, which is within the 1-year range of 10.61 to 14.21, indicating it is not overvalued. The ROE of 0.129 suggests strong profitability, but the ROA of 0.0103 is relatively low, indicating inefficiency in asset utilization.",
+        "key_concern": "The absence of data on revenue and earnings growth, as well as margins, introduces significant uncertainty about the company's future performance.",
+        "data_gaps": [
+          "ev_ebitda",
+          "current_ratio",
+          "revenue_growth_yoy",
+          "earnings_growth_yoy",
+          "gross_margin",
+          "operating_margin"
+        ],
+        "call_ids": [
+          "b555e8d0af93",
+          "950b1b5eb3dd",
+          "78f02fa7b2c6",
+          "4d8bd78d0fb5"
+        ],
+        "model_id": "qwen2.5-coder-32b-instruct-mlx",
+        "agent_type": "fundamental"
+      },
+      {
+        "ticker": "JPM",
+        "as_of_date": "2022-03-31",
+        "decision": "Hold",
+        "confidence": 0.52,
+        "rationale": "Short-term momentum shows bullish signals with MACD (-0.927) above signal line (-1.605) and positive histogram (0.679), while RSI at 42.57 indicates recovering momentum in the weakly bearish zone. However, EMA (125.21) trading above SMA (122.49) suggests the recent uptrend may be losing steam, and the negative Sharpe ratio of -0.284 indicates poor risk-adjusted returns over the past year.",
+        "key_concern": "The negative Sharpe ratio of -0.284 combined with a 25% maximum drawdown indicates the stock has underperformed on a risk-adjusted basis over the trailing year.",
+        "data_gaps": [
+          "beta"
+        ],
+        "call_ids": [
+          "abb6974ea8d3",
+          "061c5ac9f0b6"
+        ],
+        "model_id": "mlx-qwen3.5-35b-a3b-claude-4.6-opus-reasoning-distilled",
+        "agent_type": "technical"
+      },
+      {
+        "ticker": "JPM",
+        "as_of_date": "2022-03-31",
+        "decision": "Hold",
+        "confidence": 0.65,
+        "rationale": "The risk profile indicates a moderate level of risk with a 20-day volatility of 0.348 and a max drawdown of 0.249 over the past year. The Sharpe ratio is -0.28, suggesting a negative risk-adjusted return.  The 95% VaR of 0.037 indicates a relatively low probability of significant losses, but the negative Sharpe ratio warrants caution.",
+        "key_concern": "The negative Sharpe ratio highlights a lack of reward relative to the level of risk taken.",
+        "data_gaps": [
+          "beta"
+        ],
+        "call_ids": [
+          "061c5ac9f0b6"
+        ],
+        "model_id": "google/gemma-3-4b",
+        "agent_type": "risk"
+      },
+      {
+        "ticker": "JPM",
+        "as_of_date": "2022-03-31",
+        "decision": "Hold",
+        "confidence": 0.1,
+        "rationale": "The macro data snapshot returned an error 'NO_MACRO_DATA' with detail 'No macro parquet files in data/macro', meaning all key indicators (fed_funds_rate, cpi_yoy, unemployment_rate, yield_curve_slope, vix, gdp_growth) are unavailable. Without any macroeconomic values to cite, I cannot form a meaningful assessment of the investment environment as of 2022-03-31.",
+        "key_concern": "Complete absence of macroeconomic data prevents any regime classification or informed equity assessment.",
+        "data_gaps": [],
+        "call_ids": [
+          "4d8bd78d0fb5"
+        ],
+        "model_id": "qwen3.5-27b-claude-4.6-opus-reasoning-distilled-qx64-hi-mlx",
+        "agent_type": "macro"
+      },
+      {
+        "ticker": "JPM",
+        "as_of_date": "2022-03-31",
+        "decision": "Hold",
+        "confidence": 0.65,
+        "rationale": "The filings do not contain specific forward guidance or emphasis on new products and market expansion. Instead, they focus on administrative details and compensation policies.",
+        "key_concern": "The filings indicate that JPMorgan Chase\u2019s annual pre-tax pre-provision income at the Firm level is negative, which suggests ongoing financial challenges.",
+        "data_gaps": [],
+        "call_ids": [],
+        "model_id": "qwen2.5-coder-32b-instruct-mlx",
+        "agent_type": "sentiment"
+      }
+    ],
+    "aggregation_method": "confidence_weighted",
+    "method_comparison": {
+      "majority": {
+        "collective_decision": "Hold",
+        "collective_confidence": 1.0,
+        "n_valid_signals": 5,
+        "agreement": true,
+        "disagreement_entropy": 0.0,
+        "opinion_dispersion": 0.1656,
+        "agent_decisions": [
+          "Hold",
+          "Hold",
+          "Hold",
+          "Hold",
+          "Hold"
+        ],
+        "agent_confidences": [
+          0.65,
+          0.52,
+          0.65,
+          0.1,
+          0.65
+        ],
+        "winning_score": 5.0,
+        "total_score": 5.0,
+        "contrarian_confidence_discount": 1.0,
+        "review_flagged": false
+      },
+      "confidence_weighted": {
+        "collective_decision": "Hold",
+        "collective_confidence": 1.0,
+        "n_valid_signals": 5,
+        "agreement": true,
+        "disagreement_entropy": 0.0,
+        "opinion_dispersion": 0.1656,
+        "agent_decisions": [
+          "Hold",
+          "Hold",
+          "Hold",
+          "Hold",
+          "Hold"
+        ],
+        "agent_confidences": [
+          0.65,
+          0.52,
+          0.65,
+          0.1,
+          0.65
+        ],
+        "winning_score": 2.57,
+        "total_score": 2.57,
+        "contrarian_confidence_discount": 1.0,
+        "review_flagged": false
+      },
+      "performance_weighted": {
+        "collective_decision": "Hold",
+        "collective_confidence": 1.0,
+        "n_valid_signals": 5,
+        "agreement": true,
+        "disagreement_entropy": 0.0,
+        "opinion_dispersion": 0.1656,
+        "agent_decisions": [
+          "Hold",
+          "Hold",
+          "Hold",
+          "Hold",
+          "Hold"
+        ],
+        "agent_confidences": [
+          0.65,
+          0.52,
+          0.65,
+          0.1,
+          0.65
+        ],
+        "winning_score": 1.13,
+        "total_score": 1.13,
+        "contrarian_confidence_discount": 1.0,
+        "review_flagged": false
+      },
+      "contrarian_adjusted": {
+        "collective_decision": "Hold",
+        "collective_confidence": 1.0,
+        "n_valid_signals": 5,
+        "agreement": true,
+        "disagreement_entropy": 0.0,
+        "opinion_dispersion": 0.1656,
+        "agent_decisions": [
+          "Hold",
+          "Hold",
+          "Hold",
+          "Hold",
+          "Hold"
+        ],
+        "agent_confidences": [
+          0.65,
+          0.52,
+          0.65,
+          0.1,
+          0.65
+        ],
+        "winning_score": 2.57,
+        "total_score": 2.57,
+        "contrarian_confidence_discount": 1.0,
+        "review_flagged": false
+      }
+    },
+    "debate_transcript": null
+  }
+}

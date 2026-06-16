@@ -1,0 +1,99 @@
+{
+  "metadata": {
+    "generated_at": "2026-06-16T13:46:45.269526+00:00",
+    "phase": 13,
+    "ticket": "E6-T2",
+    "description": "Phase 13 scenario evaluation \u2014 Dataset Family F",
+    "n_scenarios": 7,
+    "n_completed": 7,
+    "n_failed": 0
+  },
+  "alignment_rate": 0.5714285714285714,
+  "n_aligned": 4,
+  "per_regime_alignment": {
+    "crash": {
+      "aligned": 2,
+      "total": 3
+    },
+    "rate_shock": {
+      "aligned": 2,
+      "total": 3
+    },
+    "earnings_beat": {
+      "aligned": 0,
+      "total": 1
+    }
+  },
+  "scenarios": [
+    {
+      "scenario_id": "F-001",
+      "ticker": "AAPL",
+      "as_of_date": "2020-03-16",
+      "regime": "crash",
+      "event_description": "Black Monday II: COVID crash. S&P 500 fell 12% in a single session. VIX spiked above 80. Federal Reserve cut rates 100 bps in emergency action.",
+      "expected_direction": "Risk-Off",
+      "collective_decision": "Hold",
+      "aligned": true
+    },
+    {
+      "scenario_id": "F-001b",
+      "ticker": "JPM",
+      "as_of_date": "2020-03-16",
+      "regime": "crash",
+      "event_description": "Black Monday II: COVID crash. Banking sector under acute stress. Loan-loss provisions expected to spike.",
+      "expected_direction": "Risk-Off",
+      "collective_decision": "Hold",
+      "aligned": true
+    },
+    {
+      "scenario_id": "F-001c",
+      "ticker": "XOM",
+      "as_of_date": "2020-03-16",
+      "regime": "crash",
+      "event_description": "Black Monday II: COVID crash combined with oil price war. WTI crude fell below $30/bbl.",
+      "expected_direction": "Sell",
+      "collective_decision": "Hold",
+      "aligned": false
+    },
+    {
+      "scenario_id": "F-002",
+      "ticker": "AAPL",
+      "as_of_date": "2022-03-31",
+      "regime": "rate_shock",
+      "event_description": "Fed rate shock: CPI at 8.5% (40-year high). Fed signalled aggressive rate hiking path. Growth stocks under pressure from rising discount rates.",
+      "expected_direction": "Risk-Off",
+      "collective_decision": "Hold",
+      "aligned": true
+    },
+    {
+      "scenario_id": "F-002b",
+      "ticker": "JPM",
+      "as_of_date": "2022-03-31",
+      "regime": "rate_shock",
+      "event_description": "Fed rate shock: rising rates benefit bank net interest margins but increase recession risk. Mixed signal for financials.",
+      "expected_direction": "Hold",
+      "collective_decision": "Hold",
+      "aligned": true
+    },
+    {
+      "scenario_id": "F-002c",
+      "ticker": "XOM",
+      "as_of_date": "2022-03-31",
+      "regime": "rate_shock",
+      "event_description": "Fed rate shock + Russia/Ukraine: energy prices elevated, sanctions creating supply disruption. Macro tailwind for energy sector.",
+      "expected_direction": "Buy",
+      "collective_decision": "Hold",
+      "aligned": false
+    },
+    {
+      "scenario_id": "F-003",
+      "ticker": "AAPL",
+      "as_of_date": "2023-02-02",
+      "regime": "earnings_beat",
+      "event_description": "AAPL Q1 FY2023 earnings beat: EPS $1.88 vs $1.94 estimate \u2014 slight miss on EPS but beat on revenue. Services growth strong. Stock rallied +2.4% after hours. Provides a positive earnings surprise test.",
+      "expected_direction": "Buy",
+      "collective_decision": "Hold",
+      "aligned": false
+    }
+  ]
+}

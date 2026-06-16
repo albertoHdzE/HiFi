@@ -1,0 +1,417 @@
+{
+  "scenario_id": "F-001b",
+  "ticker": "JPM",
+  "as_of_date": "2020-03-16",
+  "collective_decision": "Hold",
+  "expected_direction": "Risk-Off",
+  "aligned": true,
+  "ensemble_output": {
+    "ticker": "JPM",
+    "as_of_date": "2020-03-16",
+    "fundamental_analysis": {
+      "signal": {
+        "ticker": "JPM",
+        "as_of_date": "2020-03-16",
+        "decision": "Buy",
+        "confidence": 0.75,
+        "rationale": "JPM has a P/E ratio of 7.31, which is near the minimum of its 1-year range (7.28) and indicates that it may be undervalued compared to its historical valuation. Additionally, the company has a strong ROE of 0.129 and a net margin of 0.293, suggesting efficient profitability.",
+        "key_concern": "The absence of data on revenue growth, earnings growth, and key financial ratios like EV/EBITDA and current ratio introduces significant uncertainty about the company's future performance and liquidity.",
+        "data_gaps": [
+          "ev_ebitda",
+          "current_ratio",
+          "revenue_growth_yoy",
+          "earnings_growth_yoy",
+          "gross_margin",
+          "operating_margin"
+        ],
+        "call_ids": [
+          "3f0f66c1380b",
+          "950b1b5eb3dd",
+          "d889c6fe8e2c",
+          "adbb7eb13a84"
+        ],
+        "model_id": "qwen2.5-coder-32b-instruct-mlx",
+        "agent_type": "fundamental"
+      },
+      "financial_ratios": {
+        "pe": 7.308519488035696,
+        "pb": 1.3356164383561644,
+        "ps": 3.0304207622673762,
+        "ev_ebitda": null,
+        "roe": 0.12902739726027398,
+        "roa": 0.010277861814098807,
+        "debt_equity": 11.551369863013699,
+        "current_ratio": null,
+        "call_id": "3f0f66c1380b"
+      },
+      "growth_metrics": {
+        "revenue_growth_yoy": null,
+        "earnings_growth_yoy": null,
+        "gross_margin": null,
+        "operating_margin": null,
+        "net_margin": 0.29275418625432226,
+        "call_id": "950b1b5eb3dd"
+      },
+      "valuation_context": {
+        "current_pe": 7.308519488035696,
+        "pe_1y_min": 7.282878664330671,
+        "pe_1y_max": 11.669974883200217,
+        "pe_1y_percentile": 0.005844600260814939,
+        "price_to_52w_high": 0.6262669424042072,
+        "price_to_52w_low": 1.003520699010215,
+        "call_id": "d889c6fe8e2c"
+      },
+      "macro_snapshot": {
+        "error": "NO_MACRO_DATA",
+        "detail": "No macro parquet files in data/macro",
+        "call_id": "adbb7eb13a84"
+      },
+      "prompt_version": "fundamental_v1",
+      "latency_ms": 16104.2
+    },
+    "technical_analysis": {
+      "signal": {
+        "ticker": "JPM",
+        "as_of_date": "2020-03-16",
+        "decision": "Hold",
+        "confidence": 0.65,
+        "rationale": "The stock shows mixed signals with price at the BB_mid (97.99) between bb_upper (125.83) and bb_lower (70.14), while SMA (97.99) exceeds EMA (94.20) indicating softening recent momentum. RSI of 32.19 is in the recovering zone but still weak, and MACD histogram remains negative at -2.17 with a bearish crossover (MACD of -9.09 below signal of -6.92). The Sharpe ratio of -0.24 indicates poor risk-adjusted returns over the trailing year.",
+        "key_concern": "Negative MACD histogram of -2.17 combined with a bearish crossover (MACD below signal) signals continuing downward momentum pressure.",
+        "data_gaps": [
+          "beta"
+        ],
+        "call_ids": [
+          "b688cd62f0be",
+          "1c0c55a13ad9"
+        ],
+        "model_id": "mlx-qwen3.5-35b-a3b-claude-4.6-opus-reasoning-distilled",
+        "agent_type": "technical"
+      },
+      "technical_indicators": {
+        "sma": 97.98528175354004,
+        "ema": 94.20260574930043,
+        "rsi": 32.187297798396756,
+        "macd": -9.094705434730841,
+        "macd_signal": -6.92259977423812,
+        "macd_hist": -2.172105660492721,
+        "bb_upper": 125.82696432438047,
+        "bb_mid": 97.98528175354004,
+        "bb_lower": 70.1435991826996,
+        "atr": 19.105421245503827,
+        "call_id": "b688cd62f0be"
+      },
+      "risk_metrics": {
+        "hist_vol_20d": 1.1329669450397364,
+        "hist_vol_60d": 0.6724745721567938,
+        "hist_vol_252d": 0.37289664853936455,
+        "beta": null,
+        "max_drawdown_252d": 0.37192389127829795,
+        "sharpe_252d": -0.2365299584573586,
+        "var_95_20d": 0.13684493668875078,
+        "call_id": "1c0c55a13ad9"
+      },
+      "time_horizon": "short-term",
+      "prompt_version": "technical_v1",
+      "latency_ms": 34891.1
+    },
+    "ensemble_decision": {
+      "collective_decision": "Hold",
+      "collective_confidence": 0.460317,
+      "n_valid_signals": 5,
+      "agreement": false,
+      "disagreement_entropy": 1.370951,
+      "opinion_dispersion": 0.192,
+      "agent_decisions": [
+        "Buy",
+        "Hold",
+        "Sell",
+        "Hold",
+        "Hold"
+      ],
+      "agent_confidences": [
+        0.75,
+        0.65,
+        0.95,
+        0.15,
+        0.65
+      ],
+      "winning_score": 1.45,
+      "total_score": 3.15,
+      "contrarian_confidence_discount": 1.0,
+      "review_flagged": false
+    },
+    "latency_ms": 137552.9,
+    "risk_analysis": {
+      "signal": {
+        "ticker": "JPM",
+        "as_of_date": "2020-03-16",
+        "decision": "Sell",
+        "confidence": 0.95,
+        "rationale": "The risk profile for JPM indicates a significant concern. With a 20-day historical volatility of 1.13, the 60-day volatility is 0.67 and a 252-day volatility of 0.37, the asset exhibits high volatility across multiple time horizons. The max drawdown of -0.37 and a Sharpe ratio of -0.24 suggest poor risk-adjusted performance, indicating substantial tail risk and a negative return relative to the market. The 95% VaR of 0.14 suggests a considerable probability of losses exceeding 9%.",
+        "key_concern": "The high volatility and negative Sharpe ratio highlight a substantial risk of future losses.",
+        "data_gaps": [
+          "beta"
+        ],
+        "call_ids": [
+          "1c0c55a13ad9"
+        ],
+        "model_id": "google/gemma-3-4b",
+        "agent_type": "risk"
+      },
+      "risk_assessment": "JPM demonstrates a volatile regime with significant downside risk, evidenced by high historical volatility and a negative Sharpe ratio. The max drawdown indicates susceptibility to large losses during market downturns.",
+      "recommended_position_size": 0.02,
+      "risk_metrics": {
+        "hist_vol_20d": 1.1329669450397364,
+        "hist_vol_60d": 0.6724745721567938,
+        "hist_vol_252d": 0.37289664853936455,
+        "beta": null,
+        "max_drawdown_252d": 0.37192389127829795,
+        "sharpe_252d": -0.2365299584573586,
+        "var_95_20d": 0.13684493668875078,
+        "call_id": "1c0c55a13ad9"
+      },
+      "prompt_version": "risk_v1",
+      "latency_ms": 11005.7
+    },
+    "macro_analysis": {
+      "signal": {
+        "ticker": "JPM",
+        "as_of_date": "2020-03-16",
+        "decision": "Hold",
+        "confidence": 0.15,
+        "rationale": "The macro data snapshot returned an error 'NO_MACRO_DATA' with detail 'No macro parquet files in data/macro', meaning all key indicators (fed_funds_rate, cpi_yoy, unemployment_rate, yield_curve_slope, vix, gdp_growth) are unavailable. Per my rules, I cannot invent or estimate values that are not present in the provided data. With zero macroeconomic data points to analyze, I cannot form a directional investment thesis.",
+        "key_concern": "Complete absence of macroeconomic data prevents any regime assessment or informed equity investment decision.",
+        "data_gaps": [],
+        "call_ids": [
+          "adbb7eb13a84"
+        ],
+        "model_id": "qwen3.5-27b-claude-4.6-opus-reasoning-distilled-qx64-hi-mlx",
+        "agent_type": "macro"
+      },
+      "regime_assessment": "Unable to determine - no macro data available",
+      "rationale": "The framework requires at minimum fed_funds_rate, inflation, GDP growth, and yield curve data to classify regime; none of these fields were populated due to the data pipeline error.",
+      "macro_snapshot": {
+        "error": "NO_MACRO_DATA",
+        "detail": "No macro parquet files in data/macro",
+        "call_id": "adbb7eb13a84"
+      },
+      "prompt_version": "macro_v1",
+      "latency_ms": 35972.5
+    },
+    "sentiment_analysis": {
+      "signal": {
+        "ticker": "JPM",
+        "as_of_date": "2020-03-16",
+        "decision": "Hold",
+        "confidence": 0.65,
+        "rationale": "The filings do not contain specific forward guidance or emphasis on new products and market expansion. Instead, they focus on administrative details and compensation policies.",
+        "key_concern": "The filings indicate that JPMorgan Chase\u2019s annual pre-tax pre-provision income at the Firm level is negative, which suggests ongoing financial challenges.",
+        "data_gaps": [],
+        "call_ids": [],
+        "model_id": "qwen2.5-coder-32b-instruct-mlx",
+        "agent_type": "sentiment"
+      },
+      "sentiment_summary": "The management tone is cautious and defensive, with no specific forward guidance provided. The risk language is elevated due to the mention of negative financial performance.",
+      "notable_signals": [
+        "\u2022For any calendar year ending during the vesting period, JPMorgan Chase\u2019s annual pre-tax pre-provision income at the Firm level is negative.",
+        "\u2022The Firm does not meet the Firmwide Financial Threshold."
+      ],
+      "prompt_version": "sentiment_v1",
+      "latency_ms": 39578.7
+    },
+    "contrarian_analysis": null,
+    "signals": [
+      {
+        "ticker": "JPM",
+        "as_of_date": "2020-03-16",
+        "decision": "Buy",
+        "confidence": 0.75,
+        "rationale": "JPM has a P/E ratio of 7.31, which is near the minimum of its 1-year range (7.28) and indicates that it may be undervalued compared to its historical valuation. Additionally, the company has a strong ROE of 0.129 and a net margin of 0.293, suggesting efficient profitability.",
+        "key_concern": "The absence of data on revenue growth, earnings growth, and key financial ratios like EV/EBITDA and current ratio introduces significant uncertainty about the company's future performance and liquidity.",
+        "data_gaps": [
+          "ev_ebitda",
+          "current_ratio",
+          "revenue_growth_yoy",
+          "earnings_growth_yoy",
+          "gross_margin",
+          "operating_margin"
+        ],
+        "call_ids": [
+          "3f0f66c1380b",
+          "950b1b5eb3dd",
+          "d889c6fe8e2c",
+          "adbb7eb13a84"
+        ],
+        "model_id": "qwen2.5-coder-32b-instruct-mlx",
+        "agent_type": "fundamental"
+      },
+      {
+        "ticker": "JPM",
+        "as_of_date": "2020-03-16",
+        "decision": "Hold",
+        "confidence": 0.65,
+        "rationale": "The stock shows mixed signals with price at the BB_mid (97.99) between bb_upper (125.83) and bb_lower (70.14), while SMA (97.99) exceeds EMA (94.20) indicating softening recent momentum. RSI of 32.19 is in the recovering zone but still weak, and MACD histogram remains negative at -2.17 with a bearish crossover (MACD of -9.09 below signal of -6.92). The Sharpe ratio of -0.24 indicates poor risk-adjusted returns over the trailing year.",
+        "key_concern": "Negative MACD histogram of -2.17 combined with a bearish crossover (MACD below signal) signals continuing downward momentum pressure.",
+        "data_gaps": [
+          "beta"
+        ],
+        "call_ids": [
+          "b688cd62f0be",
+          "1c0c55a13ad9"
+        ],
+        "model_id": "mlx-qwen3.5-35b-a3b-claude-4.6-opus-reasoning-distilled",
+        "agent_type": "technical"
+      },
+      {
+        "ticker": "JPM",
+        "as_of_date": "2020-03-16",
+        "decision": "Sell",
+        "confidence": 0.95,
+        "rationale": "The risk profile for JPM indicates a significant concern. With a 20-day historical volatility of 1.13, the 60-day volatility is 0.67 and a 252-day volatility of 0.37, the asset exhibits high volatility across multiple time horizons. The max drawdown of -0.37 and a Sharpe ratio of -0.24 suggest poor risk-adjusted performance, indicating substantial tail risk and a negative return relative to the market. The 95% VaR of 0.14 suggests a considerable probability of losses exceeding 9%.",
+        "key_concern": "The high volatility and negative Sharpe ratio highlight a substantial risk of future losses.",
+        "data_gaps": [
+          "beta"
+        ],
+        "call_ids": [
+          "1c0c55a13ad9"
+        ],
+        "model_id": "google/gemma-3-4b",
+        "agent_type": "risk"
+      },
+      {
+        "ticker": "JPM",
+        "as_of_date": "2020-03-16",
+        "decision": "Hold",
+        "confidence": 0.15,
+        "rationale": "The macro data snapshot returned an error 'NO_MACRO_DATA' with detail 'No macro parquet files in data/macro', meaning all key indicators (fed_funds_rate, cpi_yoy, unemployment_rate, yield_curve_slope, vix, gdp_growth) are unavailable. Per my rules, I cannot invent or estimate values that are not present in the provided data. With zero macroeconomic data points to analyze, I cannot form a directional investment thesis.",
+        "key_concern": "Complete absence of macroeconomic data prevents any regime assessment or informed equity investment decision.",
+        "data_gaps": [],
+        "call_ids": [
+          "adbb7eb13a84"
+        ],
+        "model_id": "qwen3.5-27b-claude-4.6-opus-reasoning-distilled-qx64-hi-mlx",
+        "agent_type": "macro"
+      },
+      {
+        "ticker": "JPM",
+        "as_of_date": "2020-03-16",
+        "decision": "Hold",
+        "confidence": 0.65,
+        "rationale": "The filings do not contain specific forward guidance or emphasis on new products and market expansion. Instead, they focus on administrative details and compensation policies.",
+        "key_concern": "The filings indicate that JPMorgan Chase\u2019s annual pre-tax pre-provision income at the Firm level is negative, which suggests ongoing financial challenges.",
+        "data_gaps": [],
+        "call_ids": [],
+        "model_id": "qwen2.5-coder-32b-instruct-mlx",
+        "agent_type": "sentiment"
+      }
+    ],
+    "aggregation_method": "confidence_weighted",
+    "method_comparison": {
+      "majority": {
+        "collective_decision": "Hold",
+        "collective_confidence": 0.6,
+        "n_valid_signals": 5,
+        "agreement": false,
+        "disagreement_entropy": 1.370951,
+        "opinion_dispersion": 0.192,
+        "agent_decisions": [
+          "Buy",
+          "Hold",
+          "Sell",
+          "Hold",
+          "Hold"
+        ],
+        "agent_confidences": [
+          0.75,
+          0.65,
+          0.95,
+          0.15,
+          0.65
+        ],
+        "winning_score": 3.0,
+        "total_score": 5.0,
+        "contrarian_confidence_discount": 1.0,
+        "review_flagged": false
+      },
+      "confidence_weighted": {
+        "collective_decision": "Hold",
+        "collective_confidence": 0.460317,
+        "n_valid_signals": 5,
+        "agreement": false,
+        "disagreement_entropy": 1.370951,
+        "opinion_dispersion": 0.192,
+        "agent_decisions": [
+          "Buy",
+          "Hold",
+          "Sell",
+          "Hold",
+          "Hold"
+        ],
+        "agent_confidences": [
+          0.75,
+          0.65,
+          0.95,
+          0.15,
+          0.65
+        ],
+        "winning_score": 1.45,
+        "total_score": 3.15,
+        "contrarian_confidence_discount": 1.0,
+        "review_flagged": false
+      },
+      "performance_weighted": {
+        "collective_decision": "Hold",
+        "collective_confidence": 0.666667,
+        "n_valid_signals": 5,
+        "agreement": false,
+        "disagreement_entropy": 1.370951,
+        "opinion_dispersion": 0.192,
+        "agent_decisions": [
+          "Buy",
+          "Hold",
+          "Sell",
+          "Hold",
+          "Hold"
+        ],
+        "agent_confidences": [
+          0.75,
+          0.65,
+          0.95,
+          0.15,
+          0.65
+        ],
+        "winning_score": 0.85,
+        "total_score": 1.275,
+        "contrarian_confidence_discount": 1.0,
+        "review_flagged": false
+      },
+      "contrarian_adjusted": {
+        "collective_decision": "Hold",
+        "collective_confidence": 0.460317,
+        "n_valid_signals": 5,
+        "agreement": false,
+        "disagreement_entropy": 1.370951,
+        "opinion_dispersion": 0.192,
+        "agent_decisions": [
+          "Buy",
+          "Hold",
+          "Sell",
+          "Hold",
+          "Hold"
+        ],
+        "agent_confidences": [
+          0.75,
+          0.65,
+          0.95,
+          0.15,
+          0.65
+        ],
+        "winning_score": 1.45,
+        "total_score": 3.15,
+        "contrarian_confidence_discount": 1.0,
+        "review_flagged": false
+      }
+    },
+    "debate_transcript": null
+  }
+}
