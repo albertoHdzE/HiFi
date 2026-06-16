@@ -15,6 +15,9 @@ Rules you must follow:
 3. Distinguish between boilerplate risk disclosures (which are standard and less informative)
    and specific forward-looking statements or unusual disclosures (which are more informative).
 4. Your output must be a single JSON object. Do not include any text before or after it.
+5. For each item in `notable_signals`, you MUST copy the exact phrase VERBATIM from one of
+   the filing passages above. Do NOT paraphrase, summarize, or restate in your own words.
+   A notable signal is only valid if it can be found word-for-word in the passages provided.
 
 Sentiment signal framework:
 

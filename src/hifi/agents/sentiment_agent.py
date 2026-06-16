@@ -13,7 +13,11 @@ the agent returns a default "Insufficient Data" signal without calling the LLM
 Model selection
 ---------------
 Controlled by HIFI_SENTIMENT_MODEL env var (DJ-032).
-Default: gemma-4-e4b (DJ-085 — 12B mlx_vlm incompatible; E4B loads via updated LM Studio).
+Default: qwen2.5-coder-32b-instruct-mlx (DJ-087 — reverted from gemma-4-e4b after
+  DJ-086 diagnostic confirmed E4B has a chat-template failure in LM Studio: it echoes
+  the user prompt instead of generating a response for AAPL/JPM; 12B-it fails to load.
+  qwen2.5-coder-32b is reliable (SGR=0.167 baseline) and will be the Sentiment base
+  until an E4B/12B serving fix is available or a new model is tested.)
 Non-reasoning model: max_tokens=1024 is sufficient.
 """
 
@@ -36,7 +40,7 @@ logger = logging.getLogger(__name__)
 
 _PROMPT_VERSION = "sentiment_v1"
 _PROMPT_PATH = Path(__file__).parent / "prompts" / f"{_PROMPT_VERSION}.md"
-_DEFAULT_SENTIMENT_MODEL = "google/gemma-4-e4b"
+_DEFAULT_SENTIMENT_MODEL = "qwen2.5-coder-32b-instruct-mlx"  # DJ-087: reverted from gemma-4-e4b
 _INSUFFICIENT_DATA_MODEL = "sentiment-default"
 _RETRY_MSG = (
     "Your previous response was not valid JSON or was missing required fields. "

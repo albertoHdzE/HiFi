@@ -9,7 +9,7 @@
     ],
     "as_of_date": "2023-03-31",
     "run_date": "2026-06-15",
-    "hifi_commit": "d95d5e8"
+    "hifi_commit": "bbcefbe"
   },
   "reports": {
     "AAPL": {
@@ -82,12 +82,23 @@
         "flag_high_hr": false
       },
       "sentiment": {
-        "ticker": "",
-        "as_of_date": "",
-        "n_signals": 0,
+        "ticker": "AAPL",
+        "as_of_date": "2023-03-31",
+        "n_signals": 2,
         "n_grounded": 0,
         "grounding_rate": 0.0,
-        "results": []
+        "results": [
+          {
+            "signal_text": "The filings do not contain any specific forward guidance on revenue, margins, or market expansion.",
+            "grounded": false,
+            "matched_chunk": null
+          },
+          {
+            "signal_text": "The language is primarily procedural and does not provide insights into management's outlook or risk factors.",
+            "grounded": false,
+            "matched_chunk": null
+          }
+        ]
       }
     },
     "JPM": {
@@ -174,12 +185,23 @@
         "flag_high_hr": false
       },
       "sentiment": {
-        "ticker": "",
-        "as_of_date": "",
-        "n_signals": 0,
-        "n_grounded": 0,
-        "grounding_rate": 0.0,
-        "results": []
+        "ticker": "JPM",
+        "as_of_date": "2023-03-31",
+        "n_signals": 2,
+        "n_grounded": 2,
+        "grounding_rate": 1.0,
+        "results": [
+          {
+            "signal_text": "For any calendar year ending during the vesting period, JPMorgan Chase\u2019s annual pre-tax pre-provision income at the Firm level is negative.",
+            "grounded": true,
+            "matched_chunk": "for any calendar year ending during the vesting period, jpmorgan chase\u2019s annual pre-tax pre-provision income at the firm level is negative."
+          },
+          {
+            "signal_text": "On March 1, 2023, JPMorgan Chase & Co. issued a press release announcing that, after June\u00a030, 2023, CME Term SOFR will be the replacement reference rate for certain outstanding floating rate and fixed-to-floating rate debt securities, preferred stock and certificates of deposit issued by JPMorgan Chase & Co., JPMorgan Chase Financial Company LLC and JPMorgan Chase Bank, N.A. that use U.S. dollar LIBOR as the reference rate and that are governed by New York or Delaware law.",
+            "grounded": true,
+            "matched_chunk": "on march 1, 2023, jpmorgan chase & co. issued a press release announcing that, after june\u00a030, 2023, cme term sofr will be the replacement reference rate for certain outstanding floating rate and fixed-to-floating rate debt securities, preferred stock and certificates of deposit issued by jpmorgan chase & co., jpmorgan chase financial company llc and jpmorgan chase bank, n.a. that use u.s. dollar libor as the reference rate and that are governed by new york or delaware law."
+          }
+        ]
       }
     },
     "XOM": {
@@ -256,18 +278,18 @@
         "ticker": "XOM",
         "as_of_date": "2023-03-31",
         "n_signals": 2,
-        "n_grounded": 0,
-        "grounding_rate": 0.0,
+        "n_grounded": 2,
+        "grounding_rate": 1.0,
         "results": [
           {
-            "signal_text": "The filings contain standard annual and quarterly report certifications from Darren W. Woods, confirming the financial condition of Exxon Mobil Corporation as of year-end 2022.",
-            "grounded": false,
-            "matched_chunk": null
+            "signal_text": "I have reviewed this quarterly report on Form 10-Q of Exxon Mobil Corporation;",
+            "grounded": true,
+            "matched_chunk": "i have reviewed this quarterly report on form 10-q of exxon mobil corporation;"
           },
           {
-            "signal_text": "The most recent document is an 8-K filing from February 21, 2023, which updates the entity information but does not contain new operational guidance.",
-            "grounded": false,
-            "matched_chunk": null
+            "signal_text": "I have reviewed this annual report on Form 10-K of Exxon Mobil Corporation;",
+            "grounded": true,
+            "matched_chunk": "i have reviewed this annual report on form 10-k of exxon mobil corporation;"
           }
         ]
       }
@@ -299,9 +321,9 @@
       "n_flagged_high_hr": 0
     },
     "sentiment": {
-      "mean_sgr": 0.0,
-      "n_signals_total": 2,
-      "n_grounded_total": 0,
+      "mean_sgr": 0.666667,
+      "n_signals_total": 6,
+      "n_grounded_total": 4,
       "n_tickers": 3
     }
   }

@@ -497,7 +497,63 @@ uv run python scripts/diagnose_sentiment_sgr.py --all-tickers
 **Decision gate:** Must complete diagnostic before re-running baseline. Record final
 choice in this file and update MEMORY.md + STATUS.md.
 
-**Status:** PENDING — diagnostic script created; must run against LM Studio.
+**Diagnostic results (2026-06-15, commit bbcefbe):**
+
+Run: `uv run python scripts/diagnose_sentiment_sgr.py --all-tickers`
+
+| Ticker | E4B result | 12B-it result |
+|--------|-----------|---------------|
+| AAPL | Echoes user prompt template verbatim — JSON parse FAILED | Failed to load model |
+| JPM  | Echoes retrieved SEC filing passages — JSON parse FAILED | Failed to load model |
+| XOM  | JSON parsed (Hold, conf=0.7), notable_signals paraphrases → SGR=0 | Failed to load model |
+
+Root cause (two distinct failures):
+1. **E4B / AAPL + JPM**: Chat template not applied by LM Studio — model echoes the
+   user message content instead of generating an assistant response. Not fixable via
+   prompt engineering; requires LM Studio serving configuration fix for Gemma 4 E4B.
+2. **E4B / XOM**: JSON parsed but `notable_signals` are paraphrases/summaries, not
+   verbatim quotations. Exact substring matching (DJ-072) fails → SGR=0.
+3. **12B-it MLX**: Listed in LM Studio API but fails to load ("Failed to load model"
+   error) — likely memory pressure from other loaded models.
+
+**Decision: Option E (not listed above) — Revert + Prompt Fix (recorded as DJ-087)**
+
+See DJ-087 below. DJ-086 status: RESOLVED — diagnostic complete, root causes confirmed.
+
+---
+
+### DJ-087: Sentiment Model Revert to qwen2.5-coder-32b + Verbatim Quote Rule
+
+**Problem:** DJ-086 diagnostic confirms Gemma 4 E4B is non-functional as Sentiment base:
+1. Chat template failure in LM Studio causes AAPL/JPM to echo the prompt (not a model
+   issue per se, but an unresolvable deployment problem in Phase 13 timeframe).
+2. Even when E4B generates a response (XOM), notable_signals are paraphrases → SGR=0.
+3. 12B-it MLX is unavailable despite appearing in the LM Studio model list (fails to load).
+
+**Decision:** Revert `_DEFAULT_SENTIMENT_MODEL` in `sentiment_agent.py` to
+`qwen2.5-coder-32b-instruct-mlx` (the pre-DJ-080 / pre-DJ-085 configuration).
+
+Simultaneously: add Rule 5 to `sentiment_v1.md` prompt:
+*"For each item in `notable_signals`, copy the exact phrase VERBATIM from the passages.
+Do NOT paraphrase or summarize."*
+
+Rationale:
+- qwen2.5-coder-32b reliably follows instructions (Phase 13 E0 SGR=0.167 baseline
+  used this model; that baseline was measured with the old prompt lacking Rule 5).
+- Rule 5 directly targets the paraphrasing failure mode observed in E4B/XOM.
+- With the improved prompt, qwen2.5-coder-32b SGR may improve from 0.167 baseline.
+- Diversity downside (3 agents on qwen2.5): acceptable given the alternative is
+  a non-functional Sentiment agent for Phase 14 (paper trading).
+- Path to diversity: revisit Gemma 4 model family when LM Studio chat template issue
+  is resolved or when a different model becomes stably available.
+
+**Actions:**
+1. `src/hifi/agents/sentiment_agent.py`: `_DEFAULT_SENTIMENT_MODEL` ← `qwen2.5-coder-32b-instruct-mlx`
+2. `src/hifi/agents/prompts/sentiment_v1.md`: add verbatim-quoting Rule 5
+3. Re-run `scripts/run_phase13_verification_baseline.py` → update baseline fixture
+4. Update model diversity table in STATUS.md (DJ-032 table)
+
+**Status:** IMPLEMENTED (2026-06-15). Baseline re-run pending (requires LM Studio qwen run).
 
 ---
 
