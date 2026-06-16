@@ -1,0 +1,105 @@
+{
+  "metadata": {
+    "generated_at": "2026-06-16T00:47:00.922001+00:00",
+    "phase": 13,
+    "ticket": "E5-T5",
+    "description": "Drift monitor calibration on 2022 rate-shock regime change",
+    "ks_chisq_baseline_period": "2020-01-02 to 2021-12-31",
+    "cusum_baseline_period": "2021-01-04 to 2021-12-31 (2021 only; COVID-2020 excluded to avoid extreme vol inflating mean)",
+    "recent_period": "2022-01-03 to 2023-06-30",
+    "primary_tickers": [
+      "AAPL",
+      "JPM",
+      "XOM"
+    ],
+    "cusum_panel_tickers": [
+      "AAPL",
+      "AMZN",
+      "BAC",
+      "CAT",
+      "CVX",
+      "GOOGL",
+      "GS",
+      "JNJ",
+      "JPM",
+      "MSFT",
+      "NEE",
+      "NVDA",
+      "SPY",
+      "UNH",
+      "WMT",
+      "XOM"
+    ],
+    "ks_chisq_baseline_n": 1515,
+    "recent_n": 1122
+  },
+  "data_drift_ks": {
+    "alert": true,
+    "min_p_value": 3.3523943466907025e-13,
+    "threshold": 0.05,
+    "feature_alerts": [
+      "realized_vol",
+      "rsi_14"
+    ],
+    "description": "KS test across 2 features: ALERT \u2014 realized_vol, rsi_14 below threshold. Minimum p-value: 0.0000."
+  },
+  "agent_drift_chisq": {
+    "alert": true,
+    "chi_squared": 29.808413670938595,
+    "p_value": 3.3665511256927364e-07,
+    "threshold": 0.05,
+    "baseline_distribution": {
+      "Buy": 0.38415841584158417,
+      "Hold": 0.4198019801980198,
+      "Sell": 0.19603960396039605
+    },
+    "recent_distribution": {
+      "Buy": 0.33511586452762926,
+      "Hold": 0.40641711229946526,
+      "Sell": 0.25846702317290554
+    },
+    "description": "Chi-squared test (n=1122): \u03c7\u00b2=29.808, p=0.0000. ALERT \u2014 decision distribution shifted."
+  },
+  "collective_drift_cusum": {
+    "alert": true,
+    "cusum_ck": 48.56522851292623,
+    "threshold_3sigma": 0.5341329255704325,
+    "cusum_baseline_herding_mean": 0.28000992063492064,
+    "cusum_baseline_herding_std": 0.1780443085234775,
+    "recent_herding_mean": 0.49782754010695185,
+    "herding_proxy": "fraction of panel tickers below their 50-day moving average",
+    "description": "CUSUM (n=374): C_k=48.5652, threshold=0.5341 (3\u03c3). ALERT \u2014 collective herding drift detected."
+  },
+  "per_ticker_feature_stats": {
+    "AAPL": {
+      "baseline_vol_mean": 0.32820300968566346,
+      "recent_vol_mean": 0.30616003007086573,
+      "vol_ratio": 0.9328373629604756,
+      "baseline_rsi_mean": 57.450648062560674,
+      "recent_rsi_mean": 52.391600345091696
+    },
+    "JPM": {
+      "baseline_vol_mean": 0.3332315227872124,
+      "recent_vol_mean": 0.273722467055436,
+      "vol_ratio": 0.8214182882998846,
+      "baseline_rsi_mean": 53.055188984176766,
+      "recent_rsi_mean": 50.135276809861864
+    },
+    "XOM": {
+      "baseline_vol_mean": 0.3819469661507215,
+      "recent_vol_mean": 0.3198672370944537,
+      "vol_ratio": 0.8374650552093394,
+      "baseline_rsi_mean": 49.87610888002703,
+      "recent_rsi_mean": 55.128496181531396
+    }
+  },
+  "regime_detected": {
+    "all_three": true,
+    "any": true,
+    "by_monitor": {
+      "data_drift_ks": true,
+      "agent_drift_chisq": true,
+      "collective_drift_cusum": true
+    }
+  }
+}

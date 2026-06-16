@@ -10,7 +10,9 @@ DOCKER_ENV_FILE     := docker/langfuse/.env
 	bootstrap baseline-phase10 \
 	finetune-setup finetune-train finetune-serve finetune-stop \
 	generate-reference-strategies label-outcomes baseline-phase11 \
-	test-live
+	test-live \
+	calibrate-drift verification-baseline-p13 diagnose-sentiment-sgr \
+	eval-debate-multiround eval-memory run-scenarios validate-sentiment-corpus
 
 FINETUNE_VENV := venvs/finetune/bin/python
 
@@ -265,3 +267,34 @@ baseline-phase12: ## Phase 12 baseline: build graph + 1-date pilot run + unit te
 	             tests/unit/test_debate_nodes.py \
 	             tests/unit/test_run_debate.py \
 	             -q --tb=short
+
+# ---------------------------------------------------------------------------
+# Phase 13: Verification Completeness, Sentiment Intelligence, Resilience
+# ---------------------------------------------------------------------------
+
+calibrate-drift: ## E5-T5: Calibrate drift monitors on 2022 rate-shock regime (no LM Studio)
+	uv run python scripts/check_env.py --check market-data || $(MAKE) acquire-data
+	uv run python scripts/calibrate_drift_monitors.py
+
+verification-baseline-p13: ## E0-T6: Run Phase 13 verification baseline for Risk/Macro/Sentiment (requires LM Studio)
+	uv run python scripts/check_env.py --check lm-studio
+	uv run python scripts/run_phase13_verification_baseline.py
+
+diagnose-sentiment-sgr: ## DJ-086: Diagnose Gemma 4 E4B / 12B-it SGR failure (requires LM Studio)
+	uv run python scripts/check_env.py --check lm-studio
+	uv run python scripts/diagnose_sentiment_sgr.py --all-tickers
+
+validate-sentiment-corpus: ## E1-T1: Validate Phase 7 EDGAR corpus for Sentiment FT gate (requires LanceDB)
+	uv run python scripts/validate_sentiment_corpus.py
+
+eval-debate-multiround: ## E2-T4: Multi-round debate eval → OQ-D04 (requires LM Studio)
+	uv run python scripts/check_env.py --check lm-studio
+	uv run python scripts/run_phase13_debate_eval.py
+
+eval-memory: ## E4-T4: Agent memory influence eval → OQ-M03 (requires LM Studio)
+	uv run python scripts/check_env.py --check lm-studio
+	uv run python scripts/run_phase13_memory_eval.py
+
+run-scenarios: ## E6-T2: Run F-001/F-002/F-003 synthetic scenarios (requires LM Studio)
+	uv run python scripts/check_env.py --check lm-studio
+	uv run python scripts/run_phase13_scenarios.py
