@@ -1,7 +1,7 @@
 # HiFi Project Status
 
-**Last Updated:** 2026-06-16 (Phase 13 COMPLETE; Phase 14 architecture decisions DJ-088–DJ-094)
-**Current Phase:** Phase 14 (PLANNING — branch: phase14/heterogeneous-ensemble)
+**Last Updated:** 2026-06-17 (Phase 14 Wave 2 in progress)
+**Current Phase:** Phase 14 (IN PROGRESS — branch: phase14/heterogeneous-ensemble)
 
 ---
 
@@ -36,7 +36,7 @@ HiFi is a fully local multi-agent financial intelligence platform. Read these in
 | 12 | GraphRAG + Structured Debate | COMPLETE | plans/PHASE_12_PLAN.md | doc/bitacora/PHASE_12_GRAPHRAG_DEBATE.md |
 | 12.1 | Completion and Correction | COMPLETE | plans/PHASE_12.1_PLAN.md | doc/bitacora/PHASE_12.1_COMPLETION.md |
 | 13 | Verification Completeness, Sentiment Intelligence, System Resilience | COMPLETE | plans/PHASE_13_PLAN.md | doc/bitacora/PHASE_13_ADVANCED_FEATURES.md |
-| 14 | Infrastructure: Model Diversity, Scale Expansion, MCP Tools (DJ-088) | PLANNING | plans/PHASE_14_CONTEXT.md | -- |
+| 14 | Infrastructure: Model Diversity, Scale Expansion, MCP Tools (DJ-088) | IN PROGRESS | plans/PHASE_14_PLAN.md | -- |
 | 15 | Historical Walk-Forward Simulation (DJ-088) | NOT STARTED | -- | -- |
 | 16 | Live Paper Trading — IBKR (DJ-088) | NOT STARTED | -- | -- |
 | 17 | Ablation Studies + Capstone Deliverable | NOT STARTED | -- | -- |
@@ -141,6 +141,28 @@ HiFi is a fully local multi-agent financial intelligence platform. Read these in
 | DJ-085 | Sentiment model → gemma-4-e4b (SUPERSEDED by DJ-087) |
 | DJ-086 | E4B diagnosis: chat-template failure in LM Studio |
 | DJ-087 | Revert Sentiment to qwen2.5-coder + verbatim Rule 5 |
+
+---
+
+## Phase 14 Status (IN PROGRESS — 2026-06-17)
+
+**Tests:** 1343 passed, 0 lint errors (src/ + tests/ only)
+**Branch:** phase14/heterogeneous-ensemble
+
+### Wave 1 — COMPLETE (no LLM required)
+- E2-T1: PHASE14_UNIVERSE (98 tickers, 11 GICS sectors) ✓
+- E4-T1: hifi-portfolio-composer MCP server (deterministic) ✓
+- E6-T1: NamespacedLanceDB + KnowledgeStore namespace param ✓
+
+### Wave 2 — IN PROGRESS (requires LM Studio)
+- E0-T1: lm_client.py Phase 14 model constants (LLAMA_33_70B, MISTRAL_SMALL_32, DEEPSEEK_R1_DISTILL_32B, GEMMA3_12B) ✓
+- E0-T2: test mock regression fixed (lambda → lambda *args) ✓
+- E0-T2/T4/T5 + E0-T3: **scripts/run_phase14_e0_full.py** — fully automated, zero manual steps ✓ (READY TO RUN)
+
+### NEXT ACTION
+Run: `uv run python scripts/run_phase14_e0_full.py --data-dir data`
+(LM Studio must be running; no model needs to be pre-loaded)
+Use `--skip-diversity` for fast T2+T4+T3 run (~25 min); omit for full T5 diversity (~2 hrs)
 
 ---
 

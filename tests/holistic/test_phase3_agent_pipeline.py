@@ -131,7 +131,7 @@ def test_parse_output_node_produces_valid_signal(monkeypatch, aapl_snapshot_json
             raise AssertionError("LLM should not be called when first parse succeeds")
 
     import hifi.agents.fundamental_agent as fa
-    monkeypatch.setattr(fa, "make_llm", lambda: _StubLLM())
+    monkeypatch.setattr(fa, "make_llm", lambda *args, **kwargs: _StubLLM())
 
     state: FundamentalistState = {
         "ticker": "AAPL",
@@ -179,7 +179,7 @@ def test_full_agent_pipeline_aapl(monkeypatch, fixtures_data_dir, aapl_snapshot_
 
     stub = _StubLLM()
     import hifi.agents.fundamental_agent as fa
-    monkeypatch.setattr(fa, "make_llm", lambda: stub)
+    monkeypatch.setattr(fa, "make_llm", lambda *args, **kwargs: stub)
 
     analysis = run_analysis(
         ticker="AAPL",
@@ -216,7 +216,7 @@ def test_full_agent_pipeline_json_safe(monkeypatch, fixtures_data_dir, aapl_snap
             return R()
 
     import hifi.agents.fundamental_agent as fa
-    monkeypatch.setattr(fa, "make_llm", lambda: _StubLLM())
+    monkeypatch.setattr(fa, "make_llm", lambda *args, **kwargs: _StubLLM())
 
     analysis = run_analysis(
         ticker="AAPL",
