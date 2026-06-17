@@ -19,6 +19,7 @@ from typing import Any
 
 import pyarrow as pa
 
+from hifi.knowledge.namespaced_store import NamespacedLanceDB
 from hifi.knowledge.schemas import DocumentChunk
 
 logger = logging.getLogger(__name__)
@@ -67,6 +68,7 @@ class KnowledgeStore:
         data_dir: Path,
         chunking_config: str = "A",
         dimensions: int = 768,
+        namespace: str = "",
     ) -> None:
         config = chunking_config.upper()
         if config not in _VALID_CONFIGS:
@@ -82,23 +84,12 @@ class KnowledgeStore:
         db_path = Path(data_dir) / "knowledge.lance"
         db_path.mkdir(parents=True, exist_ok=True)
 
-        import lancedb
-
-        self._db = lancedb.connect(str(db_path))
+        self._ns = NamespacedLanceDB(str(db_path), namespace)
         self._table = self._open_or_create_table()
 
     def _open_or_create_table(self) -> Any:
         """Open the table if it exists, otherwise create it."""
-
-        existing = self._db.list_tables().tables
-        if self._table_name in existing:
-            return self._db.open_table(self._table_name)
-        # Create an empty table with the correct schema
-        empty = pa.table(
-            {field.name: pa.array([], type=field.type) for field in self._schema},
-            schema=self._schema,
-        )
-        return self._db.create_table(self._table_name, data=empty)
+        return self._ns.open_or_create_table(self._table_name, self._schema)
 
     def index_chunks(
         self,
@@ -306,6 +297,6 @@ class KnowledgeStore:
         import contextlib
 
         with contextlib.suppress(Exception):
-            self._db.drop_table(self._table_name)
+            self._ns.drop_table(self._table_name)
         self._table = self._open_or_create_table()
         logger.debug("Cleared table %s", self._table_name)
