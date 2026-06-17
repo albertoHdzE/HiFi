@@ -44,6 +44,7 @@ from pathlib import Path
 from langchain_core.messages import HumanMessage, SystemMessage
 from typing_extensions import TypedDict
 
+from hifi.agents.lm_client import _DEFAULT_MODEL as _LM_DEFAULT
 from hifi.agents.lm_client import make_llm
 from hifi.agents.mcp_client import call_tool
 from hifi.agents.schemas import AgentSignal, FundamentalAnalysis
@@ -51,6 +52,14 @@ from hifi.data.schemas import FundamentalsSnapshot
 from hifi.observability.tracing import AbstractTracer, get_tracer, trace_context
 
 logger = logging.getLogger(__name__)
+
+# Phase 13 default (qwen2.5-coder-32b); updated to Llama 3.3 in E0-T3.
+# Control via HIFI_FUNDAMENTAL_MODEL env var (same pattern as HIFI_RISK_MODEL).
+_DEFAULT_FUNDAMENTAL_MODEL = _LM_DEFAULT
+
+
+def _fundamental_model() -> str:
+    return os.environ.get("HIFI_FUNDAMENTAL_MODEL", _DEFAULT_FUNDAMENTAL_MODEL)
 
 _PROMPT_VERSION = "fundamental_v1"
 _PROMPT_V2_VERSION = "fundamental_v2"
@@ -313,7 +322,7 @@ def generate_analysis_node(state: FundamentalistState) -> dict:
     elif _ft_url:
         llm = make_llm(base_url=_ft_url)
     else:
-        llm = make_llm()
+        llm = make_llm(_fundamental_model())
     messages = [SystemMessage(content=system_text), HumanMessage(content=user_text)]
     response = llm.invoke(messages)
     return {"llm_response": response.content}
@@ -353,7 +362,7 @@ def parse_output_node(state: FundamentalistState) -> dict:
     elif _ft_url:
         llm = make_llm(base_url=_ft_url)
     else:
-        llm = make_llm()
+        llm = make_llm(_fundamental_model())
     model_id = llm.model_name
 
     def _try_parse(text: str) -> AgentSignal | None:

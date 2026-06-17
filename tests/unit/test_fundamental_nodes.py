@@ -164,7 +164,7 @@ def test_parse_output_node_extracts_signal_from_valid_json(monkeypatch):
             raise AssertionError("LLM should not be called on successful first parse")
 
     import hifi.agents.fundamental_agent as fa
-    monkeypatch.setattr(fa, "make_llm", lambda: _StubLLM())
+    monkeypatch.setattr(fa, "make_llm", lambda *a, **kw: _StubLLM())
 
     state = _make_state(
         llm_response=valid_response,
@@ -192,7 +192,7 @@ def test_parse_output_node_sets_error_after_failed_retry(monkeypatch):
             return _Resp()
 
     import hifi.agents.fundamental_agent as fa
-    monkeypatch.setattr(fa, "make_llm", lambda: _StubLLMAlwaysInvalid())
+    monkeypatch.setattr(fa, "make_llm", lambda *a, **kw: _StubLLMAlwaysInvalid())
 
     state = _make_state(
         llm_response="not valid json",
