@@ -172,8 +172,8 @@ def _lm_api(method: str, path: str, body: dict | None = None, timeout_s: int = 3
 
 def _get_loaded_ids() -> set[str]:
     try:
-        result = _lm_api("GET", "/v1/models")
-        return {m["id"] for m in result.get("data", [])}
+        result = _lm_api("GET", "/api/v0/models")
+        return {m["id"] for m in result.get("data", []) if m.get("state") == "loaded"}
     except Exception:
         return set()
 
@@ -185,31 +185,59 @@ def _model_is_loaded(model_id: str) -> bool:
     )
 
 
-def _load_model(model_id: str, timeout_s: int = 600) -> bool:
+def _load_model(model_id: str, timeout_s: int = 600, *, wait_for_load: bool = False) -> bool:
     if _model_is_loaded(model_id):
         print(f"  Already loaded: {model_id}")
         return True
-    print(f"  Loading {model_id}", end="", flush=True)
+
+    if wait_for_load:
+        print(f"\n  [MANUAL] Please load '{model_id}' in LM Studio now.")
+        print(f"  Script will continue automatically once detected (up to 20min)...")
+        timeout_s = 1200
+    else:
+        print(f"  Loading {model_id}", end="", flush=True)
+        t0 = time.monotonic()
+        try:
+            resp = _lm_api("POST", "/api/v0/models/load", {"identifier": model_id, "ttl": 0})
+            if isinstance(resp, dict) and "error" in resp:
+                print(f"\n  Load API error: {resp['error']}")
+                print(f"  Tip: rerun with --wait-for-load to load models manually.")
+                return False
+        except Exception as exc:
+            print(f"\n  Load request failed: {exc}")
+            return False
+
     t0 = time.monotonic()
-    try:
-        _lm_api("POST", "/api/v0/models/load", {"identifier": model_id, "ttl": 0})
-    except Exception as exc:
-        print(f"\n  Load request failed: {exc}")
-        return False
     deadline = t0 + timeout_s
+    poll_count = 0
     while time.monotonic() < deadline:
         time.sleep(10)
-        print(".", end="", flush=True)
+        poll_count += 1
         if _model_is_loaded(model_id):
-            print(f" ready ({int(time.monotonic() - t0)}s)")
+            elapsed = int(time.monotonic() - t0)
+            if wait_for_load:
+                print(f"  Detected: {model_id} ({elapsed}s)")
+            else:
+                print(f" ready ({elapsed}s)")
             return True
-    print(f" TIMEOUT ({timeout_s}s)")
+        if wait_for_load and poll_count % 6 == 0:
+            remaining = int(deadline - time.monotonic())
+            print(f"  Still waiting for {model_id}... ({remaining}s remaining)")
+        elif not wait_for_load:
+            print(".", end="", flush=True)
+    print(f"\n  TIMEOUT ({timeout_s}s): {model_id} not loaded.")
     return False
 
 
-def _unload_model(model_id: str) -> None:
+def _unload_model(model_id: str, *, wait_for_load: bool = False) -> None:
+    if wait_for_load:
+        print(f"  [MANUAL] Please unload '{model_id}' in LM Studio before the next agent.")
+        return
     try:
-        _lm_api("POST", "/api/v0/models/unload", {"identifier": model_id})
+        resp = _lm_api("POST", "/api/v0/models/unload", {"identifier": model_id})
+        if isinstance(resp, dict) and "error" in resp:
+            print(f"  Unload API not available (skipping)")
+            return
         print(f"  Unloaded: {model_id}")
     except Exception as exc:
         print(f"  Warning: unload error: {exc}")
@@ -861,6 +889,14 @@ def main() -> None:
         "--skip-t3", action="store_true",
         help="Skip E0-T3 source file update even if all T2 pass",
     )
+    parser.add_argument(
+        "--wait-for-load", action="store_true",
+        help=(
+            "Manual mode: skip load/unload API calls. Instead, print which model to load "
+            "and wait until LM Studio shows it as loaded (up to 20min per agent). "
+            "Use when LM Studio Management API load endpoint is unavailable."
+        ),
+    )
     args = parser.parse_args()
     data_dir = args.data_dir
 
@@ -881,6 +917,12 @@ def main() -> None:
         print("\nERROR: LM Studio not responding at http://localhost:1234")
         print("Start LM Studio (no model needs to be loaded) and retry.")
         sys.exit(1)
+
+    if args.wait_for_load:
+        print("\n[MANUAL MODE --wait-for-load]")
+        print("Models to load in LM Studio (one at a time, in order):")
+        for i, cfg in enumerate(_AGENTS_CONFIG, 1):
+            print(f"  {i}. {cfg['model_id']}  ({cfg['agent']})")
 
     # Load checkpoints
     t2_ckpt = _load_json(_T2_PATH)
@@ -924,7 +966,7 @@ def main() -> None:
         print(f"  Agent: {agent.upper()}  |  Model: {model_id}")
         print(f"{'=' * 72}")
 
-        loaded = _load_model(model_id, timeout_s=cfg["load_timeout"])
+        loaded = _load_model(model_id, timeout_s=cfg["load_timeout"], wait_for_load=args.wait_for_load)
         if not loaded:
             print(f"  FATAL: Could not load {model_id}. Skipping {agent}.")
             continue
@@ -972,7 +1014,7 @@ def main() -> None:
 
         finally:
             os.environ.pop(env_var, None)
-            _unload_model(model_id)
+            _unload_model(model_id, wait_for_load=args.wait_for_load)
             time.sleep(5)  # allow MLX memory release
 
     # -----------------------------------------------------------------------
