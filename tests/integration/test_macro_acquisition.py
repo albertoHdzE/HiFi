@@ -2,8 +2,8 @@
 Integration tests for macro data acquisition pipeline (P1-E3).
 
 These tests use pre-recorded FRED XML fixture files stored in
-tests/fixtures/macro/.  The fredapi HTTP layer is intercepted by patching
-fredapi.fred.urlopen to return fixture XML bytes, so no live FRED API calls
+tests/fixtures/macro/.  The XML is parsed into pd.Series and injected via
+the _test_series/_test_series_info DI parameters, so no live FRED API calls
 or API keys are required during testing.
 
 The XML fixtures contain real historical Federal Funds Rate and CPI values
@@ -17,11 +17,11 @@ Tickets covered:
 
 from __future__ import annotations
 
-import io
+import xml.etree.ElementTree as ET
 from datetime import date
 from pathlib import Path
-from unittest.mock import patch
 
+import pandas as pd
 import pytest
 
 from hifi.data.macro import MacroDataFetcher
@@ -30,34 +30,34 @@ from hifi.data.storage import read_macro, write_macro
 _FIXTURES = Path(__file__).parent.parent / "fixtures" / "macro"
 
 
-def _load_xml_fixture(name: str) -> bytes:
-    """Load an XML fixture file as bytes."""
+def _load_xml(name: str) -> bytes:
     path = _FIXTURES / name
     if not path.exists():
         pytest.skip(f"XML fixture not found: {path}")
     return path.read_bytes()
 
 
-def _make_fetcher_from_xml(observations_xml: bytes, info_xml: bytes) -> MacroDataFetcher:
-    """
-    Build a MacroDataFetcher whose fredapi HTTP calls are intercepted.
+def _xml_to_series(obs_xml: bytes) -> pd.Series:
+    root = ET.fromstring(obs_xml)
+    dates, values = [], []
+    for obs in root.findall("observation"):
+        d = obs.get("date")
+        v = obs.get("value")
+        if d and v and v != ".":
+            dates.append(pd.Timestamp(d))
+            values.append(float(v))
+    return pd.Series(values, index=pd.DatetimeIndex(dates))
 
-    The fredapi.Fred._Fred__fetch_data method calls urlopen and then
-    ET.fromstring(response.read()). We patch urlopen in the fredapi.fred
-    module to return an io.BytesIO containing the fixture XML. Since
-    get_series and get_series_info make different URL patterns, we use a
-    side_effect function to dispatch the correct fixture.
-    """
 
-    def _urlopen_side_effect(url: str) -> io.BytesIO:
-        if "series/observations" in url:
-            return io.BytesIO(observations_xml)
-        else:
-            return io.BytesIO(info_xml)
-
-    with patch("fredapi.fred.urlopen", side_effect=_urlopen_side_effect):
-        fetcher = MacroDataFetcher(api_key="test_key_for_fixtures")
-    return fetcher, _urlopen_side_effect
+def _xml_to_info(info_xml: bytes) -> pd.Series:
+    root = ET.fromstring(info_xml)
+    s_elem = root.find("series")
+    s = s_elem if s_elem is not None else root
+    return pd.Series({
+        "title": s.get("title", ""),
+        "frequency": s.get("frequency", ""),
+        "units": s.get("units", ""),
+    })
 
 
 # ---------------------------------------------------------------------------
@@ -71,78 +71,55 @@ class TestMacroFetchWithXMLFixture:
     @pytest.mark.integration
     def test_fedfunds_fixture_produces_valid_dataset(self) -> None:
         """T8: FEDFUNDS XML fixture produces a MacroDataset with 12 monthly observations."""
-        obs_xml = _load_xml_fixture("fedfunds_2022_observations.xml")
-        info_xml = _load_xml_fixture("fedfunds_series_info.xml")
-
-        with patch("fredapi.fred.urlopen") as mock_urlopen:
-            mock_urlopen.side_effect = lambda url: io.BytesIO(
-                obs_xml if "observations" in url else info_xml
-            )
-            fetcher = MacroDataFetcher(api_key="test_key")
-            dataset = fetcher.fetch_series(
-                "FEDFUNDS", date(2022, 1, 1), date(2022, 12, 31)
-            )
-
+        obs_series = _xml_to_series(_load_xml("fedfunds_2022_observations.xml"))
+        info_series = _xml_to_info(_load_xml("fedfunds_series_info.xml"))
+        fetcher = MacroDataFetcher(api_key="dummy")
+        dataset = fetcher.fetch_series(
+            "FEDFUNDS", date(2022, 1, 1), date(2022, 12, 31),
+            _test_series=obs_series, _test_series_info=info_series,
+        )
         assert dataset.series_id == "FEDFUNDS"
         assert len(dataset.observations) == 12
 
     @pytest.mark.integration
     def test_fedfunds_values_match_fixture(self) -> None:
         """T8: parsed values match the fixture XML exactly."""
-        obs_xml = _load_xml_fixture("fedfunds_2022_observations.xml")
-        info_xml = _load_xml_fixture("fedfunds_series_info.xml")
-
-        with patch("fredapi.fred.urlopen") as mock_urlopen:
-            mock_urlopen.side_effect = lambda url: io.BytesIO(
-                obs_xml if "observations" in url else info_xml
-            )
-            fetcher = MacroDataFetcher(api_key="test_key")
-            dataset = fetcher.fetch_series(
-                "FEDFUNDS", date(2022, 1, 1), date(2022, 12, 31)
-            )
-
+        obs_series = _xml_to_series(_load_xml("fedfunds_2022_observations.xml"))
+        info_series = _xml_to_info(_load_xml("fedfunds_series_info.xml"))
+        fetcher = MacroDataFetcher(api_key="dummy")
+        dataset = fetcher.fetch_series(
+            "FEDFUNDS", date(2022, 1, 1), date(2022, 12, 31),
+            _test_series=obs_series, _test_series_info=info_series,
+        )
         # Jan 2022: near-zero (0.08); Dec 2022: 4.10 (post-hiking)
-        first = dataset.observations[0]
-        last = dataset.observations[-1]
-        assert abs(first.value - 0.08) < 1e-6
-        assert abs(last.value - 4.10) < 1e-6
+        assert abs(dataset.observations[0].value - 0.08) < 1e-6
+        assert abs(dataset.observations[-1].value - 4.10) < 1e-6
 
     @pytest.mark.integration
     def test_fedfunds_dates_are_monthly_first(self) -> None:
         """T8: observation dates are the first of each month (FRED convention)."""
-        obs_xml = _load_xml_fixture("fedfunds_2022_observations.xml")
-        info_xml = _load_xml_fixture("fedfunds_series_info.xml")
-
-        with patch("fredapi.fred.urlopen") as mock_urlopen:
-            mock_urlopen.side_effect = lambda url: io.BytesIO(
-                obs_xml if "observations" in url else info_xml
-            )
-            fetcher = MacroDataFetcher(api_key="test_key")
-            dataset = fetcher.fetch_series(
-                "FEDFUNDS", date(2022, 1, 1), date(2022, 12, 31)
-            )
-
+        obs_series = _xml_to_series(_load_xml("fedfunds_2022_observations.xml"))
+        info_series = _xml_to_info(_load_xml("fedfunds_series_info.xml"))
+        fetcher = MacroDataFetcher(api_key="dummy")
+        dataset = fetcher.fetch_series(
+            "FEDFUNDS", date(2022, 1, 1), date(2022, 12, 31),
+            _test_series=obs_series, _test_series_info=info_series,
+        )
         for obs in dataset.observations:
             assert obs.date.day == 1
 
     @pytest.mark.integration
     def test_cpiaucsl_fixture_produces_valid_dataset(self) -> None:
         """T8: CPI XML fixture produces 12 monthly observations with positive values."""
-        obs_xml = _load_xml_fixture("cpiaucsl_2022_observations.xml")
-        info_xml = _load_xml_fixture("cpiaucsl_series_info.xml")
-
-        with patch("fredapi.fred.urlopen") as mock_urlopen:
-            mock_urlopen.side_effect = lambda url: io.BytesIO(
-                obs_xml if "observations" in url else info_xml
-            )
-            fetcher = MacroDataFetcher(api_key="test_key")
-            dataset = fetcher.fetch_series(
-                "CPIAUCSL", date(2022, 1, 1), date(2022, 12, 31)
-            )
-
+        obs_series = _xml_to_series(_load_xml("cpiaucsl_2022_observations.xml"))
+        info_series = _xml_to_info(_load_xml("cpiaucsl_series_info.xml"))
+        fetcher = MacroDataFetcher(api_key="dummy")
+        dataset = fetcher.fetch_series(
+            "CPIAUCSL", date(2022, 1, 1), date(2022, 12, 31),
+            _test_series=obs_series, _test_series_info=info_series,
+        )
         assert dataset.series_id == "CPIAUCSL"
         assert len(dataset.observations) == 12
-        # CPI index values should be positive
         assert all(obs.value > 0 for obs in dataset.observations)
 
 
@@ -157,43 +134,31 @@ class TestMacroParquetRoundTrip:
     @pytest.mark.integration
     def test_fedfunds_round_trip_observation_count(self, tmp_path: Path) -> None:
         """T9: observation count is preserved after Parquet round-trip."""
-        obs_xml = _load_xml_fixture("fedfunds_2022_observations.xml")
-        info_xml = _load_xml_fixture("fedfunds_series_info.xml")
-
-        with patch("fredapi.fred.urlopen") as mock_urlopen:
-            mock_urlopen.side_effect = lambda url: io.BytesIO(
-                obs_xml if "observations" in url else info_xml
-            )
-            fetcher = MacroDataFetcher(api_key="test_key")
-            original = fetcher.fetch_series(
-                "FEDFUNDS", date(2022, 1, 1), date(2022, 12, 31)
-            )
-
+        obs_series = _xml_to_series(_load_xml("fedfunds_2022_observations.xml"))
+        info_series = _xml_to_info(_load_xml("fedfunds_series_info.xml"))
+        fetcher = MacroDataFetcher(api_key="dummy")
+        original = fetcher.fetch_series(
+            "FEDFUNDS", date(2022, 1, 1), date(2022, 12, 31),
+            _test_series=obs_series, _test_series_info=info_series,
+        )
         out_path = tmp_path / "FEDFUNDS.parquet"
         write_macro(original, out_path)
         loaded = read_macro(out_path)
-
         assert len(loaded.observations) == len(original.observations)
 
     @pytest.mark.integration
     def test_fedfunds_round_trip_values(self, tmp_path: Path) -> None:
         """T9: all observation values are preserved exactly after round-trip."""
-        obs_xml = _load_xml_fixture("fedfunds_2022_observations.xml")
-        info_xml = _load_xml_fixture("fedfunds_series_info.xml")
-
-        with patch("fredapi.fred.urlopen") as mock_urlopen:
-            mock_urlopen.side_effect = lambda url: io.BytesIO(
-                obs_xml if "observations" in url else info_xml
-            )
-            fetcher = MacroDataFetcher(api_key="test_key")
-            original = fetcher.fetch_series(
-                "FEDFUNDS", date(2022, 1, 1), date(2022, 12, 31)
-            )
-
+        obs_series = _xml_to_series(_load_xml("fedfunds_2022_observations.xml"))
+        info_series = _xml_to_info(_load_xml("fedfunds_series_info.xml"))
+        fetcher = MacroDataFetcher(api_key="dummy")
+        original = fetcher.fetch_series(
+            "FEDFUNDS", date(2022, 1, 1), date(2022, 12, 31),
+            _test_series=obs_series, _test_series_info=info_series,
+        )
         out_path = tmp_path / "FEDFUNDS.parquet"
         write_macro(original, out_path)
         loaded = read_macro(out_path)
-
         for orig_obs, loaded_obs in zip(original.observations, loaded.observations, strict=True):
             assert orig_obs.date == loaded_obs.date
             assert orig_obs.value == loaded_obs.value
@@ -201,22 +166,16 @@ class TestMacroParquetRoundTrip:
     @pytest.mark.integration
     def test_fedfunds_round_trip_metadata(self, tmp_path: Path) -> None:
         """T9: series_id, name, frequency, source survive the round-trip."""
-        obs_xml = _load_xml_fixture("fedfunds_2022_observations.xml")
-        info_xml = _load_xml_fixture("fedfunds_series_info.xml")
-
-        with patch("fredapi.fred.urlopen") as mock_urlopen:
-            mock_urlopen.side_effect = lambda url: io.BytesIO(
-                obs_xml if "observations" in url else info_xml
-            )
-            fetcher = MacroDataFetcher(api_key="test_key")
-            original = fetcher.fetch_series(
-                "FEDFUNDS", date(2022, 1, 1), date(2022, 12, 31)
-            )
-
+        obs_series = _xml_to_series(_load_xml("fedfunds_2022_observations.xml"))
+        info_series = _xml_to_info(_load_xml("fedfunds_series_info.xml"))
+        fetcher = MacroDataFetcher(api_key="dummy")
+        original = fetcher.fetch_series(
+            "FEDFUNDS", date(2022, 1, 1), date(2022, 12, 31),
+            _test_series=obs_series, _test_series_info=info_series,
+        )
         out_path = tmp_path / "FEDFUNDS.parquet"
         write_macro(original, out_path)
         loaded = read_macro(out_path)
-
         assert loaded.series_id == original.series_id
         assert loaded.name == original.name
         assert loaded.source == original.source

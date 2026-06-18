@@ -1,7 +1,7 @@
 """
 Integration test for the Technical Agent (P4-E1-T12).
 
-Uses monkeypatched LLM and Phase 1 fixtures (no live LM Studio required).
+Uses DI-injected LLM and Phase 1 fixtures (no live LM Studio required).
 Validates that run_technical_analysis returns a TechnicalAnalysis with both
 MCP tools called and a valid AgentSignal produced.
 """
@@ -39,26 +39,24 @@ _STUB_RESPONSE = json.dumps({
 })
 
 
-def test_run_technical_analysis_aapl(monkeypatch, fixtures_data_dir):
-    """Full Technical Agent run for AAPL Q1 2023 with stubbed LLM."""
-    class _StubLLM:
-        model_name = "mlx-qwen3.5-35b-a3b-claude-4.6-opus-reasoning-distilled"
-        call_count = 0
-
+def _stub_llm(model_name: str = "test"):
+    class _S:
         def invoke(self, messages):
-            self.call_count += 1
-            class _Resp:
+            class _R:
                 content = _STUB_RESPONSE
-            return _Resp()
+            return _R()
+    s = _S()
+    s.model_name = model_name
+    return s
 
-    stub = _StubLLM()
-    import hifi.agents.technical_agent as ta
-    monkeypatch.setattr(ta, "make_llm", lambda *a, **kw: stub)
 
+def test_run_technical_analysis_aapl(fixtures_data_dir):
+    """Full Technical Agent run for AAPL Q1 2023 with DI LLM."""
     analysis = run_technical_analysis(
         ticker="AAPL",
         as_of_date="2023-03-31",
         data_dir=fixtures_data_dir,
+        _test_llm=_stub_llm("mlx-qwen3.5-35b-a3b-claude-4.6-opus-reasoning-distilled"),
     )
 
     assert isinstance(analysis, TechnicalAnalysis)
@@ -71,74 +69,39 @@ def test_run_technical_analysis_aapl(monkeypatch, fixtures_data_dir):
     assert analysis.latency_ms is not None and analysis.latency_ms > 0
 
 
-def test_run_technical_analysis_two_tools_called(monkeypatch, fixtures_data_dir):
+def test_run_technical_analysis_two_tools_called(fixtures_data_dir):
     """Both MCP tools must be called; technical_indicators and risk_metrics populated."""
-    class _StubLLM:
-        model_name = "test"
-        def invoke(self, messages):
-            class _R:
-                content = _STUB_RESPONSE
-            return _R()
+    analysis = run_technical_analysis(
+        "AAPL", "2023-03-31", data_dir=fixtures_data_dir, _test_llm=_stub_llm()
+    )
 
-    import hifi.agents.technical_agent as ta
-    monkeypatch.setattr(ta, "make_llm", lambda *a, **kw: _StubLLM())
-
-    analysis = run_technical_analysis("AAPL", "2023-03-31", data_dir=fixtures_data_dir)
-
-    # Both tool results must be present (even if some fields are None due to fixtures)
     assert isinstance(analysis.technical_indicators, dict)
     assert isinstance(analysis.risk_metrics, dict)
-    # At minimum, call_id should be present (MCP server always adds it)
     assert "call_id" in analysis.technical_indicators or "error" in analysis.technical_indicators
     assert "call_id" in analysis.risk_metrics or "error" in analysis.risk_metrics
 
 
-def test_run_technical_analysis_signal_has_call_ids(monkeypatch, fixtures_data_dir):
+def test_run_technical_analysis_signal_has_call_ids(fixtures_data_dir):
     """Signal call_ids must be populated from MCP tool results."""
-    class _StubLLM:
-        model_name = "test"
-        def invoke(self, messages):
-            class _R:
-                content = _STUB_RESPONSE
-            return _R()
-
-    import hifi.agents.technical_agent as ta
-    monkeypatch.setattr(ta, "make_llm", lambda *a, **kw: _StubLLM())
-
-    analysis = run_technical_analysis("AAPL", "2023-03-31", data_dir=fixtures_data_dir)
+    analysis = run_technical_analysis(
+        "AAPL", "2023-03-31", data_dir=fixtures_data_dir, _test_llm=_stub_llm()
+    )
 
     if analysis.signal is not None:
         assert len(analysis.signal.call_ids) > 0
 
 
-def test_run_technical_analysis_json_safe(monkeypatch, fixtures_data_dir):
+def test_run_technical_analysis_json_safe(fixtures_data_dir):
     """TechnicalAnalysis.model_dump() must be JSON-safe (no NaN)."""
-    class _StubLLM:
-        model_name = "test"
-        def invoke(self, messages):
-            class _R:
-                content = _STUB_RESPONSE
-            return _R()
-
-    import hifi.agents.technical_agent as ta
-    monkeypatch.setattr(ta, "make_llm", lambda *a, **kw: _StubLLM())
-
-    analysis = run_technical_analysis("AAPL", "2023-03-31", data_dir=fixtures_data_dir)
-    # Should not raise
+    analysis = run_technical_analysis(
+        "AAPL", "2023-03-31", data_dir=fixtures_data_dir, _test_llm=_stub_llm()
+    )
     json.dumps(analysis.model_dump())
 
 
-def test_run_technical_analysis_time_horizon(monkeypatch, fixtures_data_dir):
+def test_run_technical_analysis_time_horizon(fixtures_data_dir):
     """time_horizon is extracted and stored in TechnicalAnalysis."""
-    class _StubLLM:
-        model_name = "test"
-        def invoke(self, messages):
-            class _R:
-                content = _STUB_RESPONSE
-            return _R()
-
-    import hifi.agents.technical_agent as ta
-    monkeypatch.setattr(ta, "make_llm", lambda *a, **kw: _StubLLM())
-
-    analysis = run_technical_analysis("AAPL", "2023-03-31", data_dir=fixtures_data_dir)
+    analysis = run_technical_analysis(
+        "AAPL", "2023-03-31", data_dir=fixtures_data_dir, _test_llm=_stub_llm()
+    )
     assert analysis.time_horizon == "medium-term"

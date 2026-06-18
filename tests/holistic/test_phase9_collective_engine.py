@@ -6,7 +6,7 @@ invocation. Signals are constructed deterministically from known decision/confid
 tuples. All four aggregation methods are exercised via run_all_methods() directly.
 
 Philosophical note (DJ-047):
-  The previous version of this file used monkeypatch.setattr(make_llm, ...) to inject
+  The previous version of this file used patched LLM injection to inject
   canned LLM responses into run_ensemble(). This conflated pipeline structure (which
   these tests own) with model behaviour (which make baseline-phase9 owns). That debt
   is now resolved: these tests call run_all_methods() and related functions directly

@@ -27,10 +27,9 @@ may be regenerated with live data that has since been revised.
 
 from __future__ import annotations
 
-import io
+import xml.etree.ElementTree as ET
 from datetime import date
 from pathlib import Path
-from unittest.mock import patch
 
 import pandas as pd
 import pytest
@@ -61,25 +60,37 @@ def _load_market_df(ticker: str) -> pd.DataFrame:
     return df
 
 
-def _macro_urlopen_factory(series_id: str):
-    """Return a side_effect function that serves the correct XML for a series."""
-    obs_name = f"{series_id.lower()}_2022_observations.xml"
-    info_name = f"{series_id.lower()}_series_info.xml"
+def _xml_to_series(obs_xml: bytes) -> pd.Series:
+    root = ET.fromstring(obs_xml)
+    dates, values = [], []
+    for obs in root.findall("observation"):
+        d = obs.get("date")
+        v = obs.get("value")
+        if d and v and v != ".":
+            dates.append(pd.Timestamp(d))
+            values.append(float(v))
+    return pd.Series(values, index=pd.DatetimeIndex(dates))
 
-    obs_path = _MACRO_FIXTURES / obs_name
-    info_path = _MACRO_FIXTURES / info_name
 
+def _xml_to_info(info_xml: bytes) -> pd.Series:
+    root = ET.fromstring(info_xml)
+    s_elem = root.find("series")
+    s = s_elem if s_elem is not None else root
+    return pd.Series({
+        "title": s.get("title", ""),
+        "frequency": s.get("frequency", ""),
+        "units": s.get("units", ""),
+    })
+
+
+def _load_macro_fixture(series_id: str):
+    """Return (obs_series, info_series) for a given series_id from XML fixtures."""
+    obs_path = _MACRO_FIXTURES / f"{series_id.lower()}_2022_observations.xml"
+    info_path = _MACRO_FIXTURES / f"{series_id.lower()}_series_info.xml"
     for p in (obs_path, info_path):
         if not p.exists():
             pytest.skip(f"Macro fixture missing: {p}")
-
-    obs_bytes = obs_path.read_bytes()
-    info_bytes = info_path.read_bytes()
-
-    def side_effect(url: str):
-        return io.BytesIO(obs_bytes if "observations" in url else info_bytes)
-
-    return side_effect
+    return _xml_to_series(obs_path.read_bytes()), _xml_to_info(info_path.read_bytes())
 
 
 # ---------------------------------------------------------------------------
@@ -102,22 +113,18 @@ class TestPhase1Pipeline:
         """
         df = _load_market_df("AAPL")
         fetcher = MarketDataFetcher()
-        with patch.object(fetcher, "_download", return_value=df):
-            dataset = fetcher.fetch_ohlcv("AAPL", date(2023, 1, 3), date(2023, 4, 1))
+        dataset = fetcher.fetch_ohlcv("AAPL", date(2023, 1, 3), date(2023, 4, 1), _test_download=df)
 
-        # Schema validation: all bars are valid OHLCVBar instances
         assert len(dataset.bars) > 0
         for bar in dataset.bars:
             assert bar.open > 0
             assert bar.high >= bar.low
 
-        # Quality check
         checker = DataQualityChecker()
         report = checker.check(dataset)
-        assert report.completeness >= 0.95  # fixture may miss some holidays
+        assert report.completeness >= 0.95
         assert report.ohlcv_violations == 0
 
-        # Write and register
         out_path = tmp_path / "AAPL.parquet"
         write_ohlcv(dataset, out_path)
         registry = DatasetRegistry(tmp_path / "registry.json")
@@ -125,10 +132,8 @@ class TestPhase1Pipeline:
             "AAPL_yfinance", "yfinance", "2023-01-03", "2023-04-01", out_path
         )
 
-        # Integrity check
         assert registry.verify_integrity(entry)
 
-        # Reload and compare
         loaded = read_ohlcv(out_path)
         assert len(loaded.bars) == len(dataset.bars)
         for orig, reloaded in zip(dataset.bars, loaded.bars, strict=True):
@@ -137,16 +142,12 @@ class TestPhase1Pipeline:
             assert orig.close == reloaded.close
 
     def test_market_pipeline_all_tickers(self, tmp_path: Path) -> None:
-        """
-        Pipeline for all three fixture tickers.
-        Verifies that each produces a valid, registrable dataset.
-        """
+        """Pipeline for all three fixture tickers."""
         registry = DatasetRegistry(tmp_path / "registry.json")
         for ticker in _MARKET_TICKERS:
             df = _load_market_df(ticker)
             fetcher = MarketDataFetcher()
-            with patch.object(fetcher, "_download", return_value=df):
-                dataset = fetcher.fetch_ohlcv(ticker, date(2023, 1, 3), date(2023, 4, 1))
+            dataset = fetcher.fetch_ohlcv(ticker, date(2023, 1, 3), date(2023, 4, 1), _test_download=df)
 
             out_path = tmp_path / f"{ticker}.parquet"
             write_ohlcv(dataset, out_path)
@@ -166,12 +167,12 @@ class TestPhase1Pipeline:
         3. Register and verify integrity
         4. Reload and compare values
         """
-        side_effect = _macro_urlopen_factory("fedfunds")
-        with patch("fredapi.fred.urlopen", side_effect=side_effect):
-            fetcher = MacroDataFetcher(api_key="test_key")
-            dataset = fetcher.fetch_series(
-                "FEDFUNDS", date(2022, 1, 1), date(2022, 12, 31)
-            )
+        obs_series, info_series = _load_macro_fixture("fedfunds")
+        fetcher = MacroDataFetcher(api_key="dummy")
+        dataset = fetcher.fetch_series(
+            "FEDFUNDS", date(2022, 1, 1), date(2022, 12, 31),
+            _test_series=obs_series, _test_series_info=info_series,
+        )
 
         assert dataset.series_id == "FEDFUNDS"
         assert len(dataset.observations) == 12
@@ -192,17 +193,15 @@ class TestPhase1Pipeline:
             assert orig.value == reloaded.value
 
     def test_macro_pipeline_all_series(self, tmp_path: Path) -> None:
-        """
-        Pipeline for all fixture macro series (FEDFUNDS, CPIAUCSL).
-        """
+        """Pipeline for all fixture macro series (FEDFUNDS, CPIAUCSL)."""
         registry = DatasetRegistry(tmp_path / "registry.json")
         for series_id in _MACRO_SERIES:
-            side_effect = _macro_urlopen_factory(series_id)
-            with patch("fredapi.fred.urlopen", side_effect=side_effect):
-                fetcher = MacroDataFetcher(api_key="test_key")
-                dataset = fetcher.fetch_series(
-                    series_id, date(2022, 1, 1), date(2022, 12, 31)
-                )
+            obs_series, info_series = _load_macro_fixture(series_id)
+            fetcher = MacroDataFetcher(api_key="dummy")
+            dataset = fetcher.fetch_series(
+                series_id, date(2022, 1, 1), date(2022, 12, 31),
+                _test_series=obs_series, _test_series_info=info_series,
+            )
 
             out_path = tmp_path / f"{series_id}.parquet"
             write_macro(dataset, out_path)
@@ -214,18 +213,12 @@ class TestPhase1Pipeline:
         assert len(registry.all_entries()) == len(_MACRO_SERIES)
 
     def test_content_hashes_stable_across_reads(self, tmp_path: Path) -> None:
-        """
-        Content hashes of two reads of the same file are identical.
-
-        This is the core guarantee of content_hash: same file = same hash,
-        regardless of when or how many times it is hashed.
-        """
+        """Content hashes of two reads of the same file are identical."""
         from hifi.data.versioning import content_hash
 
         df = _load_market_df("AAPL")
         fetcher = MarketDataFetcher()
-        with patch.object(fetcher, "_download", return_value=df):
-            dataset = fetcher.fetch_ohlcv("AAPL", date(2023, 1, 3), date(2023, 4, 1))
+        dataset = fetcher.fetch_ohlcv("AAPL", date(2023, 1, 3), date(2023, 4, 1), _test_download=df)
 
         out_path = tmp_path / "AAPL.parquet"
         write_ohlcv(dataset, out_path)
@@ -235,25 +228,22 @@ class TestPhase1Pipeline:
         assert hash_1 == hash_2
 
     def test_registry_entries_created_correctly(self, tmp_path: Path) -> None:
-        """
-        Registry records correct metadata for a mixed market + macro run.
-        """
+        """Registry records correct metadata for a mixed market + macro run."""
         registry = DatasetRegistry(tmp_path / "registry.json")
 
-        # Register one market dataset
         df = _load_market_df("AAPL")
         fetcher = MarketDataFetcher()
-        with patch.object(fetcher, "_download", return_value=df):
-            mkt = fetcher.fetch_ohlcv("AAPL", date(2023, 1, 3), date(2023, 4, 1))
+        mkt = fetcher.fetch_ohlcv("AAPL", date(2023, 1, 3), date(2023, 4, 1), _test_download=df)
         mkt_path = tmp_path / "AAPL.parquet"
         write_ohlcv(mkt, mkt_path)
         registry.register("AAPL_yfinance", "yfinance", "2023-01-03", "2023-04-01", mkt_path)
 
-        # Register one macro dataset
-        side_effect = _macro_urlopen_factory("fedfunds")
-        with patch("fredapi.fred.urlopen", side_effect=side_effect):
-            fetcher_m = MacroDataFetcher(api_key="test_key")
-            macro = fetcher_m.fetch_series("FEDFUNDS", date(2022, 1, 1), date(2022, 12, 31))
+        obs_series, info_series = _load_macro_fixture("fedfunds")
+        fetcher_m = MacroDataFetcher(api_key="dummy")
+        macro = fetcher_m.fetch_series(
+            "FEDFUNDS", date(2022, 1, 1), date(2022, 12, 31),
+            _test_series=obs_series, _test_series_info=info_series,
+        )
         macro_path = tmp_path / "FEDFUNDS.parquet"
         write_macro(macro, macro_path)
         registry.register("FEDFUNDS_FRED", "FRED", "2022-01-01", "2022-12-31", macro_path)

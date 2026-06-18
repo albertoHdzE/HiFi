@@ -1,7 +1,7 @@
 """
 Integration tests for verify_ensemble (P5-E5).
 
-Uses Phase 1 parquet fixtures and monkeypatched LLMs. Tests focus on
+Uses Phase 1 parquet fixtures and DI-injected LLMs. Tests focus on
 structural correctness of the EnsembleVerificationReport pipeline.
 """
 
@@ -91,16 +91,11 @@ def _stub_llm(response: str, model_name: str = "test-model"):
 # ---------------------------------------------------------------------------
 
 
-def test_verify_ensemble_returns_report(monkeypatch, fixtures_data_dir, aapl_snapshot_json):
-    import hifi.agents.fundamental_agent as fa
-    import hifi.agents.technical_agent as ta
-
-    monkeypatch.setattr(fa, "make_llm", lambda *a, **kw: _stub_llm(_STUB_HOLD, "fund"))
-    monkeypatch.setattr(ta, "make_llm", lambda *a, **kw: _stub_llm(_STUB_HOLD, "tech"))
-
+def test_verify_ensemble_returns_report(fixtures_data_dir, aapl_snapshot_json):
     output = run_ensemble(
         "AAPL", "2023-03-31", aapl_snapshot_json,
         fixtures_data_dir, agents=["fundamental", "technical"],
+        _test_llms={"fundamental": _stub_llm(_STUB_HOLD, "fund"), "technical": _stub_llm(_STUB_HOLD, "tech")},
     )
 
     assert isinstance(output, EnsembleOutput)
@@ -118,19 +113,12 @@ def test_verify_ensemble_returns_report(monkeypatch, fixtures_data_dir, aapl_sna
 # ---------------------------------------------------------------------------
 
 
-def test_triggered_by_disagreement_false_when_agreement(
-    monkeypatch, fixtures_data_dir, aapl_snapshot_json
-):
+def test_triggered_by_disagreement_false_when_agreement(fixtures_data_dir, aapl_snapshot_json):
     """Both Hold -> entropy=0 -> triggered_by_disagreement=False."""
-    import hifi.agents.fundamental_agent as fa
-    import hifi.agents.technical_agent as ta
-
-    monkeypatch.setattr(fa, "make_llm", lambda *a, **kw: _stub_llm(_STUB_HOLD, "fund"))
-    monkeypatch.setattr(ta, "make_llm", lambda *a, **kw: _stub_llm(_STUB_HOLD, "tech"))
-
     output = run_ensemble(
         "AAPL", "2023-03-31", aapl_snapshot_json,
         fixtures_data_dir, agents=["fundamental", "technical"],
+        _test_llms={"fundamental": _stub_llm(_STUB_HOLD, "fund"), "technical": _stub_llm(_STUB_HOLD, "tech")},
     )
     report = verify_ensemble(output)
 
@@ -140,19 +128,12 @@ def test_triggered_by_disagreement_false_when_agreement(
         assert report.triggered_by_disagreement is True
 
 
-def test_triggered_by_disagreement_true_when_disagreement(
-    monkeypatch, fixtures_data_dir, aapl_snapshot_json
-):
+def test_triggered_by_disagreement_true_when_disagreement(fixtures_data_dir, aapl_snapshot_json):
     """Hold vs Buy -> entropy>0 -> triggered_by_disagreement=True."""
-    import hifi.agents.fundamental_agent as fa
-    import hifi.agents.technical_agent as ta
-
-    monkeypatch.setattr(fa, "make_llm", lambda *a, **kw: _stub_llm(_STUB_HOLD, "fund"))
-    monkeypatch.setattr(ta, "make_llm", lambda *a, **kw: _stub_llm(_STUB_BUY, "tech"))
-
     output = run_ensemble(
         "AAPL", "2023-03-31", aapl_snapshot_json,
         fixtures_data_dir, agents=["fundamental", "technical"],
+        _test_llms={"fundamental": _stub_llm(_STUB_HOLD, "fund"), "technical": _stub_llm(_STUB_BUY, "tech")},
     )
     report = verify_ensemble(output)
 
@@ -167,16 +148,11 @@ def test_triggered_by_disagreement_true_when_disagreement(
 # ---------------------------------------------------------------------------
 
 
-def test_verify_ensemble_structural_invariants(monkeypatch, fixtures_data_dir, aapl_snapshot_json):
-    import hifi.agents.fundamental_agent as fa
-    import hifi.agents.technical_agent as ta
-
-    monkeypatch.setattr(fa, "make_llm", lambda *a, **kw: _stub_llm(_STUB_HOLD, "fund"))
-    monkeypatch.setattr(ta, "make_llm", lambda *a, **kw: _stub_llm(_STUB_HOLD, "tech"))
-
+def test_verify_ensemble_structural_invariants(fixtures_data_dir, aapl_snapshot_json):
     output = run_ensemble(
         "AAPL", "2023-03-31", aapl_snapshot_json,
         fixtures_data_dir, agents=["fundamental", "technical"],
+        _test_llms={"fundamental": _stub_llm(_STUB_HOLD, "fund"), "technical": _stub_llm(_STUB_HOLD, "tech")},
     )
     report = verify_ensemble(output)
 
@@ -196,17 +172,11 @@ def test_verify_ensemble_structural_invariants(monkeypatch, fixtures_data_dir, a
 # ---------------------------------------------------------------------------
 
 
-def test_verify_ensemble_json_safe(monkeypatch, fixtures_data_dir, aapl_snapshot_json):
-    import hifi.agents.fundamental_agent as fa
-    import hifi.agents.technical_agent as ta
-
-    monkeypatch.setattr(fa, "make_llm", lambda *a, **kw: _stub_llm(_STUB_HOLD, "fund"))
-    monkeypatch.setattr(ta, "make_llm", lambda *a, **kw: _stub_llm(_STUB_HOLD, "tech"))
-
+def test_verify_ensemble_json_safe(fixtures_data_dir, aapl_snapshot_json):
     output = run_ensemble(
         "AAPL", "2023-03-31", aapl_snapshot_json,
         fixtures_data_dir, agents=["fundamental", "technical"],
+        _test_llms={"fundamental": _stub_llm(_STUB_HOLD, "fund"), "technical": _stub_llm(_STUB_HOLD, "tech")},
     )
     report = verify_ensemble(output)
-    # Must not raise
     json.dumps(report.model_dump())

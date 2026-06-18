@@ -14,7 +14,6 @@ from __future__ import annotations
 
 from datetime import date
 from pathlib import Path
-from unittest.mock import patch
 
 import pandas as pd
 import pytest
@@ -39,7 +38,6 @@ def _load_fixture_as_yfinance_df(ticker: str) -> pd.DataFrame:
 
     df = pd.read_parquet(path)
     df = df.set_index("Date")
-    # Restore column names to match yfinance output format
     df = df.rename(
         columns={
             "Open": "Open",
@@ -66,13 +64,11 @@ class TestMarketFetchWithRecordedFixture:
         """T8: AAPL fixture normalises to a valid OHLCVDataset with expected bar count."""
         df = _load_fixture_as_yfinance_df("AAPL")
         fetcher = MarketDataFetcher()
-        with patch.object(fetcher, "_download", return_value=df):
-            dataset = fetcher.fetch_ohlcv("AAPL", date(2023, 1, 3), date(2023, 4, 1))
+        dataset = fetcher.fetch_ohlcv("AAPL", date(2023, 1, 3), date(2023, 4, 1), _test_download=df)
 
         assert dataset.ticker == "AAPL"
         # The fixture contains 62 trading days (Jan 3 - Mar 31, 2023)
         assert len(dataset.bars) == 62
-        # All bars have positive prices
         for bar in dataset.bars:
             assert bar.open > 0
             assert bar.high >= bar.low
@@ -83,8 +79,7 @@ class TestMarketFetchWithRecordedFixture:
         """T8: JPM fixture normalises correctly."""
         df = _load_fixture_as_yfinance_df("JPM")
         fetcher = MarketDataFetcher()
-        with patch.object(fetcher, "_download", return_value=df):
-            dataset = fetcher.fetch_ohlcv("JPM", date(2023, 1, 3), date(2023, 4, 1))
+        dataset = fetcher.fetch_ohlcv("JPM", date(2023, 1, 3), date(2023, 4, 1), _test_download=df)
         assert dataset.ticker == "JPM"
         assert len(dataset.bars) == 62
 
@@ -93,8 +88,7 @@ class TestMarketFetchWithRecordedFixture:
         """T8: XOM fixture normalises correctly."""
         df = _load_fixture_as_yfinance_df("XOM")
         fetcher = MarketDataFetcher()
-        with patch.object(fetcher, "_download", return_value=df):
-            dataset = fetcher.fetch_ohlcv("XOM", date(2023, 1, 3), date(2023, 4, 1))
+        dataset = fetcher.fetch_ohlcv("XOM", date(2023, 1, 3), date(2023, 4, 1), _test_download=df)
         assert dataset.ticker == "XOM"
         assert len(dataset.bars) == 62
 
@@ -112,8 +106,7 @@ class TestParquetRoundTrip:
         """T9: number of bars is preserved after Parquet round-trip."""
         df = _load_fixture_as_yfinance_df("AAPL")
         fetcher = MarketDataFetcher()
-        with patch.object(fetcher, "_download", return_value=df):
-            original = fetcher.fetch_ohlcv("AAPL", date(2023, 1, 3), date(2023, 4, 1))
+        original = fetcher.fetch_ohlcv("AAPL", date(2023, 1, 3), date(2023, 4, 1), _test_download=df)
 
         out_path = tmp_path / "AAPL.parquet"
         write_ohlcv(original, out_path)
@@ -126,8 +119,7 @@ class TestParquetRoundTrip:
         """T9: OHLCV prices are preserved to float64 precision after round-trip."""
         df = _load_fixture_as_yfinance_df("AAPL")
         fetcher = MarketDataFetcher()
-        with patch.object(fetcher, "_download", return_value=df):
-            original = fetcher.fetch_ohlcv("AAPL", date(2023, 1, 3), date(2023, 4, 1))
+        original = fetcher.fetch_ohlcv("AAPL", date(2023, 1, 3), date(2023, 4, 1), _test_download=df)
 
         out_path = tmp_path / "AAPL.parquet"
         write_ohlcv(original, out_path)
@@ -146,8 +138,7 @@ class TestParquetRoundTrip:
         """T9: adjusted_close is preserved (including None values) after round-trip."""
         df = _load_fixture_as_yfinance_df("AAPL")
         fetcher = MarketDataFetcher()
-        with patch.object(fetcher, "_download", return_value=df):
-            original = fetcher.fetch_ohlcv("AAPL", date(2023, 1, 3), date(2023, 4, 1))
+        original = fetcher.fetch_ohlcv("AAPL", date(2023, 1, 3), date(2023, 4, 1), _test_download=df)
 
         out_path = tmp_path / "AAPL.parquet"
         write_ohlcv(original, out_path)
@@ -165,8 +156,7 @@ class TestParquetRoundTrip:
         """T9: ticker, source, date range, and provenance survive the round-trip."""
         df = _load_fixture_as_yfinance_df("AAPL")
         fetcher = MarketDataFetcher()
-        with patch.object(fetcher, "_download", return_value=df):
-            original = fetcher.fetch_ohlcv("AAPL", date(2023, 1, 3), date(2023, 4, 1))
+        original = fetcher.fetch_ohlcv("AAPL", date(2023, 1, 3), date(2023, 4, 1), _test_download=df)
 
         out_path = tmp_path / "AAPL.parquet"
         write_ohlcv(original, out_path)
