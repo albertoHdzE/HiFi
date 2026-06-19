@@ -16,6 +16,11 @@ Phase 9 additions (P9-E3):
 - Performance weights loaded from data/agent_performance_history.json (D-04)
 - Method divergence logged at INFO when methods produce different decisions (D-06)
 
+Phase 14 additions (E3-T2/T4, DJ-089b):
+- run_sequential_ensemble(): causal context accumulation — each agent reads
+  prior agents' summaries from AgentContextStore before generating its own.
+- run_ensemble(..., sequential=True): delegates to run_sequential_ensemble().
+
 Sequential execution: agents run one at a time.
 
 Observability: the same parent LangFuse trace covers all agents and verification.
@@ -25,12 +30,18 @@ from __future__ import annotations
 
 import logging
 import time
+from datetime import UTC, datetime
 
 from hifi.agents.fundamental_agent import run_analysis
 from hifi.agents.technical_agent import run_technical_analysis
 from hifi.collective.performance_store import get_weights
 from hifi.collective.schemas import EnsembleOutput
 from hifi.collective.voting import confidence_weighted_vote, run_all_methods
+from hifi.knowledge.agent_context import (
+    AgentContextRecord,
+    AgentContextStore,
+    format_prior_context,
+)
 from hifi.observability.tracing import (
     AbstractTracer,
     get_tracer,
@@ -40,6 +51,75 @@ from hifi.observability.tracing import (
 from hifi.verification.verifier import verify_ensemble
 
 logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# Sequential ensemble helpers
+# ---------------------------------------------------------------------------
+
+
+def _extract_summary(analysis: object, agent_type: str) -> str:
+    """Extract a ≤300-char rationale summary from an agent analysis object."""
+    rationale = ""
+    try:
+        sig = getattr(analysis, "signal", None)
+        if sig is not None:
+            rationale = getattr(sig, "rationale", "") or ""
+        if not rationale:
+            rationale = getattr(analysis, "rationale", "") or ""
+    except Exception:
+        pass
+    if rationale:
+        return rationale[:300]
+    return f"{agent_type} analysis complete"
+
+
+def _augmented_memory_prefix(
+    store: AgentContextStore,
+    run_id: str,
+    agent_type: str,
+    ticker: str,
+    date: str,
+    existing_prefix: str,
+) -> str:
+    """Return memory prefix augmented with prior-agent context from the store."""
+    records = store.read_prior(run_id, agent_type)
+    ctx_block = format_prior_context(records, ticker, date)
+    if not ctx_block:
+        return existing_prefix
+    if existing_prefix:
+        return ctx_block + "\n\n" + existing_prefix
+    return ctx_block
+
+
+def _store_agent_result(
+    store: AgentContextStore,
+    run_id: str,
+    ticker: str,
+    date: str,
+    agent_type: str,
+    analysis: object,
+) -> None:
+    """Write an agent's result to the context store (fail-safe, logs on error)."""
+    try:
+        sig = getattr(analysis, "signal", None)
+        if sig is None:
+            return
+        record = AgentContextRecord(
+            run_id=run_id,
+            ticker=ticker,
+            date=date,
+            agent_type=agent_type,
+            analysis_summary=_extract_summary(analysis, agent_type),
+            decision=sig.decision,
+            confidence=float(sig.confidence),
+            created_at=datetime.now(UTC).isoformat(),
+        )
+        store.write(record)
+    except Exception as exc:
+        logger.warning(
+            "Failed to store context for run_id=%s agent=%s: %s", run_id, agent_type, exc
+        )
 
 _ALL_AGENTS = ["fundamental", "technical", "risk", "macro", "sentiment", "contrarian"]
 
@@ -88,7 +168,9 @@ def run_ensemble(
     agents: list[str] | None = None,
     use_graphrag: bool = False,
     memory_prefixes: dict[str, str] | None = None,
+    sequential: bool = False,
     _test_llms: dict | None = None,
+    _test_store: AgentContextStore | None = None,
 ) -> EnsembleOutput:
     """
     Run the agent ensemble, aggregate outputs, and verify.
@@ -118,6 +200,10 @@ def run_ensemble(
         Optional per-agent memory prefixes (P13-E4-T3, DJ-076). Keys are agent_type
         strings ("fundamental", "technical", "risk", "macro", "sentiment"). Missing
         keys → empty prefix (no memory injection for that agent).
+    sequential : bool
+        When True, delegate to ``run_sequential_ensemble()`` which injects each
+        agent's summary as context for subsequent agents (E3-T4, DJ-089b).
+        Default False preserves all Phase 13 behavior exactly.
 
     Returns
     -------
@@ -125,6 +211,20 @@ def run_ensemble(
         Full ensemble output. Phase 8 fields (risk, macro, sentiment, contrarian)
         are None when the corresponding agent was not in the `agents` list.
     """
+    if sequential:
+        return run_sequential_ensemble(
+            ticker=ticker,
+            as_of_date=as_of_date,
+            snapshot_json=snapshot_json,
+            data_dir=data_dir,
+            tracer=tracer,
+            use_rag=use_rag,
+            use_graphrag=use_graphrag,
+            memory_prefixes=memory_prefixes,
+            _test_llms=_test_llms,
+            _test_store=_test_store,
+        )
+
     if use_graphrag:
         assert not use_rag, "use_rag and use_graphrag are mutually exclusive (DJ-068)"
 
@@ -533,6 +633,265 @@ def run_debate_ensemble(
         aggregation_method="confidence_weighted",
         method_comparison=method_comparison,
         debate_transcript=transcript,
+    )
+
+    verification = verify_ensemble(output)
+    log_verification_scores(_tracer, trace_id, verification, decision)
+    _tracer.flush()
+
+    return output
+
+
+# ---------------------------------------------------------------------------
+# Sequential ensemble (E3-T2, DJ-089b)
+# ---------------------------------------------------------------------------
+
+
+def run_sequential_ensemble(
+    ticker: str,
+    as_of_date: str,
+    snapshot_json: str,
+    agent_order: list[str] | None = None,
+    context_namespace: str = "hifi-dev-context",
+    memory_prefixes: dict[str, str] | None = None,
+    data_dir: str | None = None,
+    tracer: AbstractTracer | None = None,
+    use_rag: bool = False,
+    use_graphrag: bool = False,
+    _test_llms: dict | None = None,
+    _test_store: AgentContextStore | None = None,
+) -> EnsembleOutput:
+    """
+    Run the agent ensemble with causal inter-agent context accumulation.
+
+    Each agent reads prior agents' decision summaries from ``AgentContextStore``
+    before generating its own analysis.  The Contrarian agent always runs last
+    and receives a prior-context block prepended to its ensemble_context JSON.
+
+    This preserves the full aggregation/verification pipeline of ``run_ensemble``
+    while adding structured context injection at each step.
+
+    Parameters
+    ----------
+    ticker, as_of_date, snapshot_json, data_dir, tracer, use_rag, use_graphrag :
+        Identical semantics to ``run_ensemble()``.
+    agent_order : list[str] | None
+        Agent execution order. ``None`` → canonical 6-agent order.
+    context_namespace : str
+        LanceDB namespace for the AgentContextStore (default "hifi-dev-context").
+    memory_prefixes : dict[str, str] | None
+        Per-agent memory prefixes (Phase 13 episodic memory).  Prior-agent
+        context is prepended *before* these prefixes.
+    _test_store : AgentContextStore | None
+        Inject a pre-built store for testing (skips LanceDB path construction).
+    """
+    import uuid
+
+    if use_graphrag:
+        assert not use_rag, "use_rag and use_graphrag are mutually exclusive (DJ-068)"
+
+    _tracer = tracer if tracer is not None else get_tracer()
+    trace_id = _tracer.start_trace(
+        "run_sequential_ensemble", ticker=ticker, as_of_date=as_of_date
+    )
+
+    from hifi.knowledge.agent_context import CANONICAL_ORDER
+
+    active = CANONICAL_ORDER if agent_order is None else list(agent_order)
+    run_contrarian = "contrarian" in active
+    voting_agents = [a for a in active if a != "contrarian"]
+
+    run_id = str(uuid.uuid4())
+    _mem = memory_prefixes or {}
+    _llms = _test_llms or {}
+
+    # Build or reuse AgentContextStore
+    if _test_store is not None:
+        store = _test_store
+    else:
+        import os
+        from pathlib import Path
+        _db = str(Path(data_dir or os.environ.get("HIFI_DATA_DIR", "data")) / "knowledge.lance")
+        store = AgentContextStore(namespace=context_namespace, db_path=_db)
+
+    graphrag_ctx = _build_graphrag_context(ticker, data_dir) if use_graphrag else ""
+
+    start = time.monotonic()
+
+    risk_analysis = None
+    macro_analysis = None
+    sentiment_analysis = None
+    contrarian_analysis = None
+
+    with trace_context(trace_id):
+        # ---- Fundamental ----
+        fundamental = run_analysis(
+            ticker=ticker,
+            as_of_date=as_of_date,
+            snapshot_json=snapshot_json,
+            data_dir=data_dir,
+            tracer=_tracer,
+            use_rag=use_rag,
+            retrieved_context=graphrag_ctx,
+            memory_prefix=_augmented_memory_prefix(
+                store, run_id, "fundamental", ticker, as_of_date,
+                _mem.get("fundamental", ""),
+            ),
+            _test_llm=_llms.get("fundamental"),
+        )
+        _store_agent_result(store, run_id, ticker, as_of_date, "fundamental", fundamental)
+
+        # ---- Technical ----
+        technical = run_technical_analysis(
+            ticker=ticker,
+            as_of_date=as_of_date,
+            data_dir=data_dir,
+            tracer=_tracer,
+            use_rag=use_rag,
+            retrieved_context=graphrag_ctx,
+            memory_prefix=_augmented_memory_prefix(
+                store, run_id, "technical", ticker, as_of_date,
+                _mem.get("technical", ""),
+            ),
+            _test_llm=_llms.get("technical"),
+        )
+        _store_agent_result(store, run_id, ticker, as_of_date, "technical", technical)
+
+        # ---- Risk ----
+        if "risk" in voting_agents:
+            from hifi.agents.risk_agent import run_risk_analysis
+            risk_analysis = run_risk_analysis(
+                ticker=ticker,
+                as_of_date=as_of_date,
+                data_dir=data_dir,
+                tracer=_tracer,
+                memory_prefix=_augmented_memory_prefix(
+                    store, run_id, "risk", ticker, as_of_date,
+                    _mem.get("risk", ""),
+                ),
+                _test_llm=_llms.get("risk"),
+            )
+            _store_agent_result(store, run_id, ticker, as_of_date, "risk", risk_analysis)
+
+        # ---- Macro ----
+        if "macro" in voting_agents:
+            from hifi.agents.macro_agent import run_macro_analysis
+            macro_analysis = run_macro_analysis(
+                ticker=ticker,
+                as_of_date=as_of_date,
+                data_dir=data_dir,
+                tracer=_tracer,
+                memory_prefix=_augmented_memory_prefix(
+                    store, run_id, "macro", ticker, as_of_date,
+                    _mem.get("macro", ""),
+                ),
+                _test_llm=_llms.get("macro"),
+            )
+            _store_agent_result(store, run_id, ticker, as_of_date, "macro", macro_analysis)
+
+        # ---- Sentiment ----
+        if "sentiment" in voting_agents:
+            from hifi.agents.sentiment_agent import run_sentiment_analysis
+            sentiment_analysis = run_sentiment_analysis(
+                ticker=ticker,
+                as_of_date=as_of_date,
+                data_dir=data_dir,
+                tracer=_tracer,
+                memory_prefix=_augmented_memory_prefix(
+                    store, run_id, "sentiment", ticker, as_of_date,
+                    _mem.get("sentiment", ""),
+                ),
+                _test_llm=_llms.get("sentiment"),
+            )
+            _store_agent_result(
+                store, run_id, ticker, as_of_date, "sentiment", sentiment_analysis
+            )
+
+    # --- Voting ---
+    perf_weights = get_weights(data_dir=data_dir)
+    candidate_signals = [fundamental.signal, technical.signal]
+    if risk_analysis is not None:
+        candidate_signals.append(risk_analysis.signal)
+    if macro_analysis is not None:
+        candidate_signals.append(macro_analysis.signal)
+    if sentiment_analysis is not None:
+        candidate_signals.append(sentiment_analysis.signal)
+    valid_signals = [s for s in candidate_signals if s is not None]
+    decision = confidence_weighted_vote(valid_signals)
+
+    # --- Contrarian (receives full prior context block) ---
+    if run_contrarian:
+        from hifi.agents.contrarian_agent import (
+            _build_ensemble_context,
+            run_contrarian_analysis,
+        )
+
+        agent_summaries = [
+            {
+                "agent_type": sig.agent_type,
+                "decision": sig.decision,
+                "confidence": sig.confidence,
+                "rationale": sig.rationale,
+                "key_concern": sig.key_concern,
+            }
+            for sig in valid_signals
+        ]
+        ensemble_context = _build_ensemble_context(
+            ticker=ticker,
+            as_of_date=as_of_date,
+            agent_summaries=agent_summaries,
+            collective_decision=decision.collective_decision,
+            collective_confidence=decision.collective_confidence,
+        )
+
+        # Prepend prior-agent context block to the Contrarian's ensemble_context
+        prior_records = store.read_prior(run_id, "contrarian")
+        ctx_block = format_prior_context(prior_records, ticker, as_of_date)
+        if ctx_block:
+            ensemble_context = ctx_block + "\n\n" + ensemble_context
+
+        with trace_context(trace_id):
+            contrarian_analysis = run_contrarian_analysis(
+                ticker=ticker,
+                as_of_date=as_of_date,
+                ensemble_context=ensemble_context,
+                tracer=_tracer,
+                _test_llm=_llms.get("contrarian"),
+            )
+
+    # --- Aggregation ---
+    method_comparison = run_all_methods(
+        signals=candidate_signals,
+        contrarian=contrarian_analysis,
+        weights=perf_weights,
+    )
+
+    decisions_by_method = {k: v.collective_decision for k, v in method_comparison.items()}
+    unique_decisions = {d for d in decisions_by_method.values() if d is not None}
+    if len(unique_decisions) > 1:
+        logger.info(
+            "Method divergence (sequential) for %s %s: %s",
+            ticker,
+            as_of_date,
+            decisions_by_method,
+        )
+
+    latency_ms = round((time.monotonic() - start) * 1000, 1)
+
+    output = EnsembleOutput(
+        ticker=ticker,
+        as_of_date=as_of_date,
+        fundamental_analysis=fundamental,
+        technical_analysis=technical,
+        ensemble_decision=decision,
+        latency_ms=latency_ms,
+        risk_analysis=risk_analysis,
+        macro_analysis=macro_analysis,
+        sentiment_analysis=sentiment_analysis,
+        contrarian_analysis=contrarian_analysis,
+        signals=valid_signals,
+        aggregation_method="confidence_weighted",
+        method_comparison=method_comparison,
     )
 
     verification = verify_ensemble(output)
