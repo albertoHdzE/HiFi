@@ -62,20 +62,25 @@ def lookup_cik(ticker: str, session: Any) -> int | None:
     return None
 
 
-def lookup_cik_by_ticker_api(ticker: str, session: Any) -> int | None:
-    """Fallback: use company_tickers.json from SEC."""
+def build_cik_map(session: Any) -> dict[str, int]:
+    """
+    Fetch company_tickers.json once and return {TICKER: cik_int} map.
+    Call once before the main loop; O(1) lookups thereafter.
+    """
     try:
         resp = session.get(
-            "https://www.sec.gov/files/company_tickers.json", timeout=15
+            "https://www.sec.gov/files/company_tickers.json", timeout=30
         )
         resp.raise_for_status()
         data = resp.json()
-        for _idx, entry in data.items():
-            if entry.get("ticker", "").upper() == ticker.upper():
-                return int(entry["cik_str"])
+        return {
+            entry["ticker"].upper(): int(entry["cik_str"])
+            for entry in data.values()
+            if "ticker" in entry and "cik_str" in entry
+        }
     except Exception as exc:
-        logger.warning("Ticker→CIK lookup failed for %s: %s", ticker, exc)
-    return None
+        logger.error("Failed to fetch company_tickers.json: %s", exc)
+        return {}
 
 
 # ---------------------------------------------------------------------------
@@ -107,7 +112,7 @@ def get_filings(
     filings_data = data.get("filings", {}).get("recent", {})
     forms = filings_data.get("form", [])
     accessions = filings_data.get("accessionNumber", [])
-    periods = filings_data.get("periodOfReport", [])
+    periods = filings_data.get("reportDate", [])   # EDGAR API field (not periodOfReport)
     primary_docs = filings_data.get("primaryDocument", [])
 
     results = []
@@ -197,6 +202,17 @@ def write_chunks(table: Any, chunks: list[dict]) -> None:
 # ---------------------------------------------------------------------------
 
 
+def _already_ingested(table: Any, ticker: str, form_type: str) -> bool:
+    """Return True if this ticker+form_type already has rows in the table."""
+    try:
+        df = table.search().where(
+            f"ticker = '{ticker}' AND filing_type = '{form_type}'"
+        ).limit(1).to_pandas()
+        return len(df) > 0
+    except Exception:
+        return False
+
+
 def ingest_ticker(
     ticker: str,
     cik: int,
@@ -208,6 +224,10 @@ def ingest_ticker(
 ) -> int:
     """Ingest all MD&A chunks for one ticker/form_type combination."""
     from hifi.data.edgar_mda import chunk_text, extract_mda_section
+
+    if not dry_run and table is not None and _already_ingested(table, ticker, form_type):
+        logger.info("SKIP %s %s — already ingested", ticker, form_type)
+        return 0
 
     filings = get_filings(cik, form_type, through_date, session)
     if not filings:
@@ -280,14 +300,23 @@ def main() -> None:
     else:
         table = None
 
+    # Fetch CIK map once (avoids re-downloading 2MB JSON per ticker)
+    logger.info("Fetching SEC company_tickers.json...")
+    cik_map = build_cik_map(session)
+    logger.info("CIK map loaded: %d companies", len(cik_map))
+
     total_chunks = 0
-    for ticker in tickers:
+    n_skip = 0
+    for idx, ticker in enumerate(tickers, 1):
         time.sleep(_REQUEST_DELAY)
-        cik = lookup_cik_by_ticker_api(ticker, session)
+        cik = cik_map.get(ticker.upper())
         if cik is None:
-            logger.warning("Could not resolve CIK for %s — skipping", ticker)
+            logger.warning("[%d/%d] Could not resolve CIK for %s — skipping",
+                           idx, len(tickers), ticker)
+            n_skip += 1
             continue
 
+        logger.info("[%d/%d] %s (CIK %d)", idx, len(tickers), ticker, cik)
         for form_type, _label in _FILING_TYPES:
             n = ingest_ticker(
                 ticker=ticker,
@@ -300,7 +329,10 @@ def main() -> None:
             )
             total_chunks += n
 
-    logger.info("Done. Total chunks ingested: %d", total_chunks)
+    logger.info(
+        "Done. Total chunks ingested: %d | Tickers skipped (no CIK): %d",
+        total_chunks, n_skip,
+    )
 
 
 if __name__ == "__main__":

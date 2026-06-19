@@ -19,6 +19,7 @@ Why this matters (from DJ-087):
 
 from __future__ import annotations
 
+import html as _html
 import logging
 import re
 
@@ -41,10 +42,10 @@ def strip_html(text: str) -> str:
     text = re.sub(r"<(script|style)[^>]*>.*?</\1>", " ", text, flags=re.IGNORECASE | re.DOTALL)
     # Remove all remaining tags
     text = re.sub(r"<[^>]+>", " ", text)
-    # Decode common HTML entities
-    text = text.replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">")
-    text = text.replace("&nbsp;", " ").replace("&#160;", " ")
-    # Normalise whitespace
+    # Decode all HTML entities (&#8217; → ', &amp; → &, &nbsp; → \xa0, etc.)
+    text = _html.unescape(text)
+    # Normalise whitespace including non-breaking spaces
+    text = text.replace("\xa0", " ")
     text = re.sub(r"\s+", " ", text).strip()
     return text
 
@@ -64,6 +65,10 @@ _ITEM2_PATTERNS = [
 
 _NEXT_ITEM_PATTERN = re.compile(r"item\s+[89]\b", re.IGNORECASE)
 
+# Minimum characters to distinguish real MD&A content from a TOC entry.
+# Real EDGAR TOC entries are ~90-170 chars; actual sections run to thousands.
+_MIN_SECTION_CHARS = 200
+
 
 def extract_mda_section(html_text: str, filing_type: str) -> str:
     """
@@ -80,28 +85,29 @@ def extract_mda_section(html_text: str, filing_type: str) -> str:
     -------
     str
         Extracted plain-text MD&A content, or "" if not found.
+
+    Notes
+    -----
+    Modern EDGAR HTML filings include a table-of-contents that references
+    "Item 7" before the actual section.  We iterate all matches and return
+    the first one whose extracted text meets _MIN_SECTION_CHARS, skipping
+    short TOC entries.
     """
     plain = strip_html(html_text)
 
     patterns = _ITEM7_PATTERNS if "10-K" in filing_type.upper() else _ITEM2_PATTERNS
 
-    start_pos = -1
     for pat in patterns:
-        m = pat.search(plain)
-        if m:
+        for m in pat.finditer(plain):
             start_pos = m.start()
-            break
+            end_match = _NEXT_ITEM_PATTERN.search(plain, start_pos + 100)
+            end_pos = end_match.start() if end_match else len(plain)
+            section = plain[start_pos:end_pos].strip()
+            if len(section) >= _MIN_SECTION_CHARS:
+                return section
 
-    if start_pos == -1:
-        logger.warning("MD&A section not found in %s filing", filing_type)
-        return ""
-
-    # Find end of section (next major item heading)
-    end_match = _NEXT_ITEM_PATTERN.search(plain, start_pos + 100)
-    end_pos = end_match.start() if end_match else len(plain)
-
-    section = plain[start_pos:end_pos].strip()
-    return section
+    logger.warning("MD&A section not found in %s filing", filing_type)
+    return ""
 
 
 # ---------------------------------------------------------------------------
