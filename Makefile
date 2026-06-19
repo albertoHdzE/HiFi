@@ -14,7 +14,9 @@ DOCKER_ENV_FILE     := docker/langfuse/.env
 	calibrate-drift verification-baseline-p13 diagnose-sentiment-sgr \
 	eval-debate-multiround eval-memory run-scenarios validate-sentiment-corpus \
 	acquire-data-phase14 ingest-edgar-mda acquire-macro-phase14 \
-	validate-sentiment-corpus-v2 eval-reset eval-ingest-through live-reset
+	validate-sentiment-corpus-v2 eval-reset eval-ingest-through live-reset \
+	walkforward-full walkforward-parallel walkforward-homogeneous walkforward-no-memory \
+	walkforward-held-out walkforward-status walkforward-ic
 
 FINETUNE_VENV := venvs/finetune/bin/python
 
@@ -330,3 +332,40 @@ eval-ingest-through: ## Ingest data through DATE= into hifi-eval namespace (requ
 
 live-reset: ## Drop all hifi-live-* namespace tables in LanceDB
 	uv run python scripts/manage_namespaces.py --action reset --namespace hifi-live
+
+# ---------------------------------------------------------------------------
+# Phase 15: Walk-Forward Simulation (DJ-097, DJ-096)
+# ---------------------------------------------------------------------------
+
+walkforward-full: ## Phase 15 Full: sequential 5-org + episodic RAG (requires LM Studio)
+	uv run python scripts/run_phase15_walkforward.py \
+		--condition full --period held-out-test
+
+walkforward-parallel: ## Phase 15 Parallel: independent 5-org, no inter-agent sharing (requires LM Studio)
+	uv run python scripts/run_phase15_walkforward.py \
+		--condition parallel --period held-out-test
+
+walkforward-homogeneous: ## Phase 15 Homogeneous: Phase 13 qwen-dominant config (requires LM Studio)
+	uv run python scripts/run_phase15_walkforward.py \
+		--condition homogeneous --period held-out-test
+
+walkforward-no-memory: ## Phase 15 No-memory: sequential 5-org, no episodic prefix (requires LM Studio)
+	uv run python scripts/run_phase15_walkforward.py \
+		--condition no-memory --period held-out-test
+
+walkforward-held-out: ## Phase 15 all four conditions on held-out 2022-2023 (requires LM Studio)
+	$(MAKE) walkforward-full
+	$(MAKE) walkforward-parallel
+	$(MAKE) walkforward-homogeneous
+	$(MAKE) walkforward-no-memory
+
+walkforward-status: ## Show checkpoint progress for all conditions (no LM Studio needed)
+	@for cond in full parallel homogeneous no-memory; do \
+		uv run python scripts/run_phase15_walkforward.py \
+			--status --condition $$cond --period held-out-test; \
+	done
+
+walkforward-ic: ## Compute IC/IR metrics from completed walkforward JSONs (no LM Studio needed)
+	uv run python scripts/compute_phase15_ic.py \
+		--period held-out-test --regime-breakdown
+
