@@ -95,7 +95,10 @@ def test_verify_ensemble_returns_report(fixtures_data_dir, aapl_snapshot_json):
     output = run_ensemble(
         "AAPL", "2023-03-31", aapl_snapshot_json,
         fixtures_data_dir, agents=["fundamental", "technical"],
-        _test_llms={"fundamental": _stub_llm(_STUB_HOLD, "fund"), "technical": _stub_llm(_STUB_HOLD, "tech")},
+        _test_llms={
+            "fundamental": _stub_llm(_STUB_HOLD, "fund"),
+            "technical": _stub_llm(_STUB_HOLD, "tech"),
+        },
     )
 
     assert isinstance(output, EnsembleOutput)
@@ -118,7 +121,10 @@ def test_triggered_by_disagreement_false_when_agreement(fixtures_data_dir, aapl_
     output = run_ensemble(
         "AAPL", "2023-03-31", aapl_snapshot_json,
         fixtures_data_dir, agents=["fundamental", "technical"],
-        _test_llms={"fundamental": _stub_llm(_STUB_HOLD, "fund"), "technical": _stub_llm(_STUB_HOLD, "tech")},
+        _test_llms={
+            "fundamental": _stub_llm(_STUB_HOLD, "fund"),
+            "technical": _stub_llm(_STUB_HOLD, "tech"),
+        },
     )
     report = verify_ensemble(output)
 
@@ -133,7 +139,10 @@ def test_triggered_by_disagreement_true_when_disagreement(fixtures_data_dir, aap
     output = run_ensemble(
         "AAPL", "2023-03-31", aapl_snapshot_json,
         fixtures_data_dir, agents=["fundamental", "technical"],
-        _test_llms={"fundamental": _stub_llm(_STUB_HOLD, "fund"), "technical": _stub_llm(_STUB_BUY, "tech")},
+        _test_llms={
+            "fundamental": _stub_llm(_STUB_HOLD, "fund"),
+            "technical": _stub_llm(_STUB_BUY, "tech"),
+        },
     )
     report = verify_ensemble(output)
 
@@ -152,7 +161,10 @@ def test_verify_ensemble_structural_invariants(fixtures_data_dir, aapl_snapshot_
     output = run_ensemble(
         "AAPL", "2023-03-31", aapl_snapshot_json,
         fixtures_data_dir, agents=["fundamental", "technical"],
-        _test_llms={"fundamental": _stub_llm(_STUB_HOLD, "fund"), "technical": _stub_llm(_STUB_HOLD, "tech")},
+        _test_llms={
+            "fundamental": _stub_llm(_STUB_HOLD, "fund"),
+            "technical": _stub_llm(_STUB_HOLD, "tech"),
+        },
     )
     report = verify_ensemble(output)
 
@@ -176,7 +188,10 @@ def test_verify_ensemble_json_safe(fixtures_data_dir, aapl_snapshot_json):
     output = run_ensemble(
         "AAPL", "2023-03-31", aapl_snapshot_json,
         fixtures_data_dir, agents=["fundamental", "technical"],
-        _test_llms={"fundamental": _stub_llm(_STUB_HOLD, "fund"), "technical": _stub_llm(_STUB_HOLD, "tech")},
+        _test_llms={
+            "fundamental": _stub_llm(_STUB_HOLD, "fund"),
+            "technical": _stub_llm(_STUB_HOLD, "tech"),
+        },
     )
     report = verify_ensemble(output)
     json.dumps(report.model_dump())

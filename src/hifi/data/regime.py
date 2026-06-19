@@ -172,10 +172,8 @@ def classify_regime(
     ret_1y = _spy_52w_return(ohlcv_series, as_of)
     vix_val = _vix_value(ohlcv_series, macro_series, as_of)
 
-    if ret_1y is not None and ret_1y < _BEAR_RETURN:
-        # Bear: check high vol
-        if vix_val is None or vix_val > _VIX_HIGH:
-            return "bear_high_vol"
+    if ret_1y is not None and ret_1y < _BEAR_RETURN and (vix_val is None or vix_val > _VIX_HIGH):
+        return "bear_high_vol"
 
     if ret_1y is not None and ret_1y > _RECOVERY_RETURN:
         # Recovery: verify prior year was bearish
@@ -184,9 +182,7 @@ def classify_regime(
         if ret_prior is not None and ret_prior < _BEAR_RETURN:
             return "recovery"
 
-    if ret_1y is not None and ret_1y > _BULL_RETURN:
-        # Bull: check low vol
-        if vix_val is None or vix_val < _VIX_LOW:
-            return "bull_low_vol"
+    if ret_1y is not None and ret_1y > _BULL_RETURN and (vix_val is None or vix_val < _VIX_LOW):
+        return "bull_low_vol"
 
     return "neutral"

@@ -12,7 +12,9 @@ DOCKER_ENV_FILE     := docker/langfuse/.env
 	generate-reference-strategies label-outcomes baseline-phase11 \
 	test-live \
 	calibrate-drift verification-baseline-p13 diagnose-sentiment-sgr \
-	eval-debate-multiround eval-memory run-scenarios validate-sentiment-corpus
+	eval-debate-multiround eval-memory run-scenarios validate-sentiment-corpus \
+	acquire-data-phase14 ingest-edgar-mda acquire-macro-phase14 \
+	validate-sentiment-corpus-v2 eval-reset eval-ingest-through live-reset
 
 FINETUNE_VENV := venvs/finetune/bin/python
 
@@ -224,8 +226,9 @@ generate-reference-strategies: ## Generate Dataset Family C Parquets (no LM Stud
 	uv run python scripts/generate_reference_strategies.py
 	uv run python scripts/check_env.py --check phase11-data
 
-label-outcomes: ## Label unlabeled performance records where 60d has elapsed (no LM Studio)
+label-outcomes: ## Label unlabeled performance + episodic records where 60d has elapsed (no LM Studio)
 	uv run python scripts/run_label_outcomes.py
+	uv run python scripts/label_outcomes.py
 
 baseline-phase11: ## Phase 11 fine-tuning eval: generate + validate (requires LM Studio + finetune servers)
 	uv run python scripts/check_env.py --check lm-studio
@@ -298,3 +301,32 @@ eval-memory: ## E4-T4: Agent memory influence eval → OQ-M03 (requires LM Studi
 run-scenarios: ## E6-T2: Run F-001/F-002/F-003 synthetic scenarios (requires LM Studio)
 	uv run python scripts/check_env.py --check lm-studio
 	uv run python scripts/run_phase13_scenarios.py
+
+# ---------------------------------------------------------------------------
+# Phase 14: Data acquisition, namespace management, episodic labeling (DJ-090–DJ-093)
+# ---------------------------------------------------------------------------
+
+acquire-data-phase14: ## Bulk OHLCV + fundamentals for 100-stock universe 2004-2025 (internet, ~45min)
+	uv run python scripts/acquire_phase14_data.py
+
+ingest-edgar-mda: ## EDGAR MD&A Item 7/Item 2 targeted ingestion → LanceDB (internet, 4-8h)
+	uv run python scripts/ingest_edgar_mda.py
+
+acquire-macro-phase14: ## Extend FRED macro indicators 2004-2025 (internet, ~5min)
+	uv run python scripts/acquire_macro_phase14.py
+
+validate-sentiment-corpus-v2: ## Re-run OQ-S01 corpus gate on expanded EDGAR corpus (E1-T1)
+	uv run python scripts/validate_sentiment_corpus.py
+
+eval-reset: ## Drop all hifi-eval-* namespace tables in LanceDB
+	uv run python scripts/manage_namespaces.py --action reset --namespace hifi-eval
+
+eval-ingest-through: ## Ingest data through DATE= into hifi-eval namespace (requires DATE=)
+	@if [ -z "$(DATE)" ]; then \
+		echo "ERROR: DATE= required (e.g. make eval-ingest-through DATE=2020-12-31)"; exit 1; \
+	fi
+	uv run python scripts/ingest_edgar_mda.py --namespace hifi-eval --through-date $(DATE)
+	uv run python scripts/ingest_episodes.py --namespace hifi-eval --through-date $(DATE)
+
+live-reset: ## Drop all hifi-live-* namespace tables in LanceDB
+	uv run python scripts/manage_namespaces.py --action reset --namespace hifi-live

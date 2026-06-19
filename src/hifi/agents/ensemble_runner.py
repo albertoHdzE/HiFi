@@ -647,6 +647,81 @@ def run_debate_ensemble(
 # ---------------------------------------------------------------------------
 
 
+def _get_regime_label(ticker: str, as_of_date: str, data_dir: str | None) -> str:
+    """Try to classify regime from available SPY/macro data; fall back to 'neutral'."""
+    try:
+        import os
+        from pathlib import Path
+
+        import pandas as pd
+
+        from hifi.data.regime import classify_regime
+
+        effective_dir = Path(data_dir or os.environ.get("HIFI_DATA_DIR", "data"))
+        spy_path = effective_dir / "market" / "SPY.parquet"
+        macro_path = effective_dir / "macro" / "macro.parquet"
+        if not spy_path.exists() or not macro_path.exists():
+            return "neutral"
+        spy = pd.read_parquet(spy_path)
+        macro = pd.read_parquet(macro_path)
+        if not isinstance(spy.index, pd.DatetimeIndex):
+            spy.index = pd.to_datetime(spy.index)
+        if not isinstance(macro.index, pd.DatetimeIndex):
+            macro.index = pd.to_datetime(macro.index)
+        return classify_regime(as_of_date, spy, macro)
+    except Exception:
+        return "neutral"
+
+
+def _create_episode_record(
+    episodic_store: object,
+    ticker: str,
+    as_of_date: str,
+    agent_type: str,
+    analysis: object,
+    regime_label: str,
+    sector: str,
+    collective_decision: str | None = None,
+) -> None:
+    """Create and store an EpisodeRecord after an agent call. Fail-safe."""
+    try:
+        import uuid
+
+        from hifi.knowledge.episodic_store import EpisodeRecord
+
+        sig = getattr(analysis, "signal", None)
+        decision = "Hold"
+        confidence = 0.5
+        rationale = ""
+        if sig is not None:
+            decision = str(getattr(sig, "decision", "Hold"))
+            confidence = float(getattr(sig, "confidence", 0.5))
+            rationale = str(getattr(sig, "rationale", "") or "")
+        elif agent_type == "ensemble":
+            decision = str(collective_decision or "Hold")
+
+        episode = EpisodeRecord(
+            episode_id=str(uuid.uuid4()),
+            ticker=ticker,
+            decision_date=as_of_date,
+            regime_label=regime_label,
+            sector=sector,
+            agent_type=agent_type,
+            decision=decision,
+            confidence=confidence,
+            collective_decision=collective_decision,
+            forward_return=None,
+            outcome_correct=None,
+            reasoning_summary=rationale[:200],
+            labeled_at=None,
+        )
+        episodic_store.add(episode)
+    except Exception as exc:
+        logger.warning(
+            "Failed to create episode for agent=%s ticker=%s: %s", agent_type, ticker, exc
+        )
+
+
 def run_sequential_ensemble(
     ticker: str,
     as_of_date: str,
@@ -660,6 +735,7 @@ def run_sequential_ensemble(
     use_graphrag: bool = False,
     _test_llms: dict | None = None,
     _test_store: AgentContextStore | None = None,
+    _test_episodic_store: object | None = None,
 ) -> EnsembleOutput:
     """
     Run the agent ensemble with causal inter-agent context accumulation.
@@ -705,6 +781,14 @@ def run_sequential_ensemble(
     _mem = memory_prefixes or {}
     _llms = _test_llms or {}
 
+    # Regime + sector for episodic episodes (E5-T5)
+    _regime = _get_regime_label(ticker, as_of_date, data_dir)
+    try:
+        from hifi.data.universe import get_sector
+        _sector = get_sector(ticker) or "Unknown"
+    except Exception:
+        _sector = "Unknown"
+
     # Build or reuse AgentContextStore
     if _test_store is not None:
         store = _test_store
@@ -740,6 +824,11 @@ def run_sequential_ensemble(
             _test_llm=_llms.get("fundamental"),
         )
         _store_agent_result(store, run_id, ticker, as_of_date, "fundamental", fundamental)
+        if _test_episodic_store is not None:
+            _create_episode_record(
+                _test_episodic_store, ticker, as_of_date, "fundamental",
+                fundamental, _regime, _sector,
+            )
 
         # ---- Technical ----
         technical = run_technical_analysis(
@@ -756,6 +845,11 @@ def run_sequential_ensemble(
             _test_llm=_llms.get("technical"),
         )
         _store_agent_result(store, run_id, ticker, as_of_date, "technical", technical)
+        if _test_episodic_store is not None:
+            _create_episode_record(
+                _test_episodic_store, ticker, as_of_date, "technical",
+                technical, _regime, _sector,
+            )
 
         # ---- Risk ----
         if "risk" in voting_agents:
@@ -772,6 +866,11 @@ def run_sequential_ensemble(
                 _test_llm=_llms.get("risk"),
             )
             _store_agent_result(store, run_id, ticker, as_of_date, "risk", risk_analysis)
+            if _test_episodic_store is not None:
+                _create_episode_record(
+                    _test_episodic_store, ticker, as_of_date, "risk",
+                    risk_analysis, _regime, _sector,
+                )
 
         # ---- Macro ----
         if "macro" in voting_agents:
@@ -788,6 +887,11 @@ def run_sequential_ensemble(
                 _test_llm=_llms.get("macro"),
             )
             _store_agent_result(store, run_id, ticker, as_of_date, "macro", macro_analysis)
+            if _test_episodic_store is not None:
+                _create_episode_record(
+                    _test_episodic_store, ticker, as_of_date, "macro",
+                    macro_analysis, _regime, _sector,
+                )
 
         # ---- Sentiment ----
         if "sentiment" in voting_agents:
@@ -806,6 +910,11 @@ def run_sequential_ensemble(
             _store_agent_result(
                 store, run_id, ticker, as_of_date, "sentiment", sentiment_analysis
             )
+            if _test_episodic_store is not None:
+                _create_episode_record(
+                    _test_episodic_store, ticker, as_of_date, "sentiment",
+                    sentiment_analysis, _regime, _sector,
+                )
 
     # --- Voting ---
     perf_weights = get_weights(data_dir=data_dir)
@@ -897,5 +1006,33 @@ def run_sequential_ensemble(
     verification = verify_ensemble(output)
     log_verification_scores(_tracer, trace_id, verification, decision)
     _tracer.flush()
+
+    # Ensemble-level episode (E5-T5): collective decision record
+    if _test_episodic_store is not None:
+        try:
+            import uuid as _uuid
+
+            from hifi.knowledge.episodic_store import EpisodeRecord
+            ensemble_ep = EpisodeRecord(
+                episode_id=str(_uuid.uuid4()),
+                ticker=ticker,
+                decision_date=as_of_date,
+                regime_label=_regime,
+                sector=_sector,
+                agent_type="ensemble",
+                decision=decision.collective_decision or "Hold",
+                confidence=float(decision.collective_confidence or 0.5),
+                collective_decision=decision.collective_decision,
+                forward_return=None,
+                outcome_correct=None,
+                reasoning_summary=(
+                    f"Ensemble: {decision.collective_decision} "
+                    f"conf={decision.collective_confidence:.2f}"
+                ),
+                labeled_at=None,
+            )
+            _test_episodic_store.add(ensemble_ep)
+        except Exception as exc:
+            logger.warning("Failed to create ensemble episode: %s", exc)
 
     return output

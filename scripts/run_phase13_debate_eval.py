@@ -29,7 +29,7 @@ import json
 import logging
 import sys
 from collections import Counter
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 logging.basicConfig(level=logging.WARNING, format="%(levelname)s %(message)s")
@@ -57,19 +57,22 @@ _SNAPSHOTS = {
               "total_assets": 346_747_000_000, "total_liabilities": 290_437_000_000,
               "total_equity": 50_672_000_000, "eps": 1.88,
               "market_cap": 2_350_000_000_000, "source": "reference",
-              "fetched_at": FETCHED_AT, "provenance": {"source": "10-Q reference", "fetched_at": FETCHED_AT}},
+              "fetched_at": FETCHED_AT,
+              "provenance": {"source": "10-Q reference", "fetched_at": FETCHED_AT}},
     "JPM":  {"ticker": "JPM", "period_end": "2022-12-31",
               "revenue": 128_695_000_000, "net_income": 37_676_000_000,
               "total_assets": 3_665_743_000_000, "total_liabilities": 3_373_000_000_000,
               "total_equity": 292_000_000_000, "eps": 12.09,
               "market_cap": 390_000_000_000, "source": "reference",
-              "fetched_at": FETCHED_AT, "provenance": {"source": "10-K reference", "fetched_at": FETCHED_AT}},
+              "fetched_at": FETCHED_AT,
+              "provenance": {"source": "10-K reference", "fetched_at": FETCHED_AT}},
     "XOM":  {"ticker": "XOM", "period_end": "2022-12-31",
               "revenue": 398_675_000_000, "net_income": 55_740_000_000,
               "total_assets": 369_067_000_000, "total_liabilities": 167_961_000_000,
               "total_equity": 168_577_000_000, "eps": 14.18,
               "market_cap": 440_000_000_000, "source": "reference",
-              "fetched_at": FETCHED_AT, "provenance": {"source": "10-K reference", "fetched_at": FETCHED_AT}},
+              "fetched_at": FETCHED_AT,
+              "provenance": {"source": "10-K reference", "fetched_at": FETCHED_AT}},
 }
 
 
@@ -91,8 +94,9 @@ def main() -> None:
     dates = all_dates[:5]  # First 5 of 10 quarterly dates
     baseline_herding_1round: float = factorial["conditions"]["C"]["mean_herding_coefficient"]
     print(f"Phase 12 condition C herding (1-round): {baseline_herding_1round:.4f}")
-    print(f"Agents: fundamental + technical (matches Phase 12 condition C)")
-    print(f"Evaluation: {len(dates)} dates × {len(TICKERS)} tickers = {len(dates)*len(TICKERS)} runs")
+    print("Agents: fundamental + technical (matches Phase 12 condition C)")
+    n_total = len(dates) * len(TICKERS)
+    print(f"Evaluation: {len(dates)} dates × {len(TICKERS)} tickers = {n_total} runs")
     print(f"Dates: {dates}\n")
 
     snapshots = {t: FundamentalsSnapshot.model_validate(s).model_dump_json()
@@ -105,7 +109,7 @@ def main() -> None:
     for date in dates:
         for ticker in TICKERS:
             n_run += 1
-            print(f"  [{n_run}/{len(dates)*len(TICKERS)}] {ticker} {date} max_rounds=2 ...", end="", flush=True)
+            print(f"  [{n_run}/{n_total}] {ticker} {date} max_rounds=2 ...", end="", flush=True)
             try:
                 out = run_debate_ensemble(
                     ticker=ticker,
@@ -139,10 +143,14 @@ def main() -> None:
 
     # Aggregate
     valid = [r for r in results if "herding_coefficient_2round" in r]
-    mean_herding_2round = sum(r["herding_coefficient_2round"] for r in valid) / len(valid) if valid else None
-    delta = (mean_herding_2round - baseline_herding_1round) if mean_herding_2round is not None else None
+    mean_herding_2round = (
+        sum(r["herding_coefficient_2round"] for r in valid) / len(valid) if valid else None
+    )
+    delta = (
+        (mean_herding_2round - baseline_herding_1round) if mean_herding_2round is not None else None
+    )
 
-    print(f"\nAggregate:")
+    print("\nAggregate:")
     print(f"  Runs completed : {len(valid)}/{n_run} (failed: {n_fail})")
     if mean_herding_2round is not None:
         print(f"  Mean herding 1-round (Phase 12 condition C): {baseline_herding_1round:.4f}")
@@ -158,7 +166,7 @@ def main() -> None:
 
     output = {
         "metadata": {
-            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "generated_at": datetime.now(UTC).isoformat(),
             "phase": 13, "ticket": "E2-T4",
             "description": "Multi-round debate evaluation: herding 1-round vs 2-round",
             "dates_evaluated": dates, "tickers": TICKERS,

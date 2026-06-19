@@ -130,8 +130,14 @@ class MacroDataFetcher:
         start_str = start.isoformat()
         end_str = end.isoformat()
 
-        raw_series = _test_series if _test_series is not None else self._get_series(series_id, start_str, end_str)
-        series_info = _test_series_info if _test_series_info is not None else self._get_series_info(series_id)
+        raw_series = (
+            _test_series if _test_series is not None
+            else self._get_series(series_id, start_str, end_str)
+        )
+        series_info = (
+            _test_series_info if _test_series_info is not None
+            else self._get_series_info(series_id)
+        )
 
         observations = self._normalise(series_id, raw_series)
 

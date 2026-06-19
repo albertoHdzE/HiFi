@@ -1,6 +1,6 @@
 # HiFi Project Status
 
-**Last Updated:** 2026-06-17 (Phase 14 Wave 2 in progress)
+**Last Updated:** 2026-06-19 (Phase 14 Wave 4 complete)
 **Current Phase:** Phase 14 (IN PROGRESS — branch: phase14/heterogeneous-ensemble)
 
 ---
@@ -144,25 +144,46 @@ HiFi is a fully local multi-agent financial intelligence platform. Read these in
 
 ---
 
-## Phase 14 Status (IN PROGRESS — 2026-06-17)
+## Phase 14 Status (IN PROGRESS — 2026-06-19)
 
-**Tests:** 1343 passed, 0 lint errors (src/ + tests/ only)
+**Tests:** ≥1520 passed, 0 lint errors
 **Branch:** phase14/heterogeneous-ensemble
 
-### Wave 1 — COMPLETE (no LLM required)
+### Wave 1 — COMPLETE
 - E2-T1: PHASE14_UNIVERSE (98 tickers, 11 GICS sectors) ✓
 - E4-T1: hifi-portfolio-composer MCP server (deterministic) ✓
 - E6-T1: NamespacedLanceDB + KnowledgeStore namespace param ✓
 
-### Wave 2 — IN PROGRESS (requires LM Studio)
-- E0-T1: lm_client.py Phase 14 model constants (LLAMA_33_70B, MISTRAL_SMALL_32, DEEPSEEK_R1_DISTILL_32B, GEMMA3_12B) ✓
-- E0-T2: test mock regression fixed (lambda → lambda *args) ✓
-- E0-T2/T4/T5 + E0-T3: **scripts/run_phase14_e0_full.py** — fully automated, zero manual steps ✓ (READY TO RUN)
+### Wave 2 — COMPLETE (E0 + E1)
+- E0: diversity baseline OQ-P14-05 PASS (mean_entropy=0.7449) ✓
+- E1: OQ-S01 NEGATIVE → permanently closed; FT deferred to Phase 16 ✓
 
-### NEXT ACTION
-Run: `uv run python scripts/run_phase14_e0_full.py --data-dir data`
-(LM Studio must be running; no model needs to be pre-loaded)
-Use `--skip-diversity` for fast T2+T4+T3 run (~25 min); omit for full T5 diversity (~2 hrs)
+### Wave 3 — COMPLETE (E3 sequential ensemble)
+- E3-T1: AgentContextStore (LanceDB) + format_prior_context ✓
+- E3-T2: run_sequential_ensemble() — causal context accumulation ✓
+- E3-T3: graph.py — LangGraph StateGraph 6-node topology ✓
+- E3-T4: run_ensemble(sequential=True) ✓
+
+### Wave 4 — COMPLETE
+- E2-T3: edgar_mda.py helpers + ingest_edgar_mda.py script ✓
+- E2-T4: acquire_macro_phase14.py (FRED GS10/GS2 + spread) ✓
+- E4-T2: risk_manager MCP server (VaR, drawdown, sector cap, corr) ✓
+- E4-T3: capital_allocator MCP server (Kelly cap, IBKR commissions) ✓
+- E4-T4: test_portfolio_pipeline.py (3-MCP integration) ✓
+- E5-T1: regime.py (classify_regime, VIX fallback) ✓
+- E5-T2: episodic_store.py (EpisodicStore + EpisodeRecord, LanceDB) ✓
+- E5-T3: episodic_retriever.py (temporal-disciplined RAG) ✓
+- E5-T4: label_outcomes.py (60-day forward return, yfinance) ✓
+- E5-T5: episode creation in run_sequential_ensemble() ✓
+- E6-T2: manage_namespaces.py + Makefile targets ✓
+- E6-T3: ingest_episodes.py stub + temporal filter tests ✓
+
+### Remaining (internet-dependent, non-blocking)
+- E2-T2: acquire_phase14_data.py — bulk OHLCV 100 stocks × 21y (run separately)
+- E2-T3 ingest: ingest_edgar_mda.py — EDGAR API calls (run separately, 4-8h)
+
+### NEXT: Phase 14 Wave 5 — Evaluation harness (E7)
+See plans/PHASE_14_PLAN.md for Wave 5 tickets.
 
 ---
 

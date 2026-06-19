@@ -147,7 +147,9 @@ class TestPhase1Pipeline:
         for ticker in _MARKET_TICKERS:
             df = _load_market_df(ticker)
             fetcher = MarketDataFetcher()
-            dataset = fetcher.fetch_ohlcv(ticker, date(2023, 1, 3), date(2023, 4, 1), _test_download=df)
+            dataset = fetcher.fetch_ohlcv(
+                ticker, date(2023, 1, 3), date(2023, 4, 1), _test_download=df
+            )
 
             out_path = tmp_path / f"{ticker}.parquet"
             write_ohlcv(dataset, out_path)
