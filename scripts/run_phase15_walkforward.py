@@ -93,6 +93,11 @@ _EVAL_CONTEXT_NAMESPACE = "hifi-eval-context"
 _EVAL_EPISODE_NAMESPACE = "hifi-eval"
 _AGENT_TYPES = ["fundamental", "technical", "risk", "macro", "sentiment"]
 
+# EDGAR MD&A namespace for each condition (Wave 2, DJ-097)
+# Dev namespace holds all history; eval namespace is temporally filtered.
+_EDGAR_NAMESPACE_DEV  = "hifi-dev-sec"   # table: hifi-dev-sec-sec-mda
+_EDGAR_NAMESPACE_EVAL = "hifi-eval"      # table: hifi-eval-sec-mda
+
 
 # ---------------------------------------------------------------------------
 # Output path helpers
@@ -111,6 +116,37 @@ def count_completed(output_dir: str, condition: str, tickers: list[str], dates: 
         1 for d in dates for t in tickers
         if output_path(output_dir, condition, d, t).exists()
     )
+
+
+# ---------------------------------------------------------------------------
+# EDGAR MD&A retrieval (Wave 2, DJ-097)
+# ---------------------------------------------------------------------------
+
+
+def _fetch_edgar_context(
+    ticker: str,
+    date: str,
+    db_path: str,
+    edgar_namespace: str = _EDGAR_NAMESPACE_DEV,
+) -> str:
+    """
+    Retrieve temporally-disciplined EDGAR MD&A context for fundamental grounding.
+
+    Uses hifi-dev-sec namespace by default (209,722 chunks, all history).
+    The eval condition uses hifi-eval namespace (populated by eval-ingest-through).
+    Returns "" on any failure (fail-open).
+    """
+    try:
+        from hifi.knowledge.edgar_retriever import retrieve_mda_context
+        return retrieve_mda_context(
+            ticker=ticker,
+            as_of_date=date,
+            namespace=edgar_namespace,
+            db_path=db_path,
+        )
+    except Exception as exc:
+        logger.debug("EDGAR retrieval failed for %s %s: %s", ticker, date, exc)
+        return ""
 
 
 # ---------------------------------------------------------------------------
@@ -270,12 +306,25 @@ def _dispatch(
 
 
 def _run_full(ticker, date, snapshot_json, data_dir, db_path, _test_llms):
-    """Full: sequential 5-org + episodic RAG from hifi-eval namespace."""
+    """Full: sequential 5-org + episodic RAG + EDGAR MD&A context (Wave 2)."""
     from hifi.agents.ensemble_runner import run_sequential_ensemble
 
     regime = _get_regime(ticker, date, data_dir)
     sector = _get_sector(ticker)
+
+    # Episodic memory prefixes from hifi-eval namespace
     memory_prefixes = _build_episodic_prefixes(ticker, date, regime, sector, db_path)
+
+    # EDGAR MD&A context — use dev namespace (all history, temporally filtered)
+    # When hifi-eval namespace is populated via eval-ingest-through, switch to
+    # _EDGAR_NAMESPACE_EVAL for strict temporal isolation.
+    edgar_ctx = _fetch_edgar_context(ticker, date, db_path, _EDGAR_NAMESPACE_DEV)
+    if edgar_ctx:
+        # Prepend EDGAR context to fundamental agent's memory prefix
+        existing = memory_prefixes.get("fundamental", "")
+        memory_prefixes["fundamental"] = (
+            edgar_ctx + ("\n\n" + existing if existing else "")
+        )
 
     return run_sequential_ensemble(
         ticker=ticker,
@@ -289,8 +338,12 @@ def _run_full(ticker, date, snapshot_json, data_dir, db_path, _test_llms):
 
 
 def _run_parallel(ticker, date, snapshot_json, data_dir, db_path, _test_llms):
-    """Parallel: independent 5-org, no inter-agent context sharing."""
+    """Parallel: independent 5-org + EDGAR MD&A, no inter-agent context sharing."""
     from hifi.agents.ensemble_runner import run_ensemble
+
+    # EDGAR MD&A context injected via memory_prefixes for parallel condition too
+    edgar_ctx = _fetch_edgar_context(ticker, date, db_path, _EDGAR_NAMESPACE_DEV)
+    memory_prefixes = {"fundamental": edgar_ctx} if edgar_ctx else {}
 
     return run_ensemble(
         ticker=ticker,
@@ -298,13 +351,17 @@ def _run_parallel(ticker, date, snapshot_json, data_dir, db_path, _test_llms):
         snapshot_json=snapshot_json,
         data_dir=data_dir,
         sequential=False,
+        memory_prefixes=memory_prefixes,
         _test_llms=_test_llms,
     )
 
 
 def _run_homogeneous(ticker, date, snapshot_json, data_dir, db_path, _test_llms):
-    """Homogeneous: Phase 13 qwen-dominant config via env var injection."""
+    """Homogeneous: Phase 13 qwen-dominant config + EDGAR MD&A (same data, different models)."""
     from hifi.agents.ensemble_runner import run_sequential_ensemble
+
+    edgar_ctx = _fetch_edgar_context(ticker, date, db_path, _EDGAR_NAMESPACE_DEV)
+    memory_prefixes = {"fundamental": edgar_ctx} if edgar_ctx else {}
 
     saved = {k: os.environ.get(k) for k in _HOMOGENEOUS_ENV}
     try:
@@ -315,6 +372,7 @@ def _run_homogeneous(ticker, date, snapshot_json, data_dir, db_path, _test_llms)
             snapshot_json=snapshot_json,
             data_dir=data_dir,
             context_namespace=_EVAL_CONTEXT_NAMESPACE,
+            memory_prefixes=memory_prefixes,
             _test_llms=_test_llms,
         )
     finally:
@@ -326,8 +384,13 @@ def _run_homogeneous(ticker, date, snapshot_json, data_dir, db_path, _test_llms)
 
 
 def _run_no_memory(ticker, date, snapshot_json, data_dir, db_path, _test_llms):
-    """No-memory: sequential 5-org, no episodic prefix injection."""
+    """No-memory: sequential 5-org + EDGAR MD&A, no episodic prefix (ablates memory)."""
     from hifi.agents.ensemble_runner import run_sequential_ensemble
+
+    # EDGAR context is NOT episodic memory — it's grounding context.
+    # No-memory ablates the EpisodicRetriever only; EDGAR grounding is kept.
+    edgar_ctx = _fetch_edgar_context(ticker, date, db_path, _EDGAR_NAMESPACE_DEV)
+    memory_prefixes = {"fundamental": edgar_ctx} if edgar_ctx else {}
 
     return run_sequential_ensemble(
         ticker=ticker,
@@ -335,7 +398,7 @@ def _run_no_memory(ticker, date, snapshot_json, data_dir, db_path, _test_llms):
         snapshot_json=snapshot_json,
         data_dir=data_dir,
         context_namespace=_EVAL_CONTEXT_NAMESPACE,
-        memory_prefixes={},
+        memory_prefixes=memory_prefixes,
         _test_llms=_test_llms,
     )
 
