@@ -1,0 +1,948 @@
+{
+  "metadata": {
+    "phase": "14",
+    "epic": "E0",
+    "ticket": "T5",
+    "tickers": [
+      "AAPL",
+      "JPM",
+      "XOM"
+    ],
+    "diversity_dates": [
+      "2020-03-31",
+      "2020-06-30",
+      "2020-09-30",
+      "2020-12-31",
+      "2021-03-31",
+      "2021-06-30",
+      "2021-09-30",
+      "2021-12-31",
+      "2022-03-31",
+      "2022-06-30"
+    ],
+    "hifi_commit": "77ad447"
+  },
+  "data": {
+    "fundamental": {
+      "AAPL|2020-03-31": {
+        "decision": "Buy",
+        "confidence": 0.8
+      },
+      "JPM|2020-03-31": {
+        "decision": "Hold",
+        "confidence": 0.7
+      },
+      "XOM|2020-03-31": {
+        "decision": "Hold",
+        "confidence": 0.7
+      },
+      "AAPL|2020-06-30": {
+        "decision": "Buy",
+        "confidence": 0.8
+      },
+      "JPM|2020-06-30": {
+        "decision": "Buy",
+        "confidence": 0.8
+      },
+      "XOM|2020-06-30": {
+        "decision": "Hold",
+        "confidence": 0.7
+      },
+      "AAPL|2020-09-30": {
+        "decision": "Buy",
+        "confidence": 0.8
+      },
+      "JPM|2020-09-30": {
+        "decision": "Hold",
+        "confidence": 0.7
+      },
+      "XOM|2020-09-30": {
+        "decision": "Hold",
+        "confidence": 0.7
+      },
+      "AAPL|2020-12-31": {
+        "decision": "Buy",
+        "confidence": 0.8
+      },
+      "JPM|2020-12-31": {
+        "decision": "Buy",
+        "confidence": 0.8
+      },
+      "XOM|2020-12-31": {
+        "decision": "Hold",
+        "confidence": 0.7
+      },
+      "AAPL|2021-03-31": {
+        "decision": "Buy",
+        "confidence": 0.8
+      },
+      "JPM|2021-03-31": {
+        "decision": "Buy",
+        "confidence": 0.8
+      },
+      "XOM|2021-03-31": {
+        "decision": "Hold",
+        "confidence": 0.7
+      },
+      "AAPL|2021-06-30": {
+        "decision": "Buy",
+        "confidence": 0.8
+      },
+      "JPM|2021-06-30": {
+        "decision": "Buy",
+        "confidence": 0.8
+      },
+      "XOM|2021-06-30": {
+        "decision": "Hold",
+        "confidence": 0.7
+      },
+      "AAPL|2021-09-30": {
+        "decision": "Buy",
+        "confidence": 0.8
+      },
+      "JPM|2021-09-30": {
+        "decision": "Hold",
+        "confidence": 0.8
+      },
+      "XOM|2021-09-30": {
+        "decision": "Hold",
+        "confidence": 0.7
+      },
+      "AAPL|2021-12-31": {
+        "decision": "Buy",
+        "confidence": 0.8
+      },
+      "JPM|2021-12-31": {
+        "decision": "Hold",
+        "confidence": 0.8
+      },
+      "XOM|2021-12-31": {
+        "decision": "Hold",
+        "confidence": 0.7
+      },
+      "AAPL|2022-03-31": {
+        "decision": "Buy",
+        "confidence": 0.8
+      },
+      "JPM|2022-03-31": {
+        "decision": "Hold",
+        "confidence": 0.7
+      },
+      "XOM|2022-03-31": {
+        "decision": "Hold",
+        "confidence": 0.7
+      },
+      "AAPL|2022-06-30": {
+        "decision": "Buy",
+        "confidence": 0.8
+      },
+      "JPM|2022-06-30": {
+        "decision": "Hold",
+        "confidence": 0.7
+      },
+      "XOM|2022-06-30": {
+        "decision": "Hold",
+        "confidence": 0.7
+      }
+    },
+    "risk": {
+      "AAPL|2020-03-31": {
+        "decision": "Sell",
+        "confidence": 0.85
+      },
+      "JPM|2020-03-31": {
+        "decision": "Sell",
+        "confidence": 0.95
+      },
+      "XOM|2020-03-31": {
+        "decision": "Sell",
+        "confidence": 0.95
+      },
+      "AAPL|2020-06-30": {
+        "decision": "Hold",
+        "confidence": 0.75
+      },
+      "JPM|2020-06-30": {
+        "decision": "Sell",
+        "confidence": 0.9
+      },
+      "XOM|2020-06-30": {
+        "decision": "Sell",
+        "confidence": 0.95
+      },
+      "AAPL|2020-09-30": {
+        "decision": "Hold",
+        "confidence": 0.75
+      },
+      "JPM|2020-09-30": {
+        "decision": "Sell",
+        "confidence": 0.85
+      },
+      "XOM|2020-09-30": {
+        "decision": "Sell",
+        "confidence": 0.85
+      },
+      "AAPL|2020-12-31": {
+        "decision": "Hold",
+        "confidence": 0.75
+      },
+      "JPM|2020-12-31": {
+        "decision": "Sell",
+        "confidence": 0.85
+      },
+      "XOM|2020-12-31": {
+        "decision": "Sell",
+        "confidence": 0.85
+      },
+      "AAPL|2021-03-31": {
+        "decision": "Hold",
+        "confidence": 0.75
+      },
+      "JPM|2021-03-31": {
+        "decision": "Hold",
+        "confidence": 0.75
+      },
+      "XOM|2021-03-31": {
+        "decision": "Hold",
+        "confidence": 0.75
+      },
+      "AAPL|2021-06-30": {
+        "decision": "Hold",
+        "confidence": 0.75
+      },
+      "JPM|2021-06-30": {
+        "decision": "Hold",
+        "confidence": 0.75
+      },
+      "XOM|2021-06-30": {
+        "decision": "Hold",
+        "confidence": 0.75
+      },
+      "AAPL|2021-09-30": {
+        "decision": "Hold",
+        "confidence": 0.7
+      },
+      "JPM|2021-09-30": {
+        "decision": "Buy",
+        "confidence": 0.85
+      },
+      "XOM|2021-09-30": {
+        "decision": "Hold",
+        "confidence": 0.75
+      },
+      "AAPL|2021-12-31": {
+        "decision": "Hold",
+        "confidence": 0.75
+      },
+      "JPM|2021-12-31": {
+        "decision": "Hold",
+        "confidence": 0.75
+      },
+      "XOM|2021-12-31": {
+        "decision": "Hold",
+        "confidence": 0.75
+      },
+      "AAPL|2022-03-31": {
+        "decision": "Hold",
+        "confidence": 0.75
+      },
+      "JPM|2022-03-31": {
+        "decision": "Sell",
+        "confidence": 0.85
+      },
+      "XOM|2022-03-31": {
+        "decision": "Sell",
+        "confidence": 0.85
+      },
+      "AAPL|2022-06-30": {
+        "decision": "Hold",
+        "confidence": 0.7
+      },
+      "JPM|2022-06-30": {
+        "decision": "Sell",
+        "confidence": 0.85
+      },
+      "XOM|2022-06-30": {
+        "decision": "Sell",
+        "confidence": 0.85
+      }
+    },
+    "macro": {
+      "AAPL|2020-03-31": {
+        "decision": "Hold",
+        "confidence": 0.1
+      },
+      "JPM|2020-03-31": {
+        "decision": "Hold",
+        "confidence": 0.5
+      },
+      "XOM|2020-03-31": {
+        "decision": "Hold",
+        "confidence": 0.1
+      },
+      "AAPL|2020-06-30": {
+        "decision": "Hold",
+        "confidence": 0.2
+      },
+      "JPM|2020-06-30": {
+        "decision": "Hold",
+        "confidence": 0.2
+      },
+      "XOM|2020-06-30": {
+        "decision": "Hold",
+        "confidence": 0.1
+      },
+      "AAPL|2020-09-30": {
+        "decision": "Hold",
+        "confidence": 0.2
+      },
+      "JPM|2020-09-30": {
+        "decision": "Hold",
+        "confidence": 0.2
+      },
+      "XOM|2020-09-30": {
+        "decision": "Hold",
+        "confidence": 0.1
+      },
+      "AAPL|2020-12-31": {
+        "decision": "Hold",
+        "confidence": 0.1
+      },
+      "JPM|2020-12-31": {
+        "decision": "Hold",
+        "confidence": 0.0
+      },
+      "XOM|2020-12-31": {
+        "decision": "Hold",
+        "confidence": 0.2
+      },
+      "AAPL|2021-03-31": {
+        "decision": "Hold",
+        "confidence": 0.2
+      },
+      "JPM|2021-03-31": {
+        "decision": "Hold",
+        "confidence": 0.2
+      },
+      "XOM|2021-03-31": {
+        "decision": "Hold",
+        "confidence": 0.2
+      },
+      "AAPL|2021-06-30": {
+        "decision": "Hold",
+        "confidence": 0.2
+      },
+      "JPM|2021-06-30": {
+        "decision": "Hold",
+        "confidence": 0.2
+      },
+      "XOM|2021-06-30": {
+        "decision": "Hold",
+        "confidence": 0.0
+      },
+      "AAPL|2021-09-30": {
+        "decision": "Hold",
+        "confidence": 0.0
+      },
+      "JPM|2021-09-30": {
+        "decision": "Hold",
+        "confidence": 0.2
+      },
+      "XOM|2021-09-30": {
+        "decision": "Hold",
+        "confidence": 0.2
+      },
+      "AAPL|2021-12-31": {
+        "decision": "Hold",
+        "confidence": 0.2
+      },
+      "JPM|2021-12-31": {
+        "decision": "Hold",
+        "confidence": 0.2
+      },
+      "XOM|2021-12-31": {
+        "decision": "Hold",
+        "confidence": 0.2
+      },
+      "AAPL|2022-03-31": {
+        "decision": "Hold",
+        "confidence": 0.1
+      },
+      "JPM|2022-03-31": {
+        "decision": "Hold",
+        "confidence": 0.1
+      },
+      "XOM|2022-03-31": {
+        "decision": "Hold",
+        "confidence": 0.1
+      },
+      "AAPL|2022-06-30": {
+        "decision": "Hold",
+        "confidence": 0.3
+      },
+      "JPM|2022-06-30": {
+        "decision": "Hold",
+        "confidence": 0.1
+      },
+      "XOM|2022-06-30": {
+        "decision": "Hold",
+        "confidence": 0.2
+      }
+    },
+    "sentiment": {
+      "AAPL|2020-03-31": {
+        "decision": "Hold",
+        "confidence": 0.6
+      },
+      "JPM|2020-03-31": {
+        "decision": "Hold",
+        "confidence": 0.6
+      },
+      "XOM|2020-03-31": {
+        "decision": "Hold",
+        "confidence": 0.6
+      },
+      "AAPL|2020-06-30": {
+        "decision": "Hold",
+        "confidence": 0.6
+      },
+      "JPM|2020-06-30": {
+        "decision": "Hold",
+        "confidence": 0.6
+      },
+      "XOM|2020-06-30": {
+        "decision": "Hold",
+        "confidence": 0.6
+      },
+      "AAPL|2020-09-30": {
+        "decision": "Hold",
+        "confidence": 0.6
+      },
+      "JPM|2020-09-30": {
+        "decision": "Hold",
+        "confidence": 0.6
+      },
+      "XOM|2020-09-30": {
+        "decision": "Hold",
+        "confidence": 0.6
+      },
+      "AAPL|2020-12-31": {
+        "decision": "Hold",
+        "confidence": 0.6
+      },
+      "JPM|2020-12-31": {
+        "decision": "Hold",
+        "confidence": 0.6
+      },
+      "XOM|2020-12-31": {
+        "decision": "Hold",
+        "confidence": 0.6
+      },
+      "AAPL|2021-03-31": {
+        "decision": "Hold",
+        "confidence": 0.6
+      },
+      "JPM|2021-03-31": {
+        "decision": "Hold",
+        "confidence": 0.6
+      },
+      "XOM|2021-03-31": {
+        "decision": "Hold",
+        "confidence": 0.6
+      },
+      "AAPL|2021-06-30": {
+        "decision": "Hold",
+        "confidence": 0.6
+      },
+      "JPM|2021-06-30": {
+        "decision": "Hold",
+        "confidence": 0.6
+      },
+      "XOM|2021-06-30": {
+        "decision": "Hold",
+        "confidence": 0.6
+      },
+      "AAPL|2021-09-30": {
+        "decision": "Hold",
+        "confidence": 0.6
+      },
+      "JPM|2021-09-30": {
+        "decision": "Hold",
+        "confidence": 0.6
+      },
+      "XOM|2021-09-30": {
+        "decision": "Hold",
+        "confidence": 0.6
+      },
+      "AAPL|2021-12-31": {
+        "decision": "Hold",
+        "confidence": 0.6
+      },
+      "JPM|2021-12-31": {
+        "decision": "Hold",
+        "confidence": 0.6
+      },
+      "XOM|2021-12-31": {
+        "decision": "Hold",
+        "confidence": 0.6
+      },
+      "AAPL|2022-03-31": {
+        "decision": "Hold",
+        "confidence": 0.6
+      },
+      "JPM|2022-03-31": {
+        "decision": "Hold",
+        "confidence": 0.6
+      },
+      "XOM|2022-03-31": {
+        "decision": "Hold",
+        "confidence": 0.6
+      },
+      "AAPL|2022-06-30": {
+        "decision": "Hold",
+        "confidence": 0.6
+      },
+      "JPM|2022-06-30": {
+        "decision": "Hold",
+        "confidence": 0.6
+      },
+      "XOM|2022-06-30": {
+        "decision": "Hold",
+        "confidence": 0.6
+      }
+    }
+  },
+  "metrics": {
+    "agents_included": [
+      "fundamental",
+      "risk",
+      "macro",
+      "sentiment"
+    ],
+    "n_pairs": 30,
+    "mean_entropy": 0.7449,
+    "mean_herding_coefficient": 0.7667,
+    "oq_p14_05_pass": true,
+    "phase12_condA_entropy_ref": 0.367,
+    "pair_details": {
+      "AAPL|2020-03-31": {
+        "decisions": [
+          "Buy",
+          "Sell",
+          "Hold",
+          "Hold"
+        ],
+        "counts": {
+          "Buy": 1,
+          "Sell": 1,
+          "Hold": 2
+        },
+        "entropy": 1.5,
+        "herding": 0.5
+      },
+      "JPM|2020-03-31": {
+        "decisions": [
+          "Hold",
+          "Sell",
+          "Hold",
+          "Hold"
+        ],
+        "counts": {
+          "Hold": 3,
+          "Sell": 1
+        },
+        "entropy": 0.8113,
+        "herding": 0.75
+      },
+      "XOM|2020-03-31": {
+        "decisions": [
+          "Hold",
+          "Sell",
+          "Hold",
+          "Hold"
+        ],
+        "counts": {
+          "Hold": 3,
+          "Sell": 1
+        },
+        "entropy": 0.8113,
+        "herding": 0.75
+      },
+      "AAPL|2020-06-30": {
+        "decisions": [
+          "Buy",
+          "Hold",
+          "Hold",
+          "Hold"
+        ],
+        "counts": {
+          "Buy": 1,
+          "Hold": 3
+        },
+        "entropy": 0.8113,
+        "herding": 0.75
+      },
+      "JPM|2020-06-30": {
+        "decisions": [
+          "Buy",
+          "Sell",
+          "Hold",
+          "Hold"
+        ],
+        "counts": {
+          "Buy": 1,
+          "Sell": 1,
+          "Hold": 2
+        },
+        "entropy": 1.5,
+        "herding": 0.5
+      },
+      "XOM|2020-06-30": {
+        "decisions": [
+          "Hold",
+          "Sell",
+          "Hold",
+          "Hold"
+        ],
+        "counts": {
+          "Hold": 3,
+          "Sell": 1
+        },
+        "entropy": 0.8113,
+        "herding": 0.75
+      },
+      "AAPL|2020-09-30": {
+        "decisions": [
+          "Buy",
+          "Hold",
+          "Hold",
+          "Hold"
+        ],
+        "counts": {
+          "Buy": 1,
+          "Hold": 3
+        },
+        "entropy": 0.8113,
+        "herding": 0.75
+      },
+      "JPM|2020-09-30": {
+        "decisions": [
+          "Hold",
+          "Sell",
+          "Hold",
+          "Hold"
+        ],
+        "counts": {
+          "Hold": 3,
+          "Sell": 1
+        },
+        "entropy": 0.8113,
+        "herding": 0.75
+      },
+      "XOM|2020-09-30": {
+        "decisions": [
+          "Hold",
+          "Sell",
+          "Hold",
+          "Hold"
+        ],
+        "counts": {
+          "Hold": 3,
+          "Sell": 1
+        },
+        "entropy": 0.8113,
+        "herding": 0.75
+      },
+      "AAPL|2020-12-31": {
+        "decisions": [
+          "Buy",
+          "Hold",
+          "Hold",
+          "Hold"
+        ],
+        "counts": {
+          "Buy": 1,
+          "Hold": 3
+        },
+        "entropy": 0.8113,
+        "herding": 0.75
+      },
+      "JPM|2020-12-31": {
+        "decisions": [
+          "Buy",
+          "Sell",
+          "Hold",
+          "Hold"
+        ],
+        "counts": {
+          "Buy": 1,
+          "Sell": 1,
+          "Hold": 2
+        },
+        "entropy": 1.5,
+        "herding": 0.5
+      },
+      "XOM|2020-12-31": {
+        "decisions": [
+          "Hold",
+          "Sell",
+          "Hold",
+          "Hold"
+        ],
+        "counts": {
+          "Hold": 3,
+          "Sell": 1
+        },
+        "entropy": 0.8113,
+        "herding": 0.75
+      },
+      "AAPL|2021-03-31": {
+        "decisions": [
+          "Buy",
+          "Hold",
+          "Hold",
+          "Hold"
+        ],
+        "counts": {
+          "Buy": 1,
+          "Hold": 3
+        },
+        "entropy": 0.8113,
+        "herding": 0.75
+      },
+      "JPM|2021-03-31": {
+        "decisions": [
+          "Buy",
+          "Hold",
+          "Hold",
+          "Hold"
+        ],
+        "counts": {
+          "Buy": 1,
+          "Hold": 3
+        },
+        "entropy": 0.8113,
+        "herding": 0.75
+      },
+      "XOM|2021-03-31": {
+        "decisions": [
+          "Hold",
+          "Hold",
+          "Hold",
+          "Hold"
+        ],
+        "counts": {
+          "Hold": 4
+        },
+        "entropy": -0.0,
+        "herding": 1.0
+      },
+      "AAPL|2021-06-30": {
+        "decisions": [
+          "Buy",
+          "Hold",
+          "Hold",
+          "Hold"
+        ],
+        "counts": {
+          "Buy": 1,
+          "Hold": 3
+        },
+        "entropy": 0.8113,
+        "herding": 0.75
+      },
+      "JPM|2021-06-30": {
+        "decisions": [
+          "Buy",
+          "Hold",
+          "Hold",
+          "Hold"
+        ],
+        "counts": {
+          "Buy": 1,
+          "Hold": 3
+        },
+        "entropy": 0.8113,
+        "herding": 0.75
+      },
+      "XOM|2021-06-30": {
+        "decisions": [
+          "Hold",
+          "Hold",
+          "Hold",
+          "Hold"
+        ],
+        "counts": {
+          "Hold": 4
+        },
+        "entropy": -0.0,
+        "herding": 1.0
+      },
+      "AAPL|2021-09-30": {
+        "decisions": [
+          "Buy",
+          "Hold",
+          "Hold",
+          "Hold"
+        ],
+        "counts": {
+          "Buy": 1,
+          "Hold": 3
+        },
+        "entropy": 0.8113,
+        "herding": 0.75
+      },
+      "JPM|2021-09-30": {
+        "decisions": [
+          "Hold",
+          "Buy",
+          "Hold",
+          "Hold"
+        ],
+        "counts": {
+          "Hold": 3,
+          "Buy": 1
+        },
+        "entropy": 0.8113,
+        "herding": 0.75
+      },
+      "XOM|2021-09-30": {
+        "decisions": [
+          "Hold",
+          "Hold",
+          "Hold",
+          "Hold"
+        ],
+        "counts": {
+          "Hold": 4
+        },
+        "entropy": -0.0,
+        "herding": 1.0
+      },
+      "AAPL|2021-12-31": {
+        "decisions": [
+          "Buy",
+          "Hold",
+          "Hold",
+          "Hold"
+        ],
+        "counts": {
+          "Buy": 1,
+          "Hold": 3
+        },
+        "entropy": 0.8113,
+        "herding": 0.75
+      },
+      "JPM|2021-12-31": {
+        "decisions": [
+          "Hold",
+          "Hold",
+          "Hold",
+          "Hold"
+        ],
+        "counts": {
+          "Hold": 4
+        },
+        "entropy": -0.0,
+        "herding": 1.0
+      },
+      "XOM|2021-12-31": {
+        "decisions": [
+          "Hold",
+          "Hold",
+          "Hold",
+          "Hold"
+        ],
+        "counts": {
+          "Hold": 4
+        },
+        "entropy": -0.0,
+        "herding": 1.0
+      },
+      "AAPL|2022-03-31": {
+        "decisions": [
+          "Buy",
+          "Hold",
+          "Hold",
+          "Hold"
+        ],
+        "counts": {
+          "Buy": 1,
+          "Hold": 3
+        },
+        "entropy": 0.8113,
+        "herding": 0.75
+      },
+      "JPM|2022-03-31": {
+        "decisions": [
+          "Hold",
+          "Sell",
+          "Hold",
+          "Hold"
+        ],
+        "counts": {
+          "Hold": 3,
+          "Sell": 1
+        },
+        "entropy": 0.8113,
+        "herding": 0.75
+      },
+      "XOM|2022-03-31": {
+        "decisions": [
+          "Hold",
+          "Sell",
+          "Hold",
+          "Hold"
+        ],
+        "counts": {
+          "Hold": 3,
+          "Sell": 1
+        },
+        "entropy": 0.8113,
+        "herding": 0.75
+      },
+      "AAPL|2022-06-30": {
+        "decisions": [
+          "Buy",
+          "Hold",
+          "Hold",
+          "Hold"
+        ],
+        "counts": {
+          "Buy": 1,
+          "Hold": 3
+        },
+        "entropy": 0.8113,
+        "herding": 0.75
+      },
+      "JPM|2022-06-30": {
+        "decisions": [
+          "Hold",
+          "Sell",
+          "Hold",
+          "Hold"
+        ],
+        "counts": {
+          "Hold": 3,
+          "Sell": 1
+        },
+        "entropy": 0.8113,
+        "herding": 0.75
+      },
+      "XOM|2022-06-30": {
+        "decisions": [
+          "Hold",
+          "Sell",
+          "Hold",
+          "Hold"
+        ],
+        "counts": {
+          "Hold": 3,
+          "Sell": 1
+        },
+        "entropy": 0.8113,
+        "herding": 0.75
+      }
+    }
+  }
+}
