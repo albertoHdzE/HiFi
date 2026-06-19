@@ -600,7 +600,9 @@ def _t5_sentiment_one(ticker: str, dt: str, data_dir: str) -> dict | None:
     return None
 
 
-def _run_t5_agent(agent: str, model_id: str, data_dir: str, t5_data: dict) -> dict:
+def _run_t5_agent(
+    agent: str, model_id: str, data_dir: str, t5_data: dict, quiet: bool = False,
+) -> dict:
     """Collect diversity decisions for one agent across all 30 (ticker, date) pairs."""
     pairs = [(t, d) for d in _DIVERSITY_DATES for t in _TICKERS]
     agent_results: dict = t5_data.get(agent, {})
@@ -613,7 +615,8 @@ def _run_t5_agent(agent: str, model_id: str, data_dir: str, t5_data: dict) -> di
         key = f"{ticker}|{dt}"
         if key in agent_results:
             continue
-        print(f"    {ticker} {dt} ...", end=" ", flush=True)
+        if not quiet:
+            print(f"    {ticker} {dt} ...", end=" ", flush=True)
         if agent == "fundamental":
             result = _t5_fundamental_one(ticker, dt, model_id)
         elif agent == "risk":
@@ -625,10 +628,12 @@ def _run_t5_agent(agent: str, model_id: str, data_dir: str, t5_data: dict) -> di
 
         if result is not None:
             agent_results[key] = result
-            print(f"{result['decision']} ({result['confidence']:.2f})")
+            if not quiet:
+                print(f"{result['decision']} ({result['confidence']:.2f})")
         else:
             agent_results[key] = {"decision": None, "confidence": 0.0}
-            print("None")
+            if not quiet:
+                print("None")
 
     t5_data[agent] = agent_results
     n_valid = sum(1 for r in agent_results.values() if r.get("decision") is not None)
@@ -864,6 +869,10 @@ def main() -> None:
         "--skip-t3", action="store_true",
         help="Skip E0-T3 source file update even if all T2 pass",
     )
+    parser.add_argument(
+        "--quiet", action="store_true",
+        help="Suppress per-ticker T5 progress lines; print only summaries",
+    )
     args = parser.parse_args()
     data_dir = args.data_dir
 
@@ -969,7 +978,7 @@ def main() -> None:
             # E0-T5
             if not args.skip_diversity and not t5_done:
                 print("\n  [T5] Diversity data collection:")
-                t5_data = _run_t5_agent(agent, model_id, data_dir, t5_data)
+                t5_data = _run_t5_agent(agent, model_id, data_dir, t5_data, quiet=args.quiet)
                 t5_ckpt.update({"metadata": meta_t5, "data": t5_data})
                 _save_json(_T5_PATH, t5_ckpt)
                 print(f"  -> Saved to {_T5_PATH.name}")

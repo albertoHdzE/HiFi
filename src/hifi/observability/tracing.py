@@ -267,6 +267,11 @@ class LangFuseTracer(AbstractTracer):
 # ---------------------------------------------------------------------------
 
 
+# Warn-once flags: avoid repeating the same fallback warning on every agent call.
+# Each key maps to True once the warning has been emitted for this process.
+_WARNED: dict[str, bool] = {}
+
+
 def get_tracer() -> AbstractTracer:
     """Return LangFuseTracer when enabled, NoOpTracer otherwise.
 
@@ -280,6 +285,9 @@ def get_tracer() -> AbstractTracer:
     Fail-open means a misconfigured LangFuse instance never prevents an
     agent from running. The agent's functional behaviour is identical whether
     get_tracer() returns a NoOpTracer or a LangFuseTracer.
+
+    Warnings are emitted at most once per process per failure mode to avoid
+    log noise during batch evaluation runs (e.g. E0-T5 with 120+ agent calls).
     """
     enabled_raw = os.environ.get("LANGFUSE_ENABLED", "true").lower().strip()
     if enabled_raw in ("false", "0", "no", "off"):
@@ -290,23 +298,27 @@ def get_tracer() -> AbstractTracer:
     secret_key = os.environ.get("LANGFUSE_SECRET_KEY", "")
 
     if not public_key or not secret_key:
-        logger.warning(
-            "LANGFUSE_PUBLIC_KEY or LANGFUSE_SECRET_KEY not set; "
-            "falling back to NoOpTracer."
-        )
+        if not _WARNED.get("no_keys"):
+            logger.warning(
+                "LANGFUSE_PUBLIC_KEY or LANGFUSE_SECRET_KEY not set; "
+                "falling back to NoOpTracer."
+            )
+            _WARNED["no_keys"] = True
         return NoOpTracer()
 
     try:
         return LangFuseTracer(host=host, public_key=public_key, secret_key=secret_key)
     except ImportError:
-        logger.warning(
-            "langfuse package not installed; falling back to NoOpTracer."
-        )
+        if not _WARNED.get("no_pkg"):
+            logger.warning("langfuse package not installed; falling back to NoOpTracer.")
+            _WARNED["no_pkg"] = True
         return NoOpTracer()
     except Exception as exc:
-        logger.warning(
-            "LangFuse initialisation failed (%s); falling back to NoOpTracer.", exc
-        )
+        if not _WARNED.get("init_fail"):
+            logger.warning(
+                "LangFuse initialisation failed (%s); falling back to NoOpTracer.", exc
+            )
+            _WARNED["init_fail"] = True
         return NoOpTracer()
 
 
