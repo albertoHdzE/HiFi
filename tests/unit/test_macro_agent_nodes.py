@@ -95,19 +95,10 @@ _STUB_JSON = json.dumps({
 })
 
 
-def test_parse_output_node_extracts_signal(monkeypatch):
-    class _StubLLM:
-        model_name = "qwen27b"
-        def invoke(self, _):
-            class _R:
-                content = _STUB_JSON
-            return _R()
-
-    import hifi.agents.macro_agent as ma
-    monkeypatch.setattr(ma, "make_llm", lambda *a, **kw: _StubLLM())
-
+def test_parse_output_node_extracts_signal():
     state = _make_state(
         llm_response=_STUB_JSON,
+        model_id="qwen27b",
         tool_results={"macro_snapshot": {"fed_funds_rate": 4.75, "call_id": "abc"}},
     )
     result = parse_output_node(state)
@@ -117,17 +108,18 @@ def test_parse_output_node_extracts_signal(monkeypatch):
     assert result["regime_assessment"] == "Late-cycle tightening"
 
 
-def test_parse_output_node_sets_error_after_retry(monkeypatch):
-    class _Bad:
+def test_parse_output_node_sets_error_after_retry():
+    class _AlwaysInvalidLLM:
         model_name = "m"
         def invoke(self, _):
             class _R:
                 content = "not json"
             return _R()
 
-    import hifi.agents.macro_agent as ma
-    monkeypatch.setattr(ma, "make_llm", lambda *a, **kw: _Bad())
-
-    state = _make_state(llm_response="bad", tool_results={"macro_snapshot": {}})
+    state = _make_state(
+        llm_response="bad",
+        _test_llm=_AlwaysInvalidLLM(),
+        tool_results={"macro_snapshot": {}},
+    )
     result = parse_output_node(state)
     assert result.get("error") is not None

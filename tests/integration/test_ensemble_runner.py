@@ -1,7 +1,7 @@
 """
 Integration tests for run_ensemble (P4-E4-T2, T3, T4).
 
-Both LLMs are stubbed; Phase 1 fixtures provide real MCP data.
+Both LLMs are provided via DI; Phase 1 fixtures provide real MCP data.
 """
 
 import json
@@ -65,41 +65,34 @@ _TECH_STUB = json.dumps({
 
 
 def _make_fund_stub():
-    class _StubLLM:
+    class _ResponseLLM:
         model_name = "qwen2.5-coder-32b-instruct-mlx"
         def invoke(self, messages):
             class _R:
                 content = _FUND_STUB
             return _R()
-    return _StubLLM()
+    return _ResponseLLM()
 
 
 def _make_tech_stub():
-    class _StubLLM:
+    class _ResponseLLM:
         model_name = "mlx-qwen3.5-35b-a3b-claude-4.6-opus-reasoning-distilled"
         def invoke(self, messages):
             class _R:
                 content = _TECH_STUB
             return _R()
-    return _StubLLM()
+    return _ResponseLLM()
 
 
-def test_run_ensemble_returns_ensemble_output(
-    monkeypatch, fixtures_data_dir, aapl_snapshot_json
-):
+def test_run_ensemble_returns_ensemble_output(fixtures_data_dir, aapl_snapshot_json):
     """run_ensemble returns EnsembleOutput with both analyses populated."""
-    import hifi.agents.fundamental_agent as fa
-    import hifi.agents.technical_agent as ta
-
-    monkeypatch.setattr(fa, "make_llm", lambda *a, **kw: _make_fund_stub())
-    monkeypatch.setattr(ta, "make_llm", lambda *a, **kw: _make_tech_stub())
-
     output = run_ensemble(
         ticker="AAPL",
         as_of_date="2023-03-31",
         snapshot_json=aapl_snapshot_json,
         data_dir=fixtures_data_dir,
         agents=["fundamental", "technical"],
+        _test_llms={"fundamental": _make_fund_stub(), "technical": _make_tech_stub()},
     )
 
     assert isinstance(output, EnsembleOutput)
@@ -111,19 +104,12 @@ def test_run_ensemble_returns_ensemble_output(
     assert output.latency_ms > 0
 
 
-def test_run_ensemble_independent_agents(
-    monkeypatch, fixtures_data_dir, aapl_snapshot_json
-):
+def test_run_ensemble_independent_agents(fixtures_data_dir, aapl_snapshot_json):
     """Fundamental and technical analyses are produced independently."""
-    import hifi.agents.fundamental_agent as fa
-    import hifi.agents.technical_agent as ta
-
-    monkeypatch.setattr(fa, "make_llm", lambda *a, **kw: _make_fund_stub())
-    monkeypatch.setattr(ta, "make_llm", lambda *a, **kw: _make_tech_stub())
-
     output = run_ensemble(
         "AAPL", "2023-03-31", aapl_snapshot_json,
         fixtures_data_dir, agents=["fundamental", "technical"],
+        _test_llms={"fundamental": _make_fund_stub(), "technical": _make_tech_stub()},
     )
 
     # Each analysis uses a different model_id (their stubs have different model_name)
@@ -135,37 +121,23 @@ def test_run_ensemble_independent_agents(
         assert ta_signal.agent_type == "technical"
 
 
-def test_run_ensemble_json_safe(
-    monkeypatch, fixtures_data_dir, aapl_snapshot_json
-):
+def test_run_ensemble_json_safe(fixtures_data_dir, aapl_snapshot_json):
     """EnsembleOutput.model_dump() must be JSON-safe."""
-    import hifi.agents.fundamental_agent as fa
-    import hifi.agents.technical_agent as ta
-
-    monkeypatch.setattr(fa, "make_llm", lambda *a, **kw: _make_fund_stub())
-    monkeypatch.setattr(ta, "make_llm", lambda *a, **kw: _make_tech_stub())
-
     output = run_ensemble(
         "AAPL", "2023-03-31", aapl_snapshot_json,
         fixtures_data_dir, agents=["fundamental", "technical"],
+        _test_llms={"fundamental": _make_fund_stub(), "technical": _make_tech_stub()},
     )
     # Must not raise
     json.dumps(output.model_dump())
 
 
-def test_run_ensemble_phase9_fields_populated(
-    monkeypatch, fixtures_data_dir, aapl_snapshot_json
-):
+def test_run_ensemble_phase9_fields_populated(fixtures_data_dir, aapl_snapshot_json):
     """Phase 9: signals, aggregation_method, and method_comparison are populated."""
-    import hifi.agents.fundamental_agent as fa
-    import hifi.agents.technical_agent as ta
-
-    monkeypatch.setattr(fa, "make_llm", lambda *a, **kw: _make_fund_stub())
-    monkeypatch.setattr(ta, "make_llm", lambda *a, **kw: _make_tech_stub())
-
     output = run_ensemble(
         "AAPL", "2023-03-31", aapl_snapshot_json,
         fixtures_data_dir, agents=["fundamental", "technical"],
+        _test_llms={"fundamental": _make_fund_stub(), "technical": _make_tech_stub()},
     )
 
     assert output.aggregation_method == "confidence_weighted"
@@ -177,18 +149,13 @@ def test_run_ensemble_phase9_fields_populated(
 
 
 def test_run_ensemble_method_comparison_cw_equals_ensemble_decision(
-    monkeypatch, fixtures_data_dir, aapl_snapshot_json
+    fixtures_data_dir, aapl_snapshot_json
 ):
     """method_comparison['confidence_weighted'] equals ensemble_decision."""
-    import hifi.agents.fundamental_agent as fa
-    import hifi.agents.technical_agent as ta
-
-    monkeypatch.setattr(fa, "make_llm", lambda *a, **kw: _make_fund_stub())
-    monkeypatch.setattr(ta, "make_llm", lambda *a, **kw: _make_tech_stub())
-
     output = run_ensemble(
         "AAPL", "2023-03-31", aapl_snapshot_json,
         fixtures_data_dir, agents=["fundamental", "technical"],
+        _test_llms={"fundamental": _make_fund_stub(), "technical": _make_tech_stub()},
     )
 
     cw = output.method_comparison["confidence_weighted"]
@@ -199,18 +166,13 @@ def test_run_ensemble_method_comparison_cw_equals_ensemble_decision(
 
 
 def test_run_ensemble_backward_compat_agents_list_still_gets_method_comparison(
-    monkeypatch, fixtures_data_dir, aapl_snapshot_json
+    fixtures_data_dir, aapl_snapshot_json
 ):
     """agents=['fundamental','technical'] still populates method_comparison with 4 keys."""
-    import hifi.agents.fundamental_agent as fa
-    import hifi.agents.technical_agent as ta
-
-    monkeypatch.setattr(fa, "make_llm", lambda *a, **kw: _make_fund_stub())
-    monkeypatch.setattr(ta, "make_llm", lambda *a, **kw: _make_tech_stub())
-
     output = run_ensemble(
         "AAPL", "2023-03-31", aapl_snapshot_json,
         fixtures_data_dir, agents=["fundamental", "technical"],
+        _test_llms={"fundamental": _make_fund_stub(), "technical": _make_tech_stub()},
     )
 
     assert len(output.method_comparison) == 4
@@ -218,19 +180,13 @@ def test_run_ensemble_backward_compat_agents_list_still_gets_method_comparison(
 
 
 def test_run_ensemble_output_json_roundtrip_with_phase9_fields(
-    monkeypatch, fixtures_data_dir, aapl_snapshot_json
+    fixtures_data_dir, aapl_snapshot_json
 ):
     """EnsembleOutput with Phase 9 fields is JSON-safe and round-trips."""
-
-    import hifi.agents.fundamental_agent as fa
-    import hifi.agents.technical_agent as ta
-
-    monkeypatch.setattr(fa, "make_llm", lambda *a, **kw: _make_fund_stub())
-    monkeypatch.setattr(ta, "make_llm", lambda *a, **kw: _make_tech_stub())
-
     output = run_ensemble(
         "AAPL", "2023-03-31", aapl_snapshot_json,
         fixtures_data_dir, agents=["fundamental", "technical"],
+        _test_llms={"fundamental": _make_fund_stub(), "technical": _make_tech_stub()},
     )
 
     serialised = output.model_dump_json()
@@ -239,20 +195,13 @@ def test_run_ensemble_output_json_roundtrip_with_phase9_fields(
     assert set(restored.method_comparison.keys()) == set(output.method_comparison.keys())
 
 
-def test_run_ensemble_disagreement_valid(
-    monkeypatch, fixtures_data_dir, aapl_snapshot_json
-):
+def test_run_ensemble_disagreement_valid(fixtures_data_dir, aapl_snapshot_json):
     """When agents disagree, ensemble_decision has agreement=False."""
-    import hifi.agents.fundamental_agent as fa
-    import hifi.agents.technical_agent as ta
-
     # fundamental -> Hold, technical -> Buy: they disagree
-    monkeypatch.setattr(fa, "make_llm", lambda *a, **kw: _make_fund_stub())
-    monkeypatch.setattr(ta, "make_llm", lambda *a, **kw: _make_tech_stub())
-
     output = run_ensemble(
         "AAPL", "2023-03-31", aapl_snapshot_json,
         fixtures_data_dir, agents=["fundamental", "technical"],
+        _test_llms={"fundamental": _make_fund_stub(), "technical": _make_tech_stub()},
     )
 
     ed = output.ensemble_decision

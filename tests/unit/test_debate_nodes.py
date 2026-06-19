@@ -2,7 +2,7 @@
 Unit tests for debate LangGraph nodes (P12-E3-T4).
 
 challenge_node, respond_node, revise_node — no live LLM required.
-Each test injects a _StubLLM or _FailLLM via the `llm` parameter.
+Each test injects a _ResponseLLM or _FailLLM via the `llm` parameter.
 """
 
 from __future__ import annotations
@@ -21,7 +21,7 @@ from hifi.collective.debate_nodes import challenge_node, respond_node, revise_no
 # ---------------------------------------------------------------------------
 
 
-class _StubLLM:
+class _ResponseLLM:
     """Returns a fixed string from invoke(). model_name is queryable."""
 
     model_name = "stub-model"
@@ -35,7 +35,7 @@ class _StubLLM:
         return result
 
 
-class _EmptyLLM(_StubLLM):
+class _EmptyLLM(_ResponseLLM):
     """Returns empty string — tests whitespace-fallback paths."""
 
     def __init__(self) -> None:
@@ -97,7 +97,7 @@ def test_challenge_node_returns_debate_turn():
         majority_decision="Buy",
         majority_count=3,
         total_agents=4,
-        llm=_StubLLM("RSI overbought; Buy is premature."),
+        llm=_ResponseLLM("RSI overbought; Buy is premature."),
     )
     assert isinstance(turn, DebateTurn)
 
@@ -108,7 +108,7 @@ def test_challenge_node_phase_is_challenge():
         majority_decision="Buy",
         majority_count=2,
         total_agents=3,
-        llm=_StubLLM(),
+        llm=_ResponseLLM(),
     )
     assert turn.phase == "challenge"
 
@@ -120,7 +120,7 @@ def test_challenge_node_agent_type_matches_signal():
         majority_decision="Buy",
         majority_count=2,
         total_agents=3,
-        llm=_StubLLM(),
+        llm=_ResponseLLM(),
     )
     assert turn.agent_type == "technical"
 
@@ -131,7 +131,7 @@ def test_challenge_node_argument_non_empty():
         majority_decision="Buy",
         majority_count=3,
         total_agents=4,
-        llm=_StubLLM("Yield curve inverted."),
+        llm=_ResponseLLM("Yield curve inverted."),
     )
     assert turn.argument.strip() != ""
 
@@ -142,7 +142,7 @@ def test_challenge_node_uses_stub_model_id():
         majority_decision="Sell",
         majority_count=2,
         total_agents=3,
-        llm=_StubLLM(),
+        llm=_ResponseLLM(),
     )
     assert turn.model_id == "stub-model"
 
@@ -193,7 +193,7 @@ def test_respond_node_returns_debate_turn():
         signal=_make_signal("fundamental", "Buy"),
         challenge_turns=[_make_turn("technical", "challenge", "RSI overbought.")],
         majority_decision="Buy",
-        llm=_StubLLM("P/E supports Buy despite RSI."),
+        llm=_ResponseLLM("P/E supports Buy despite RSI."),
     )
     assert isinstance(turn, DebateTurn)
 
@@ -203,7 +203,7 @@ def test_respond_node_phase_is_response():
         signal=_make_signal("fundamental", "Buy"),
         challenge_turns=[],
         majority_decision="Buy",
-        llm=_StubLLM(),
+        llm=_ResponseLLM(),
     )
     assert turn.phase == "response"
 
@@ -214,7 +214,7 @@ def test_respond_node_agent_type_matches_signal():
         signal=signal,
         challenge_turns=[],
         majority_decision="Hold",
-        llm=_StubLLM(),
+        llm=_ResponseLLM(),
     )
     assert turn.agent_type == "risk"
 
@@ -224,7 +224,7 @@ def test_respond_node_argument_non_empty():
         signal=_make_signal("fundamental", "Buy"),
         challenge_turns=[_make_turn("technical", "challenge")],
         majority_decision="Buy",
-        llm=_StubLLM("Still bullish based on fundamentals."),
+        llm=_ResponseLLM("Still bullish based on fundamentals."),
     )
     assert turn.argument.strip() != ""
 
@@ -247,7 +247,7 @@ def test_respond_node_empty_challenges():
         signal=_make_signal("fundamental", "Hold"),
         challenge_turns=[],
         majority_decision="Hold",
-        llm=_StubLLM("Maintaining position."),
+        llm=_ResponseLLM("Maintaining position."),
     )
     assert turn.phase == "response"
 
@@ -261,7 +261,7 @@ def test_respond_node_multiple_challenges():
         signal=_make_signal("fundamental", "Buy"),
         challenge_turns=challenges,
         majority_decision="Buy",
-        llm=_StubLLM("Acknowledged concerns, still Buy."),
+        llm=_ResponseLLM("Acknowledged concerns, still Buy."),
     )
     assert isinstance(turn, DebateTurn)
 
@@ -277,7 +277,7 @@ def test_revise_node_returns_tuple():
         challenge_turns=[],
         response_turns=[],
         majority_decision="Buy",
-        llm=_StubLLM(_VALID_REVISION_JSON),
+        llm=_ResponseLLM(_VALID_REVISION_JSON),
     )
     assert isinstance(result, tuple)
     assert len(result) == 2
@@ -289,7 +289,7 @@ def test_revise_node_first_element_is_debate_turn():
         challenge_turns=[],
         response_turns=[],
         majority_decision="Buy",
-        llm=_StubLLM(_VALID_REVISION_JSON),
+        llm=_ResponseLLM(_VALID_REVISION_JSON),
     )
     assert isinstance(turn, DebateTurn)
     assert turn.phase == "revision"
@@ -301,7 +301,7 @@ def test_revise_node_second_element_is_agent_signal():
         challenge_turns=[],
         response_turns=[],
         majority_decision="Sell",
-        llm=_StubLLM(_VALID_REVISION_JSON),
+        llm=_ResponseLLM(_VALID_REVISION_JSON),
     )
     assert isinstance(revised, AgentSignal)
 
@@ -312,7 +312,7 @@ def test_revise_node_updates_decision_from_json():
         challenge_turns=[],
         response_turns=[],
         majority_decision="Buy",
-        llm=_StubLLM(_VALID_REVISION_JSON),
+        llm=_ResponseLLM(_VALID_REVISION_JSON),
     )
     assert revised.decision == "Hold"
 
@@ -323,7 +323,7 @@ def test_revise_node_updates_confidence_from_json():
         challenge_turns=[],
         response_turns=[],
         majority_decision="Buy",
-        llm=_StubLLM(_VALID_REVISION_JSON),
+        llm=_ResponseLLM(_VALID_REVISION_JSON),
     )
     assert abs(revised.confidence - 0.55) < 0.01
 
@@ -334,7 +334,7 @@ def test_revise_node_preserves_agent_type():
         challenge_turns=[],
         response_turns=[],
         majority_decision="Sell",
-        llm=_StubLLM(_VALID_REVISION_JSON),
+        llm=_ResponseLLM(_VALID_REVISION_JSON),
     )
     assert revised.agent_type == "macro"
 
@@ -346,7 +346,7 @@ def test_revise_node_preserves_ticker_and_date():
         challenge_turns=[],
         response_turns=[],
         majority_decision="Hold",
-        llm=_StubLLM(_VALID_REVISION_JSON),
+        llm=_ResponseLLM(_VALID_REVISION_JSON),
     )
     assert revised.ticker == "JPM"
     assert revised.as_of_date == "2023-03-31"
@@ -372,7 +372,7 @@ def test_revise_node_invalid_json_preserves_original():
         challenge_turns=[],
         response_turns=[],
         majority_decision="Sell",
-        llm=_StubLLM("This is not valid JSON at all."),
+        llm=_ResponseLLM("This is not valid JSON at all."),
     )
     assert revised.decision == "Hold"
 
@@ -391,7 +391,7 @@ def test_revise_node_invalid_decision_in_json_falls_back():
         challenge_turns=[],
         response_turns=[],
         majority_decision="Hold",
-        llm=_StubLLM(invalid_json),
+        llm=_ResponseLLM(invalid_json),
     )
     assert revised.decision == "Buy"
 
@@ -409,7 +409,7 @@ def test_revise_node_confidence_clamped_to_one():
         challenge_turns=[],
         response_turns=[],
         majority_decision="Buy",
-        llm=_StubLLM(too_high),
+        llm=_ResponseLLM(too_high),
     )
     assert revised.confidence <= 1.0
 
@@ -420,6 +420,6 @@ def test_revise_node_revision_turn_contains_revised_decision():
         challenge_turns=[],
         response_turns=[],
         majority_decision="Buy",
-        llm=_StubLLM(_VALID_REVISION_JSON),
+        llm=_ResponseLLM(_VALID_REVISION_JSON),
     )
     assert turn.revised_decision == "Hold"

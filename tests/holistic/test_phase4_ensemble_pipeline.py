@@ -1,7 +1,7 @@
 """
 Holistic test for the Phase 4 ensemble pipeline (P4-E6).
 
-Uses monkeypatched LLMs for both agents and Phase 1 parquet fixtures.
+Uses DI LLMs for both agents and Phase 1 parquet fixtures.
 No live LM Studio or network calls required.
 
 What this test validates:
@@ -64,7 +64,7 @@ def aapl_snapshot_json():
     return snap.model_dump_json()
 
 
-# Stub LLM responses
+# DI LLM responses
 
 _BUY_RESPONSE = json.dumps({
     "decision": "Buy",
@@ -107,18 +107,14 @@ def _stub_llm(response_content: str, model_name: str = "test-model"):
 # ---------------------------------------------------------------------------
 
 
-def test_run_ensemble_returns_valid_output(
-    monkeypatch, fixtures_data_dir, aapl_snapshot_json
-):
-    import hifi.agents.fundamental_agent as fa
-    import hifi.agents.technical_agent as ta
-
-    monkeypatch.setattr(fa, "make_llm", lambda *a, **kw: _stub_llm(_BUY_RESPONSE, "fund-model"))
-    monkeypatch.setattr(ta, "make_llm", lambda *a, **kw: _stub_llm(_HOLD_RESPONSE, "tech-model"))
-
+def test_run_ensemble_returns_valid_output(fixtures_data_dir, aapl_snapshot_json):
     output = run_ensemble(
         "AAPL", "2023-03-31", aapl_snapshot_json,
         fixtures_data_dir, agents=["fundamental", "technical"],
+        _test_llms={
+            "fundamental": _stub_llm(_BUY_RESPONSE, "fund-model"),
+            "technical": _stub_llm(_HOLD_RESPONSE, "tech-model"),
+        },
     )
 
     assert isinstance(output, EnsembleOutput)
@@ -133,19 +129,15 @@ def test_run_ensemble_returns_valid_output(
 # ---------------------------------------------------------------------------
 
 
-def test_ensemble_agreement_scenario(
-    monkeypatch, fixtures_data_dir, aapl_snapshot_json
-):
+def test_ensemble_agreement_scenario(fixtures_data_dir, aapl_snapshot_json):
     """Both agents return Buy -> agreement=True, entropy=0.0."""
-    import hifi.agents.fundamental_agent as fa
-    import hifi.agents.technical_agent as ta
-
-    monkeypatch.setattr(fa, "make_llm", lambda *a, **kw: _stub_llm(_BUY_RESPONSE, "fund-model"))
-    monkeypatch.setattr(ta, "make_llm", lambda *a, **kw: _stub_llm(_BUY_RESPONSE, "tech-model"))
-
     output = run_ensemble(
         "AAPL", "2023-03-31", aapl_snapshot_json,
         fixtures_data_dir, agents=["fundamental", "technical"],
+        _test_llms={
+            "fundamental": _stub_llm(_BUY_RESPONSE, "fund-model"),
+            "technical": _stub_llm(_BUY_RESPONSE, "tech-model"),
+        },
     )
 
     ed = output.ensemble_decision
@@ -159,19 +151,15 @@ def test_ensemble_agreement_scenario(
 # ---------------------------------------------------------------------------
 
 
-def test_ensemble_disagreement_scenario(
-    monkeypatch, fixtures_data_dir, aapl_snapshot_json
-):
+def test_ensemble_disagreement_scenario(fixtures_data_dir, aapl_snapshot_json):
     """fundamental=Buy(0.80), technical=Sell(0.70) -> Buy wins."""
-    import hifi.agents.fundamental_agent as fa
-    import hifi.agents.technical_agent as ta
-
-    monkeypatch.setattr(fa, "make_llm", lambda *a, **kw: _stub_llm(_BUY_RESPONSE, "fund-model"))
-    monkeypatch.setattr(ta, "make_llm", lambda *a, **kw: _stub_llm(_SELL_RESPONSE, "tech-model"))
-
     output = run_ensemble(
         "AAPL", "2023-03-31", aapl_snapshot_json,
         fixtures_data_dir, agents=["fundamental", "technical"],
+        _test_llms={
+            "fundamental": _stub_llm(_BUY_RESPONSE, "fund-model"),
+            "technical": _stub_llm(_SELL_RESPONSE, "tech-model"),
+        },
     )
 
     ed = output.ensemble_decision
@@ -186,18 +174,14 @@ def test_ensemble_disagreement_scenario(
 # ---------------------------------------------------------------------------
 
 
-def test_ensemble_output_json_safe(
-    monkeypatch, fixtures_data_dir, aapl_snapshot_json
-):
-    import hifi.agents.fundamental_agent as fa
-    import hifi.agents.technical_agent as ta
-
-    monkeypatch.setattr(fa, "make_llm", lambda *a, **kw: _stub_llm(_HOLD_RESPONSE, "fund-model"))
-    monkeypatch.setattr(ta, "make_llm", lambda *a, **kw: _stub_llm(_HOLD_RESPONSE, "tech-model"))
-
+def test_ensemble_output_json_safe(fixtures_data_dir, aapl_snapshot_json):
     output = run_ensemble(
         "AAPL", "2023-03-31", aapl_snapshot_json,
         fixtures_data_dir, agents=["fundamental", "technical"],
+        _test_llms={
+            "fundamental": _stub_llm(_HOLD_RESPONSE, "fund-model"),
+            "technical": _stub_llm(_HOLD_RESPONSE, "tech-model"),
+        },
     )
     # Must not raise
     json.dumps(output.model_dump())
@@ -208,22 +192,17 @@ def test_ensemble_output_json_safe(
 # ---------------------------------------------------------------------------
 
 
-def test_phase3_fundamental_agent_still_passes(
-    monkeypatch, fixtures_data_dir, aapl_snapshot_json
-):
+def test_phase3_fundamental_agent_still_passes(fixtures_data_dir, aapl_snapshot_json):
     """
     Phase 3 regression guard: Fundamental Agent alone still produces valid
     FundamentalAnalysis after Phase 4 additions.
     """
-    import hifi.agents.fundamental_agent as fa
-
-    monkeypatch.setattr(fa, "make_llm", lambda *a, **kw: _stub_llm(_BUY_RESPONSE, "fund-model"))
-
     analysis = run_analysis(
         ticker="AAPL",
         as_of_date="2023-03-31",
         snapshot_json=aapl_snapshot_json,
         data_dir=fixtures_data_dir,
+        _test_llm=_stub_llm(_BUY_RESPONSE, "fund-model"),
     )
 
     assert isinstance(analysis, FundamentalAnalysis)
@@ -238,18 +217,14 @@ def test_phase3_fundamental_agent_still_passes(
 # ---------------------------------------------------------------------------
 
 
-def test_technical_analysis_time_horizon_in_output(
-    monkeypatch, fixtures_data_dir, aapl_snapshot_json
-):
-    import hifi.agents.fundamental_agent as fa
-    import hifi.agents.technical_agent as ta
-
-    monkeypatch.setattr(fa, "make_llm", lambda *a, **kw: _stub_llm(_HOLD_RESPONSE, "fund-model"))
-    monkeypatch.setattr(ta, "make_llm", lambda *a, **kw: _stub_llm(_SELL_RESPONSE, "tech-model"))
-
+def test_technical_analysis_time_horizon_in_output(fixtures_data_dir, aapl_snapshot_json):
     output = run_ensemble(
         "AAPL", "2023-03-31", aapl_snapshot_json,
         fixtures_data_dir, agents=["fundamental", "technical"],
+        _test_llms={
+            "fundamental": _stub_llm(_HOLD_RESPONSE, "fund-model"),
+            "technical": _stub_llm(_SELL_RESPONSE, "tech-model"),
+        },
     )
 
     # time_horizon from the stub JSON is "short-term"

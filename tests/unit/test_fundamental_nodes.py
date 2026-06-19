@@ -147,7 +147,7 @@ def test_load_snapshot_node_passes_with_valid_snapshot(tmp_path):
 # ---------------------------------------------------------------------------
 
 
-def test_parse_output_node_extracts_signal_from_valid_json(monkeypatch):
+def test_parse_output_node_extracts_signal_from_valid_json():
     """parse_output_node should extract an AgentSignal when llm_response is valid JSON."""
     valid_response = json.dumps({
         "decision": "Buy",
@@ -156,18 +156,9 @@ def test_parse_output_node_extracts_signal_from_valid_json(monkeypatch):
         "key_concern": "High interest rates compress multiples.",
     })
 
-    # Monkeypatch make_llm to return a stub that won't be called (first parse succeeds)
-    class _StubLLM:
-        model_name = "qwen2.5-coder-32b-instruct-mlx"
-
-        def invoke(self, messages):
-            raise AssertionError("LLM should not be called on successful first parse")
-
-    import hifi.agents.fundamental_agent as fa
-    monkeypatch.setattr(fa, "make_llm", lambda *a, **kw: _StubLLM())
-
     state = _make_state(
         llm_response=valid_response,
+        model_id="qwen2.5-coder-32b-instruct-mlx",
         tool_results={
             "financial_ratios": {"pe": 28.3, "roe": 0.24, "call_id": "abc"},
             "growth_metrics": {"net_margin": 0.25, "call_id": "def"},
@@ -181,9 +172,9 @@ def test_parse_output_node_extracts_signal_from_valid_json(monkeypatch):
     assert result["signal"].decision == "Buy"
 
 
-def test_parse_output_node_sets_error_after_failed_retry(monkeypatch):
+def test_parse_output_node_sets_error_after_failed_retry():
     """parse_output_node sets error when both parse attempts fail."""
-    class _StubLLMAlwaysInvalid:
+    class _AlwaysInvalidLLM:
         model_name = "qwen2.5-coder-32b-instruct-mlx"
 
         def invoke(self, messages):
@@ -191,11 +182,9 @@ def test_parse_output_node_sets_error_after_failed_retry(monkeypatch):
                 content = "Sorry, I cannot provide that information."
             return _Resp()
 
-    import hifi.agents.fundamental_agent as fa
-    monkeypatch.setattr(fa, "make_llm", lambda *a, **kw: _StubLLMAlwaysInvalid())
-
     state = _make_state(
         llm_response="not valid json",
+        _test_llm=_AlwaysInvalidLLM(),
         tool_results={
             "financial_ratios": {}, "growth_metrics": {},
             "valuation_context": {}, "macro_snapshot": {},

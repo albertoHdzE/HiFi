@@ -284,10 +284,8 @@ def fixtures_data_dir(tmp_path):
     return str(tmp_path)
 
 
-def test_phase4_run_ensemble_regression(monkeypatch, fixtures_data_dir):
+def test_phase4_run_ensemble_regression(fixtures_data_dir):
     """Phase 4 regression: run_ensemble still returns valid EnsembleOutput."""
-    import hifi.agents.fundamental_agent as fa
-    import hifi.agents.technical_agent as ta
     from hifi.agents.ensemble_runner import run_ensemble
     from hifi.data.schemas import FundamentalsSnapshot, ProvenanceRecord
 
@@ -309,9 +307,6 @@ def test_phase4_run_ensemble_regression(monkeypatch, fixtures_data_dir):
         s.model_name = name
         return s
 
-    monkeypatch.setattr(fa, "make_llm", lambda *a, **kw: _stub("fund-model"))
-    monkeypatch.setattr(ta, "make_llm", lambda *a, **kw: _stub("tech-model"))
-
     snap = FundamentalsSnapshot(
         ticker="AAPL",
         period_end="2023-03-31",
@@ -330,6 +325,7 @@ def test_phase4_run_ensemble_regression(monkeypatch, fixtures_data_dir):
     output = run_ensemble(
         "AAPL", "2023-03-31", snap.model_dump_json(),
         fixtures_data_dir, agents=["fundamental", "technical"],
+        _test_llms={"fundamental": _stub("fund-model"), "technical": _stub("tech-model")},
     )
 
     assert isinstance(output, EnsembleOutput)

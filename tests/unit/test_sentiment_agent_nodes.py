@@ -43,8 +43,6 @@ def test_run_sentiment_returns_default_when_no_context(monkeypatch, tmp_path):
     import hifi.agents.sentiment_agent as sa
 
     monkeypatch.setattr(sa, "call_tool", lambda *a, **kw: {"passages": [], "call_id": "x"})
-    monkeypatch.setattr(sa, "make_llm", lambda *a, **kw: (_ for _ in ()).throw(
-        AssertionError("LLM should not be called when no context")))
 
     result = run_sentiment_analysis("AAPL", "2023-03-31", data_dir=str(tmp_path))
     assert isinstance(result, SentimentAnalysis)
@@ -74,16 +72,16 @@ def test_run_sentiment_calls_llm_when_context_available(monkeypatch, tmp_path):
                  "period": "2022-09-30", "text": "Apple services revenue grew."}]
     monkeypatch.setattr(sa, "call_tool", lambda *a, **kw: {"passages": passages, "call_id": "x"})
 
-    class _StubLLM:
+    class _ResponseLLM:
         model_name = "qwen-32b"
         def invoke(self, _):
             class _R:
                 content = _STUB_RESPONSE
             return _R()
 
-    monkeypatch.setattr(sa, "make_llm", lambda *a, **kw: _StubLLM())
-
-    result = run_sentiment_analysis("AAPL", "2023-03-31", data_dir=str(tmp_path))
+    result = run_sentiment_analysis(
+        "AAPL", "2023-03-31", data_dir=str(tmp_path), _test_llm=_ResponseLLM()
+    )
     assert isinstance(result, SentimentAnalysis)
     assert result.signal is not None
     assert result.signal.decision == "Buy"

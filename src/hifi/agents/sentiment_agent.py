@@ -31,7 +31,7 @@ from pathlib import Path
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from hifi.agents.lm_client import make_llm
+from hifi.agents.lm_client import GEMMA3_12B, make_llm
 from hifi.agents.mcp_client import call_tool
 from hifi.agents.schemas import AgentSignal, SentimentAnalysis
 from hifi.observability.tracing import AbstractTracer, get_tracer, trace_context
@@ -40,7 +40,7 @@ logger = logging.getLogger(__name__)
 
 _PROMPT_VERSION = "sentiment_v1"
 _PROMPT_PATH = Path(__file__).parent / "prompts" / f"{_PROMPT_VERSION}.md"
-_DEFAULT_SENTIMENT_MODEL = "qwen2.5-coder-32b-instruct-mlx"  # DJ-087: reverted from gemma-4-e4b
+_DEFAULT_SENTIMENT_MODEL = GEMMA3_12B  # E0-T3: Gemma 3 12B (DJ-089)
 _INSUFFICIENT_DATA_MODEL = "sentiment-default"
 _RETRY_MSG = (
     "Your previous response was not valid JSON or was missing required fields. "
@@ -149,8 +149,8 @@ def _call_llm_for_sentiment(
     ticker: str,
     as_of_date: str,
     retrieved_context: str,
-    model_id: str,
     memory_prefix: str = "",
+    _test_llm: object | None = None,
 ) -> tuple[AgentSignal | None, str, list[str]]:
     """
     Call the LLM with the retrieved context.
@@ -168,7 +168,8 @@ def _call_llm_for_sentiment(
     if memory_prefix:
         user_text = memory_prefix + "\n\n" + user_text
 
-    llm = make_llm(_sentiment_model(), max_tokens=1024)
+    llm = _test_llm if _test_llm is not None else make_llm(_sentiment_model(), max_tokens=1024)
+    model_id = llm.model_name
 
     def _try_parse(text: str):
         parsed = _extract_json(text)
@@ -221,6 +222,7 @@ def run_sentiment_analysis(
     data_dir: str | None = None,
     tracer: AbstractTracer | None = None,
     memory_prefix: str = "",
+    _test_llm: object | None = None,
 ) -> SentimentAnalysis:
     """
     Run the Sentiment Analyst Agent for one ticker on one date.
@@ -269,9 +271,8 @@ def run_sentiment_analysis(
                 latency_ms=round(latency_ms, 1),
             )
 
-        llm_model_id = make_llm(_sentiment_model(), max_tokens=1024).model_name
         signal, sentiment_summary, notable_signals = _call_llm_for_sentiment(
-            ticker, as_of_date, retrieved_context, llm_model_id, memory_prefix
+            ticker, as_of_date, retrieved_context, memory_prefix, _test_llm=_test_llm
         )
 
     _tracer.flush()

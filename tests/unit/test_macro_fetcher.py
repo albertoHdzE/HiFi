@@ -2,8 +2,10 @@
 Unit tests for MacroDataFetcher and forward_fill_to_daily (P1-E3).
 
 Tests use synthetic pandas Series that match the fredapi output format.
-No live FRED API calls are made: _get_series and _get_series_info are patched
-to return pre-constructed data.
+No live FRED API calls are made: real data is injected via _test_series and
+_test_series_info DI parameters on fetch_series (same pattern as _test_llm
+on agents). The fetcher is constructed with api_key="dummy" — fredapi does
+not validate the key at construction time, only on actual HTTP requests.
 
 Tickets covered:
 - P1-E3-T5: Fetcher normalises fredapi Series output to MacroDataset schema
@@ -14,7 +16,6 @@ Tickets covered:
 from __future__ import annotations
 
 from datetime import date
-from unittest.mock import MagicMock, patch
 
 import pandas as pd
 
@@ -22,22 +23,19 @@ from hifi.data.macro import MacroDataFetcher, forward_fill_to_daily
 from hifi.data.schemas import MacroDataset, MacroIndicator
 
 # ---------------------------------------------------------------------------
-# Helpers: build a MacroDataFetcher without requiring a FRED API key
+# Helpers: build a MacroDataFetcher and synthetic fredapi-style data
 # ---------------------------------------------------------------------------
 
 
 def _make_fetcher() -> MacroDataFetcher:
     """
-    Create a MacroDataFetcher bypassing the fredapi constructor.
+    Create a MacroDataFetcher for testing.
 
-    The fredapi.Fred constructor requires an API key.  We bypass it by
-    patching the constructor call so unit tests run without credentials.
+    fredapi.Fred does not validate the key at construction time; the key is
+    only sent with HTTP requests. Passing a dummy key avoids needing an env var
+    while keeping the full __init__ code path intact.
     """
-    with patch("hifi.data.macro.MacroDataFetcher.__init__", return_value=None):
-        fetcher = MacroDataFetcher.__new__(MacroDataFetcher)
-        fetcher._fred = MagicMock()
-        fetcher._source = "FRED"
-    return fetcher
+    return MacroDataFetcher(api_key="dummy-key-for-testing")
 
 
 def _make_fred_series(dates: list[date], values: list[float]) -> pd.Series:
@@ -82,11 +80,10 @@ class TestMacroDataFetcherNormalisation:
             [0.08, 0.08],
         )
         info = _make_series_info()
-        fetcher._fred.get_series.return_value = raw
-        fetcher._fred.get_series_info.return_value = info
-        with patch.object(fetcher, "_get_series", return_value=raw), \
-             patch.object(fetcher, "_get_series_info", return_value=info):
-            result = fetcher.fetch_series("FEDFUNDS", date(2022, 1, 1), date(2022, 3, 1))
+        result = fetcher.fetch_series(
+            "FEDFUNDS", date(2022, 1, 1), date(2022, 3, 1),
+            _test_series=raw, _test_series_info=info,
+        )
         assert isinstance(result, MacroDataset)
 
     def test_correct_series_id(self) -> None:
@@ -94,9 +91,10 @@ class TestMacroDataFetcherNormalisation:
         fetcher = _make_fetcher()
         raw = _make_fred_series([date(2022, 1, 1)], [0.08])
         info = _make_series_info()
-        with patch.object(fetcher, "_get_series", return_value=raw), \
-             patch.object(fetcher, "_get_series_info", return_value=info):
-            result = fetcher.fetch_series("FEDFUNDS", date(2022, 1, 1), date(2022, 2, 1))
+        result = fetcher.fetch_series(
+            "FEDFUNDS", date(2022, 1, 1), date(2022, 2, 1),
+            _test_series=raw, _test_series_info=info,
+        )
         assert result.series_id == "FEDFUNDS"
 
     def test_correct_observation_count(self) -> None:
@@ -107,9 +105,10 @@ class TestMacroDataFetcherNormalisation:
             [0.08, 0.08, 0.20],
         )
         info = _make_series_info()
-        with patch.object(fetcher, "_get_series", return_value=raw), \
-             patch.object(fetcher, "_get_series_info", return_value=info):
-            result = fetcher.fetch_series("FEDFUNDS", date(2022, 1, 1), date(2022, 4, 1))
+        result = fetcher.fetch_series(
+            "FEDFUNDS", date(2022, 1, 1), date(2022, 4, 1),
+            _test_series=raw, _test_series_info=info,
+        )
         assert len(result.observations) == 3
 
     def test_values_normalised_correctly(self) -> None:
@@ -120,9 +119,10 @@ class TestMacroDataFetcherNormalisation:
             [0.08, 0.20],
         )
         info = _make_series_info()
-        with patch.object(fetcher, "_get_series", return_value=raw), \
-             patch.object(fetcher, "_get_series_info", return_value=info):
-            result = fetcher.fetch_series("FEDFUNDS", date(2022, 1, 1), date(2022, 4, 1))
+        result = fetcher.fetch_series(
+            "FEDFUNDS", date(2022, 1, 1), date(2022, 4, 1),
+            _test_series=raw, _test_series_info=info,
+        )
         assert abs(result.observations[0].value - 0.08) < 1e-9
         assert abs(result.observations[1].value - 0.20) < 1e-9
 
@@ -131,9 +131,10 @@ class TestMacroDataFetcherNormalisation:
         fetcher = _make_fetcher()
         raw = _make_fred_series([date(2022, 1, 1)], [0.08])
         info = _make_series_info()
-        with patch.object(fetcher, "_get_series", return_value=raw), \
-             patch.object(fetcher, "_get_series_info", return_value=info):
-            result = fetcher.fetch_series("FEDFUNDS", date(2022, 1, 1), date(2022, 2, 1))
+        result = fetcher.fetch_series(
+            "FEDFUNDS", date(2022, 1, 1), date(2022, 2, 1),
+            _test_series=raw, _test_series_info=info,
+        )
         assert isinstance(result.observations[0].date, date)
 
     def test_negative_values_stored(self) -> None:
@@ -141,9 +142,10 @@ class TestMacroDataFetcherNormalisation:
         fetcher = _make_fetcher()
         raw = _make_fred_series([date(2021, 1, 1)], [-0.5])
         info = _make_series_info(title="Real Fed Funds Rate", units="Percent")
-        with patch.object(fetcher, "_get_series", return_value=raw), \
-             patch.object(fetcher, "_get_series_info", return_value=info):
-            result = fetcher.fetch_series("RFEDTARMD", date(2021, 1, 1), date(2021, 2, 1))
+        result = fetcher.fetch_series(
+            "RFEDTARMD", date(2021, 1, 1), date(2021, 2, 1),
+            _test_series=raw, _test_series_info=info,
+        )
         assert result.observations[0].value == -0.5
 
     def test_metadata_from_series_info(self) -> None:
@@ -155,9 +157,10 @@ class TestMacroDataFetcherNormalisation:
             frequency="Monthly",
             units="Percent",
         )
-        with patch.object(fetcher, "_get_series", return_value=raw), \
-             patch.object(fetcher, "_get_series_info", return_value=info):
-            result = fetcher.fetch_series("FEDFUNDS", date(2022, 1, 1), date(2022, 2, 1))
+        result = fetcher.fetch_series(
+            "FEDFUNDS", date(2022, 1, 1), date(2022, 2, 1),
+            _test_series=raw, _test_series_info=info,
+        )
         assert result.name == "Federal Funds Effective Rate"
         assert result.frequency == "Monthly"
         assert result.unit == "Percent"
@@ -272,9 +275,10 @@ class TestMacroDataFetcherProvenance:
         fetcher = _make_fetcher()
         raw = _make_fred_series([date(2022, 1, 1)], [0.08])
         info = _make_series_info()
-        with patch.object(fetcher, "_get_series", return_value=raw), \
-             patch.object(fetcher, "_get_series_info", return_value=info):
-            result = fetcher.fetch_series("FEDFUNDS", date(2022, 1, 1), date(2022, 2, 1))
+        result = fetcher.fetch_series(
+            "FEDFUNDS", date(2022, 1, 1), date(2022, 2, 1),
+            _test_series=raw, _test_series_info=info,
+        )
         assert result.provenance.source == "FRED"
 
     def test_provenance_parameters_contain_series_id(self) -> None:
@@ -282,9 +286,10 @@ class TestMacroDataFetcherProvenance:
         fetcher = _make_fetcher()
         raw = _make_fred_series([date(2022, 1, 1)], [0.08])
         info = _make_series_info()
-        with patch.object(fetcher, "_get_series", return_value=raw), \
-             patch.object(fetcher, "_get_series_info", return_value=info):
-            result = fetcher.fetch_series("FEDFUNDS", date(2022, 1, 1), date(2022, 2, 1))
+        result = fetcher.fetch_series(
+            "FEDFUNDS", date(2022, 1, 1), date(2022, 2, 1),
+            _test_series=raw, _test_series_info=info,
+        )
         assert result.provenance.parameters["series_id"] == "FEDFUNDS"
 
     def test_provenance_parameters_contain_date_range(self) -> None:
@@ -292,8 +297,9 @@ class TestMacroDataFetcherProvenance:
         fetcher = _make_fetcher()
         raw = _make_fred_series([date(2022, 1, 1)], [0.08])
         info = _make_series_info()
-        with patch.object(fetcher, "_get_series", return_value=raw), \
-             patch.object(fetcher, "_get_series_info", return_value=info):
-            result = fetcher.fetch_series("FEDFUNDS", date(2022, 1, 1), date(2022, 2, 1))
+        result = fetcher.fetch_series(
+            "FEDFUNDS", date(2022, 1, 1), date(2022, 2, 1),
+            _test_series=raw, _test_series_info=info,
+        )
         assert result.provenance.parameters["start"] == "2022-01-01"
         assert result.provenance.parameters["end"] == "2022-02-01"

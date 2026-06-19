@@ -107,19 +107,10 @@ _STUB_JSON = json.dumps(_valid_parsed() | {"decision": "Hold", "confidence": 0.6
     "risk_assessment": "Moderate.", "recommended_position_size": 0.05})
 
 
-def test_parse_output_node_extracts_signal(monkeypatch):
-    class _StubLLM:
-        model_name = "gemma"
-        def invoke(self, _):
-            class _R:
-                content = _STUB_JSON
-            return _R()
-
-    import hifi.agents.risk_agent as ra
-    monkeypatch.setattr(ra, "make_llm", lambda *a, **kw: _StubLLM())
-
+def test_parse_output_node_extracts_signal():
     state = _make_state(
         llm_response=_STUB_JSON,
+        model_id="gemma",
         tool_results={"risk_metrics": {"hist_vol_20d": 0.22, "call_id": "abc"}},
     )
     result = parse_output_node(state)
@@ -130,17 +121,18 @@ def test_parse_output_node_extracts_signal(monkeypatch):
     assert result["recommended_position_size"] == pytest.approx(0.05)
 
 
-def test_parse_output_node_sets_error_after_retry(monkeypatch):
-    class _Bad:
+def test_parse_output_node_sets_error_after_retry():
+    class _AlwaysInvalidLLM:
         model_name = "m"
         def invoke(self, _):
             class _R:
                 content = "not json"
             return _R()
 
-    import hifi.agents.risk_agent as ra
-    monkeypatch.setattr(ra, "make_llm", lambda *a, **kw: _Bad())
-
-    state = _make_state(llm_response="bad", tool_results={"risk_metrics": {}})
+    state = _make_state(
+        llm_response="bad",
+        _test_llm=_AlwaysInvalidLLM(),
+        tool_results={"risk_metrics": {}},
+    )
     result = parse_output_node(state)
     assert result.get("error") is not None

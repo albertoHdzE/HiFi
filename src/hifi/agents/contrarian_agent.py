@@ -115,6 +115,7 @@ def run_contrarian_analysis(
     as_of_date: str,
     ensemble_context: str,
     tracer: AbstractTracer | None = None,
+    _test_llm: object | None = None,
 ) -> ContrarianAnalysis:
     """
     Run the Contrarian Agent for one ticker on one date.
@@ -150,7 +151,7 @@ def run_contrarian_analysis(
         ensemble_context=ensemble_context,
     )
 
-    llm = make_llm(_contrarian_model(), max_tokens=4096)
+    llm = _test_llm if _test_llm is not None else make_llm(_contrarian_model(), max_tokens=4096)
     messages = [SystemMessage(content=system_text), HumanMessage(content=user_text)]
 
     with trace_context(trace_id):
@@ -160,7 +161,9 @@ def run_contrarian_analysis(
         parsed = _extract_json(raw)
         if parsed is None:
             logger.warning("Contrarian first parse failed for %s. Retrying.", ticker)
-            retry_response = llm.invoke([
+            retry_response = (
+                _test_llm if _test_llm is not None else llm
+            ).invoke([
                 HumanMessage(content=raw),
                 HumanMessage(content=_RETRY_MSG),
             ])

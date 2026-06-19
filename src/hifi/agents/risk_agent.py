@@ -29,7 +29,7 @@ from pathlib import Path
 from langchain_core.messages import HumanMessage, SystemMessage
 from typing_extensions import TypedDict
 
-from hifi.agents.lm_client import make_llm
+from hifi.agents.lm_client import MISTRAL_SMALL_32, make_llm
 from hifi.agents.mcp_client import call_tool
 from hifi.agents.schemas import AgentSignal, RiskAnalysis
 from hifi.observability.tracing import AbstractTracer, get_tracer, trace_context
@@ -38,7 +38,7 @@ logger = logging.getLogger(__name__)
 
 _PROMPT_VERSION = "risk_v1"
 _PROMPT_PATH = Path(__file__).parent / "prompts" / f"{_PROMPT_VERSION}.md"
-_DEFAULT_RISK_MODEL = "google/gemma-3-4b"
+_DEFAULT_RISK_MODEL = MISTRAL_SMALL_32
 _RETRY_MSG = (
     "Your previous response was not valid JSON or was missing required fields. "
     "Produce ONLY the JSON object with the fields: "
@@ -60,6 +60,8 @@ class RiskAnalystState(TypedDict, total=False):
     data_dir: str
     tool_results: dict
     llm_response: str
+    model_id: str                 # set by generate_analysis_node; read by parse_output_node
+    _test_llm: object | None      # DI: injected by tests only; bypasses make_llm()
     signal: AgentSignal | None
     risk_assessment: str | None
     recommended_position_size: float | None
@@ -195,10 +197,11 @@ def generate_analysis_node(state: RiskAnalystState) -> dict:
     if memory_prefix:
         user_text = memory_prefix + "\n\n" + user_text
 
-    llm = make_llm(_risk_model(), max_tokens=1024)
+    _test_llm = state.get("_test_llm")
+    llm = _test_llm if _test_llm is not None else make_llm(_risk_model(), max_tokens=1024)
     messages = [SystemMessage(content=system_text), HumanMessage(content=user_text)]
     response = llm.invoke(messages)
-    return {"llm_response": response.content}
+    return {"llm_response": response.content, "model_id": llm.model_name}
 
 
 def parse_output_node(state: RiskAnalystState) -> dict:
@@ -220,8 +223,8 @@ def parse_output_node(state: RiskAnalystState) -> dict:
         if v is None and k not in ("call_id", "error", "detail")
     ]
 
-    llm = make_llm(_risk_model(), max_tokens=1024)
-    model_id = llm.model_name
+    model_id = state.get("model_id", "")
+    _test_llm = state.get("_test_llm")
 
     def _try_parse(text: str):
         parsed = _extract_json(text)
@@ -238,7 +241,8 @@ def parse_output_node(state: RiskAnalystState) -> dict:
         }
 
     logger.warning("First parse attempt failed for %s. Retrying.", ticker)
-    retry_response = llm.invoke([
+    retry_llm = _test_llm if _test_llm is not None else make_llm(_risk_model(), max_tokens=1024)
+    retry_response = retry_llm.invoke([
         HumanMessage(content=llm_response),
         HumanMessage(content=_RETRY_MSG),
     ])
@@ -300,6 +304,7 @@ def run_risk_analysis(
     data_dir: str | None = None,
     tracer: AbstractTracer | None = None,
     memory_prefix: str = "",
+    _test_llm: object | None = None,
 ) -> RiskAnalysis:
     """
     Run the Risk Analyst Agent for one ticker on one date.
@@ -344,6 +349,7 @@ def run_risk_analysis(
         "error": None,
         "start_time": start,
         "memory_prefix": memory_prefix,
+        "_test_llm": _test_llm,
     }
 
     with trace_context(trace_id):

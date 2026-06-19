@@ -88,6 +88,7 @@ def run_ensemble(
     agents: list[str] | None = None,
     use_graphrag: bool = False,
     memory_prefixes: dict[str, str] | None = None,
+    _test_llms: dict | None = None,
 ) -> EnsembleOutput:
     """
     Run the agent ensemble, aggregate outputs, and verify.
@@ -139,6 +140,7 @@ def run_ensemble(
 
     start = time.monotonic()
     _mem = memory_prefixes or {}
+    _llms = _test_llms or {}
 
     graphrag_ctx = _build_graphrag_context(ticker, data_dir) if use_graphrag else ""
 
@@ -158,6 +160,7 @@ def run_ensemble(
             use_rag=use_rag,
             retrieved_context=graphrag_ctx,
             memory_prefix=_mem.get("fundamental", ""),
+            _test_llm=_llms.get("fundamental"),
         )
 
         technical = run_technical_analysis(
@@ -168,6 +171,7 @@ def run_ensemble(
             use_rag=use_rag,
             retrieved_context=graphrag_ctx,
             memory_prefix=_mem.get("technical", ""),
+            _test_llm=_llms.get("technical"),
         )
 
         # --- Phase 8 agents (imported lazily to avoid import-time side effects) ---
@@ -179,6 +183,7 @@ def run_ensemble(
                 data_dir=data_dir,
                 tracer=_tracer,
                 memory_prefix=_mem.get("risk", ""),
+                _test_llm=_llms.get("risk"),
             )
 
         if "macro" in voting_agents:
@@ -189,6 +194,7 @@ def run_ensemble(
                 data_dir=data_dir,
                 tracer=_tracer,
                 memory_prefix=_mem.get("macro", ""),
+                _test_llm=_llms.get("macro"),
             )
 
         if "sentiment" in voting_agents:
@@ -199,6 +205,7 @@ def run_ensemble(
                 data_dir=data_dir,
                 tracer=_tracer,
                 memory_prefix=_mem.get("sentiment", ""),
+                _test_llm=_llms.get("sentiment"),
             )
 
     # --- Performance weights for aggregation (D-02) ---
@@ -247,6 +254,7 @@ def run_ensemble(
                 as_of_date=as_of_date,
                 ensemble_context=ensemble_context,
                 tracer=_tracer,
+                _test_llm=_llms.get("contrarian"),
             )
 
     # --- Run all four aggregation methods (D-02, D-06) ---
@@ -306,6 +314,7 @@ def run_debate_ensemble(
     max_rounds: int = 1,
     _debate_llm: object | None = None,
     memory_prefixes: dict[str, str] | None = None,
+    _test_llms: dict | None = None,
 ) -> EnsembleOutput:
     """
     Run ensemble with structured debate before final vote (P12-E3-T3, P13-E2-T3, DJ-065, DJ-074).
@@ -347,6 +356,7 @@ def run_debate_ensemble(
 
     start = time.monotonic()
     _mem = memory_prefixes or {}
+    _llms = _test_llms or {}
 
     graphrag_ctx = _build_graphrag_context(ticker, data_dir) if use_graphrag else ""
 
@@ -365,6 +375,7 @@ def run_debate_ensemble(
             use_rag=use_rag,
             retrieved_context=graphrag_ctx,
             memory_prefix=_mem.get("fundamental", ""),
+            _test_llm=_llms.get("fundamental"),
         )
 
         technical = run_technical_analysis(
@@ -375,6 +386,7 @@ def run_debate_ensemble(
             use_rag=use_rag,
             retrieved_context=graphrag_ctx,
             memory_prefix=_mem.get("technical", ""),
+            _test_llm=_llms.get("technical"),
         )
 
         if "risk" in voting_agents:
@@ -385,6 +397,7 @@ def run_debate_ensemble(
                 data_dir=data_dir,
                 tracer=_tracer,
                 memory_prefix=_mem.get("risk", ""),
+                _test_llm=_llms.get("risk"),
             )
 
         if "macro" in voting_agents:
@@ -395,6 +408,7 @@ def run_debate_ensemble(
                 data_dir=data_dir,
                 tracer=_tracer,
                 memory_prefix=_mem.get("macro", ""),
+                _test_llm=_llms.get("macro"),
             )
 
         if "sentiment" in voting_agents:
@@ -405,6 +419,7 @@ def run_debate_ensemble(
                 data_dir=data_dir,
                 tracer=_tracer,
                 memory_prefix=_mem.get("sentiment", ""),
+                _test_llm=_llms.get("sentiment"),
             )
 
     # --- Performance weights ---
@@ -481,6 +496,7 @@ def run_debate_ensemble(
                 as_of_date=as_of_date,
                 ensemble_context=ensemble_context,
                 tracer=_tracer,
+                _test_llm=_llms.get("contrarian"),
             )
 
     # --- All aggregation methods on post-debate signals ---

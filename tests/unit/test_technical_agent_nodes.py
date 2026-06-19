@@ -154,18 +154,11 @@ _STUB_SIGNAL_JSON = json.dumps({
 })
 
 
-def test_parse_output_node_extracts_signal_and_time_horizon(monkeypatch):
+def test_parse_output_node_extracts_signal_and_time_horizon():
     """parse_output_node extracts AgentSignal and time_horizon from valid JSON."""
-    class _StubLLM:
-        model_name = "test-model"
-        def invoke(self, messages):
-            raise AssertionError("LLM should not be called when first parse succeeds")
-
-    import hifi.agents.technical_agent as ta
-    monkeypatch.setattr(ta, "make_llm", lambda *a, **kw: _StubLLM())
-
     state = _make_state(
         llm_response=_STUB_SIGNAL_JSON,
+        model_id="test-model",
         tool_results={
             "technical_indicators": {"rsi": 48.0, "call_id": "abc"},
             "risk_metrics": {"sharpe_252d": 0.82, "max_drawdown_252d": -0.18, "call_id": "def"},
@@ -178,16 +171,8 @@ def test_parse_output_node_extracts_signal_and_time_horizon(monkeypatch):
     assert result["time_horizon"] == "short-term"
 
 
-def test_parse_output_node_time_horizon_optional(monkeypatch):
+def test_parse_output_node_time_horizon_optional():
     """time_horizon is optional; if absent from JSON, no error and value is None."""
-    class _StubLLM:
-        model_name = "test-model"
-        def invoke(self, messages):
-            raise AssertionError("LLM should not be called")
-
-    import hifi.agents.technical_agent as ta
-    monkeypatch.setattr(ta, "make_llm", lambda *a, **kw: _StubLLM())
-
     response_no_horizon = json.dumps({
         "decision": "Sell",
         "confidence": 0.70,
@@ -196,6 +181,7 @@ def test_parse_output_node_time_horizon_optional(monkeypatch):
     })
     state = _make_state(
         llm_response=response_no_horizon,
+        model_id="test-model",
         tool_results={
             "technical_indicators": {"rsi": 72.0, "call_id": "abc"},
             "risk_metrics": {"call_id": "def"},
@@ -207,20 +193,18 @@ def test_parse_output_node_time_horizon_optional(monkeypatch):
     assert result.get("time_horizon") is None
 
 
-def test_parse_output_node_sets_error_after_failed_retry(monkeypatch):
+def test_parse_output_node_sets_error_after_failed_retry():
     """parse_output_node sets error when both attempts fail."""
-    class _StubLLMAlwaysInvalid:
+    class _AlwaysInvalidLLM:
         model_name = "test-model"
         def invoke(self, messages):
             class _Resp:
                 content = "I cannot provide that."
             return _Resp()
 
-    import hifi.agents.technical_agent as ta
-    monkeypatch.setattr(ta, "make_llm", lambda *a, **kw: _StubLLMAlwaysInvalid())
-
     state = _make_state(
         llm_response="not valid json",
+        _test_llm=_AlwaysInvalidLLM(),
         tool_results={
             "technical_indicators": {},
             "risk_metrics": {},
