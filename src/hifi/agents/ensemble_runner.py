@@ -733,6 +733,7 @@ def run_sequential_ensemble(
     tracer: AbstractTracer | None = None,
     use_rag: bool = False,
     use_graphrag: bool = False,
+    run_id: str | None = None,
     _test_llms: dict | None = None,
     _test_store: AgentContextStore | None = None,
     _test_episodic_store: object | None = None,
@@ -777,7 +778,7 @@ def run_sequential_ensemble(
     run_contrarian = "contrarian" in active
     voting_agents = [a for a in active if a != "contrarian"]
 
-    run_id = str(uuid.uuid4())
+    run_id = run_id if run_id is not None else str(uuid.uuid4())
     _mem = memory_prefixes or {}
     _llms = _test_llms or {}
 
