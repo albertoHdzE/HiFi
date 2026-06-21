@@ -192,6 +192,7 @@ def run_agent_pass(
     db_path: str,
     snapshot_json: str | None = None,
     context_namespace: str = "hifi-dev-context",
+    extra_memory_prefix: str = "",
     _test_llm: object | None = None,
     _test_store: object | None = None,
 ) -> Any:
@@ -220,6 +221,10 @@ def run_agent_pass(
         None and agent_type is "fundamental".
     context_namespace : str
         LanceDB namespace for AgentContextStore (default "hifi-dev-context").
+    extra_memory_prefix : str
+        Additional context prepended before the AgentContextStore prefix.
+        Used by the smoke test and orchestrator to inject EDGAR MD&A context
+        for the fundamental agent without modifying the store.
     _test_llm : object | None
         Stub LLM for deterministic testing.
     _test_store : object | None
@@ -240,6 +245,8 @@ def run_agent_pass(
         store = AgentContextStore(namespace=context_namespace, db_path=db_path)
 
     memory_prefix = _build_memory_prefix(store, run_id, agent_type, ticker, date, condition)
+    if extra_memory_prefix:
+        memory_prefix = (extra_memory_prefix + "\n\n" + memory_prefix).strip()
 
     analysis: Any
 

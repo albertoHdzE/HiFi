@@ -15,8 +15,9 @@ DOCKER_ENV_FILE     := docker/langfuse/.env
 	eval-debate-multiround eval-memory run-scenarios validate-sentiment-corpus \
 	acquire-data-phase14 ingest-edgar-mda acquire-macro-phase14 \
 	validate-sentiment-corpus-v2 eval-reset eval-ingest-through live-reset \
-	walkforward-full walkforward-parallel walkforward-homogeneous walkforward-no-memory \
-	walkforward-held-out walkforward-status walkforward-ic
+	walkforward-smoke walkforward-full walkforward-parallel walkforward-homogeneous \
+	walkforward-no-memory walkforward-held-out walkforward-status walkforward-ic \
+	walkforward-smoke-full walkforward-orchestrate walkforward-pipeline walkforward-report
 
 FINETUNE_VENV := venvs/finetune/bin/python
 
@@ -337,6 +338,12 @@ live-reset: ## Drop all hifi-live-* namespace tables in LanceDB
 # Phase 15: Walk-Forward Simulation (DJ-097, DJ-096)
 # ---------------------------------------------------------------------------
 
+walkforward-smoke: ## Phase 15 smoke: agent-first sweep, 22 tickers × 1 date, full pipeline (alias for smoke-full)
+	uv run python scripts/run_phase15_smoke.py
+
+walkforward-smoke-full: ## Phase 15 smoke: agent-first sweep, 22 tickers × 1 date, full pipeline (requires LM Studio)
+	uv run python scripts/run_phase15_smoke.py
+
 walkforward-full: ## Phase 15 Full: sequential 5-org + episodic RAG (requires LM Studio)
 	uv run python scripts/run_phase15_walkforward.py \
 		--condition full --period held-out-test
@@ -368,4 +375,17 @@ walkforward-status: ## Show checkpoint progress for all conditions (no LM Studio
 walkforward-ic: ## Compute IC/IR metrics from completed walkforward JSONs (no LM Studio needed)
 	uv run python scripts/compute_phase15_ic.py \
 		--period held-out-test --regime-breakdown
+
+walkforward-orchestrate: ## Phase 15 full orchestrated run: agent-first sweep + aggregate + pipeline (requires LM Studio)
+	uv run python scripts/run_phase15_orchestrator.py \
+		--agent all --aggregate --pipeline \
+		--condition full --period held-out-test
+
+walkforward-pipeline: ## Run MCP pipeline on existing ensemble JSONs (no LM Studio needed)
+	uv run python scripts/run_phase15_orchestrator.py \
+		--pipeline --condition full --period held-out-test
+
+walkforward-report: ## Show status + IC/IR summary for all conditions (no LM Studio needed)
+	uv run python scripts/run_phase15_orchestrator.py --status --period held-out-test
+	$(MAKE) walkforward-ic
 
