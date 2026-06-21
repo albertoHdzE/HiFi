@@ -1,7 +1,7 @@
 # HiFi Project Status
 
-**Last Updated:** 2026-06-19 (Phase 14 Wave 4 complete)
-**Current Phase:** Phase 14 (IN PROGRESS — branch: phase14/heterogeneous-ensemble)
+**Last Updated:** 2026-06-21 (Phase 14.1 complete — awaiting smoke run)
+**Current Phase:** Phase 14.1 (COMPLETE — branch: phase14/heterogeneous-ensemble)
 
 ---
 
@@ -36,7 +36,8 @@ HiFi is a fully local multi-agent financial intelligence platform. Read these in
 | 12 | GraphRAG + Structured Debate | COMPLETE | plans/PHASE_12_PLAN.md | doc/bitacora/PHASE_12_GRAPHRAG_DEBATE.md |
 | 12.1 | Completion and Correction | COMPLETE | plans/PHASE_12.1_PLAN.md | doc/bitacora/PHASE_12.1_COMPLETION.md |
 | 13 | Verification Completeness, Sentiment Intelligence, System Resilience | COMPLETE | plans/PHASE_13_PLAN.md | doc/bitacora/PHASE_13_ADVANCED_FEATURES.md |
-| 14 | Infrastructure: Model Diversity, Scale Expansion, MCP Tools (DJ-088) | IN PROGRESS | plans/PHASE_14_PLAN.md | -- |
+| 14 | Infrastructure: Model Diversity, Scale Expansion, MCP Tools (DJ-088) | COMPLETE | plans/PHASE_14_PLAN.md | -- |
+| 14.1 | Pipeline Integration and Memory-Safe Orchestration (DJ-106) | COMPLETE | plans/PHASE_14.1_PLAN.md | doc/bitacora/PHASE_14.1_PIPELINE_INTEGRATION.md |
 | 15 | Historical Walk-Forward Simulation (DJ-088) | NOT STARTED | -- | -- |
 | 16 | Live Paper Trading — IBKR (DJ-088) | NOT STARTED | -- | -- |
 | 17 | Ablation Studies + Capstone Deliverable | NOT STARTED | -- | -- |
@@ -144,9 +145,9 @@ HiFi is a fully local multi-agent financial intelligence platform. Read these in
 
 ---
 
-## Phase 14 Status (IN PROGRESS — 2026-06-19)
+## Phase 14 Status (COMPLETE — 2026-06-19)
 
-**Tests:** ≥1520 passed, 0 lint errors
+**Tests:** 1756 passed, 0 lint errors
 **Branch:** phase14/heterogeneous-ensemble
 
 ### Wave 1 — COMPLETE
@@ -182,8 +183,42 @@ HiFi is a fully local multi-agent financial intelligence platform. Read these in
 - E2-T2: acquire_phase14_data.py — bulk OHLCV 100 stocks × 21y (run separately)
 - E2-T3 ingest: ingest_edgar_mda.py — EDGAR API calls (run separately, 4-8h)
 
-### NEXT: Phase 14 Wave 5 — Evaluation harness (E7)
-See plans/PHASE_14_PLAN.md for Wave 5 tickets.
+### Phase 14 Wave 5 — Documentation (E7)
+Deferred to run alongside Phase 14.1/15 (non-blocking).
+
+---
+
+## Phase 14.1 Status (COMPLETE — 2026-06-21)
+
+**Tests:** 1809 passed, 3 skipped, 0 lint errors
+**Branch:** phase14/heterogeneous-ensemble
+**Decisions:** DJ-106 through DJ-110 (see plans/PHASE_14.1_CONTEXT.md)
+**Bitacora:** doc/bitacora/PHASE_14.1_PIPELINE_INTEGRATION.md
+
+Phase 14.1 integrates the six infrastructure components built in Phase 14
+into an orchestrated end-to-end pipeline:
+
+- **DJ-106:** Agent-first sequential sweep (one model in VRAM at a time; 35 GB peak vs 95 GB simultaneous) ✓
+- **DJ-107:** Stratified 22-ticker smoke universe (2 per GICS sector, all 11 sectors) ✓
+- **DJ-108:** End-to-end pipeline: ensemble → compose → risk → allocate → PortfolioSnapshot ✓
+- **DJ-109:** Two-layer execution: smoke (22-ticker validation) + orchestrator (98-ticker production) ✓
+- **DJ-110:** One replication notebook: notebooks/phase15_walkforward_replication.ipynb ✓
+
+### Code artifacts
+- `src/hifi/simulation/agent_executor.py` — run_agent_pass() + aggregate_agent_outputs()
+- `src/hifi/simulation/model_manager.py` — load_model/unload_model/model_is_loaded via lms CLI
+- `src/hifi/simulation/pipeline.py` — PortfolioSnapshot + run_pipeline() MCP chain
+- `src/hifi/data/smoke_universe.py` — 22-ticker stratified universe (SMOKE_UNIVERSE)
+- `src/hifi/agents/ensemble_runner.py` — run_id: str | None = None param added
+- `scripts/run_phase15_smoke.py` — complete rewrite (agent-first + full pipeline)
+- `scripts/run_phase15_orchestrator.py` — production orchestrator (--agent/--aggregate/--pipeline/--status)
+- `notebooks/phase15_walkforward_replication.ipynb` — 10-section replication notebook
+
+### Bug fix
+- DJ-109: old smoke script set `HIFI_FUNDAMENTAL_FINETUNE_URL` but not `HIFI_FUNDAMENTAL_FINETUNE_MODEL`
+  for the fine-tuned fallback. fundamental_agent.py checks both. Both now set correctly.
+
+### NEXT: `make walkforward-smoke-full` (requires LM Studio + finetune server on port 1235)
 
 ---
 
@@ -339,8 +374,8 @@ Phase 11 creates venvs/finetune/ to pin these versions.
 
 | Metric | Value |
 |---|---|
-| Tests passing | 1197 (0 skipped, 0 lint errors) |
-| DJ decisions | DJ-000 through DJ-084 (DJ-081: Phase 12.1 sub-phase; DJ-082: technical_v2 params; DJ-083: full factorial re-run; DJ-084: Gemma 4 12B variant) |
+| Tests passing | 1809 (3 skipped, 0 lint errors) |
+| DJ decisions | DJ-000 through DJ-110 |
 | Technical Agent GR (Phase 5) | 0.667 (improvement target Phase 11) |
 | Fundamental Agent GR (Phase 5) | 1.000 |
 | Bootstrap accuracy: risk | 0.349 |
