@@ -62,15 +62,20 @@ _FINETUNE_HEALTH_1236 = "http://localhost:1236/health"
 _EDGAR_NAMESPACE = "hifi-dev-sec"  # all history, temporally filtered
 
 # Agent-first sweep order.
-# Tuples: (agent_type, lms_model_id | None, env_var | None, load_timeout_s | None)
+# Tuples: (agent_type, lms_model_id | None, env_var | None, load_timeout_s | None, ctx_len | None)
 # None model_id = external server (no lms load/unload).
-_AGENT_CONFIG: list[tuple[str, str | None, str | None, int | None]] = [
-    ("fundamental", "llama-3.3-70b-instruct",                  "HIFI_FUNDAMENTAL_MODEL", 600),
-    ("technical",   None,                                       None,                     None),
-    ("risk",        "mistral-small-3.2-24b-instruct-2506-mlx", "HIFI_RISK_MODEL",        300),
-    ("macro",       "deepseek-r1-distill-qwen-32b",             "HIFI_MACRO_MODEL",       600),
-    ("sentiment",   "gemma-3-12b-it",                           "HIFI_SENTIMENT_MODEL",   300),
-    ("contrarian",  "mlx-qwen3.5-35b-a3b",                     "HIFI_CONTRARIAN_MODEL",  300),
+# ctx_len: override lms load -c <n> when the model's built-in default is too small
+#   for the intended prompts. Gemma 12B's default (~4096) is too small for AAPL
+#   sentiment (prompt + output ≈ 4,357 tokens); 8192 gives comfortable headroom.
+_AGENT_CONFIG: list[tuple[str, str | None, str | None, int | None, int | None]] = [
+    # fmt: (agent_type, lms_model_id, env_var, load_timeout_s, ctx_len_override)
+    ("fundamental", "llama-3.3-70b-instruct",      "HIFI_FUNDAMENTAL_MODEL", 600, None),
+    ("technical",   None,                           None,                     None, None),
+    ("risk",        "mistral-small-3.2-24b-instruct-2506-mlx",
+                                                    "HIFI_RISK_MODEL",        300, None),
+    ("macro",       "deepseek-r1-distill-qwen-32b", "HIFI_MACRO_MODEL",       600, None),
+    ("sentiment",   "gemma-3-12b-it",               "HIFI_SENTIMENT_MODEL",   300, 8192),
+    ("contrarian",  "mlx-qwen3.5-35b-a3b",          "HIFI_CONTRARIAN_MODEL",  300, None),
 ]
 
 
@@ -123,6 +128,7 @@ def _load_ohlcv(
                 logger.warning("No OHLCV parquet for %s", ticker)
                 continue
             df = pd.read_parquet(path)
+            df.columns = df.columns.str.lower()
             df.index = pd.to_datetime(df.index)
             df = df[df.index <= as_of_date].tail(90)
             if df.empty:
@@ -157,6 +163,7 @@ def _setup_agent_env(
     env_var: str | None,
     load_timeout: int | None,
     skip_load: bool,
+    context_length: int | None = None,
 ) -> bool:
     """
     Prepare env vars for an agent pass.
@@ -167,9 +174,20 @@ def _setup_agent_env(
     if agent_type == "technical":
         ok = _port_is_listening(_FINETUNE_HEALTH_1235)
         if ok:
+            # mlx_lm server registers the model under its full local path, not the
+            # short LM Studio name. Query /v1/models to get the actual registered ID
+            # so requests are routed to the loaded model instead of triggering a
+            # dynamic HuggingFace download (which would 404 for local-only models).
+            try:
+                with urllib.request.urlopen(
+                    "http://localhost:1235/v1/models", timeout=5
+                ) as _r:
+                    _registered_id = json.loads(_r.read())["data"][0]["id"]
+            except Exception:
+                _registered_id = _FINETUNE_MODEL  # fallback
             os.environ["HIFI_TECHNICAL_FINETUNE_URL"] = _TECHNICAL_FINETUNE_URL
-            os.environ["HIFI_TECHNICAL_MODEL"] = _FINETUNE_MODEL
-            print(f"  fine-tuned server port 1235: READY ({_FINETUNE_MODEL})")
+            os.environ["HIFI_TECHNICAL_MODEL"] = _registered_id
+            print(f"  fine-tuned server port 1235: READY ({_registered_id})")
         else:
             print(
                 "  WARNING: port 1235 not healthy. "
@@ -191,7 +209,9 @@ def _setup_agent_env(
 
     print(f"  loading {lms_model_id} ...", flush=True)
     t0 = time.monotonic()
-    loaded_ok = load_model(lms_model_id, timeout_s=load_timeout or 600)
+    loaded_ok = load_model(
+        lms_model_id, timeout_s=load_timeout or 600, context_length=context_length
+    )
     elapsed = int(time.monotonic() - t0)
 
     if loaded_ok:
@@ -241,12 +261,12 @@ def _run_sweep(
 
     sweep_results: dict[str, dict[str, bool]] = {}
 
-    for agent_type, lms_model_id, env_var, load_timeout in _AGENT_CONFIG:
+    for agent_type, lms_model_id, env_var, load_timeout, ctx_len in _AGENT_CONFIG:
         sweep_results[agent_type] = {}
         print(f"\n[{agent_type.upper()} PASS]", flush=True)
 
         agent_ready = _setup_agent_env(
-            agent_type, lms_model_id, env_var, load_timeout, skip_load
+            agent_type, lms_model_id, env_var, load_timeout, skip_load, ctx_len
         )
 
         n_ok = n_fail = n_skip = 0

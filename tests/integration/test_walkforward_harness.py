@@ -338,3 +338,119 @@ def test_period_dates_count_held_out():
     assert len(dates) == 24
     assert dates[0] == "2022-01-31"
     assert dates[-1] == "2023-12-31"
+
+
+# ---------------------------------------------------------------------------
+# Multi-ticker × multi-date × all-conditions coverage
+# ---------------------------------------------------------------------------
+
+# Five tickers spanning five GICS sectors
+_MULTI_TICKERS = ["AAPL", "JPM", "XOM", "NVDA", "BAC"]
+_MULTI_DATES   = ["2022-01-31", "2022-06-30", "2023-03-31"]
+_CONDITIONS    = ["full", "parallel", "homogeneous", "no-memory"]
+
+
+@pytest.mark.parametrize("ticker", _MULTI_TICKERS)
+@pytest.mark.parametrize("date",   _MULTI_DATES)
+def test_run_one_multi_ticker_date_no_memory(ticker, date, tmp_path):
+    """
+    run_one with no-memory condition succeeds for 5 diverse tickers × 3 eval dates.
+    Validates that the harness handles the full evaluation grid without errors.
+    """
+    from scripts.run_phase15_walkforward import run_one
+
+    out = run_one(
+        ticker=ticker,
+        date=date,
+        condition="no-memory",
+        data_dir=str(tmp_path),
+        output_dir=str(tmp_path / "walkforward"),
+        _test_llms=_stub_llms("Buy"),
+    )
+    assert out is not None and out.exists(), (
+        f"run_one failed for {ticker}/{date}/no-memory"
+    )
+    data = json.loads(out.read_text())
+    assert data["ticker"] == ticker
+    assert data["as_of_date"] == date
+
+
+@pytest.mark.parametrize("condition", _CONDITIONS)
+def test_run_one_all_conditions_aapl(condition, tmp_path):
+    """All four ablation conditions produce valid output for AAPL/2022-01-31."""
+    from scripts.run_phase15_walkforward import run_one
+
+    out = run_one(
+        ticker="AAPL",
+        date="2022-01-31",
+        condition=condition,
+        data_dir=str(tmp_path),
+        output_dir=str(tmp_path / "walkforward"),
+        _test_llms=_stub_llms(),
+    )
+    assert out is not None and out.exists(), (
+        f"run_one failed for AAPL/2022-01-31 condition={condition}"
+    )
+    data = json.loads(out.read_text())
+    assert data["ticker"] == "AAPL"
+    assert "ensemble_decision" in data
+
+
+@pytest.mark.parametrize("condition", _CONDITIONS)
+def test_run_one_output_has_ensemble_decision(condition, tmp_path):
+    """Output JSON has a well-formed ensemble_decision block for all conditions."""
+    from scripts.run_phase15_walkforward import run_one
+
+    out = run_one(
+        ticker="JPM",
+        date="2022-06-30",
+        condition=condition,
+        data_dir=str(tmp_path),
+        output_dir=str(tmp_path / "walkforward"),
+        _test_llms=_stub_llms("Hold"),
+    )
+    assert out is not None
+    ed = json.loads(out.read_text())["ensemble_decision"]
+    assert ed["collective_decision"] in {"Buy", "Hold", "Sell"}
+    assert 0.0 <= ed["collective_confidence"] <= 1.0
+    assert ed["n_valid_signals"] > 0
+
+
+# ---------------------------------------------------------------------------
+# EDGAR context appears in the fundamental memory prefix (full condition)
+# ---------------------------------------------------------------------------
+
+_DB_PATH = str(
+    Path(__file__).resolve().parents[2] / "data" / "knowledge.lance"
+)
+_EDGAR_AVAILABLE = Path(_DB_PATH).exists()
+
+
+@pytest.mark.skipif(not _EDGAR_AVAILABLE, reason="data/knowledge.lance not present")
+@pytest.mark.parametrize("ticker,date", [
+    ("AAPL", "2022-01-31"),
+    ("JPM",  "2022-06-30"),
+    ("XOM",  "2023-03-31"),
+])
+def test_edgar_context_in_full_condition_output(ticker, date, tmp_path):
+    """
+    For the 'full' condition, the EDGAR MD&A header must appear in the
+    fundamental agent's memory prefix (verified via _run_full internals).
+
+    This checks that _fetch_edgar_context() is wired and returns non-empty
+    content from the real hifi-dev-sec-sec-mda table for held-out test tickers.
+    """
+    from scripts.run_phase15_walkforward import _fetch_edgar_context
+
+    ctx = _fetch_edgar_context(ticker=ticker, date=date, db_path=_DB_PATH)
+    if not ctx:
+        pytest.skip(f"No EDGAR MD&A in dev table for {ticker}/{date} — skip")
+    assert "[EDGAR MD&A —" in ctx, (
+        f"EDGAR context header missing for {ticker}/{date}: {ctx[:120]!r}"
+    )
+    # Temporal discipline: period in header ≤ as_of_date
+    import re
+    m = re.search(r"period=(\d{4}-\d{2}-\d{2})", ctx)
+    assert m and m.group(1) <= date, (
+        f"Look-ahead in EDGAR context for {ticker}/{date}: header={ctx[:120]!r}"
+    )

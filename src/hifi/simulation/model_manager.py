@@ -90,7 +90,7 @@ def model_is_loaded(model_id: str) -> bool:
     )
 
 
-def load_model(model_id: str, timeout_s: int = 600) -> bool:
+def load_model(model_id: str, timeout_s: int = 600, context_length: int | None = None) -> bool:
     """
     Load a model via the lms CLI.
 
@@ -103,6 +103,10 @@ def load_model(model_id: str, timeout_s: int = 600) -> bool:
         (e.g. "mlx-community/Llama-3.3-70B-Instruct-4bit").
     timeout_s : int
         Maximum seconds to wait for lms CLI to return (default 600).
+    context_length : int | None
+        Override the model's default context window size (tokens). When None,
+        LM Studio uses its built-in default. Pass an explicit value (e.g. 8192)
+        for models whose default is too small for the intended prompts.
 
     Returns
     -------
@@ -116,7 +120,8 @@ def load_model(model_id: str, timeout_s: int = 600) -> bool:
 
     logger.info("Loading %s via lms CLI ...", model_id)
     t0 = time.monotonic()
-    rc, out = _lms_run("load", model_id, "-y", timeout_s=timeout_s)
+    extra_args = ["-c", str(context_length)] if context_length is not None else []
+    rc, out = _lms_run("load", model_id, "-y", *extra_args, timeout_s=timeout_s)
     elapsed = int(time.monotonic() - t0)
 
     if rc == 0:

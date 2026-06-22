@@ -53,11 +53,12 @@ Phase 10: Evaluation Framework & Backtesting
 Phase 11: Fine-Tuning
 Phase 12: Knowledge Systems — GraphRAG
 Phase 13: Advanced Features (Agent Memory, Synthetic Scenarios, Drift)
-Phase 14: Paper Trading
-Phase 15: Containerization & Deployment
-Phase 16: Open Source Release
-Phase 17: Capstone Deliverable
-Phase 18: Publication Preparation (Post-Graduation)
+Phase 14: Infrastructure — Model Diversity, Scale Expansion, MCP Tools (DJ-088)
+Phase 14.1: Pipeline Integration and Memory-Safe Orchestration (DJ-106)
+Phase 15: Historical Walk-Forward Simulation (DJ-088)
+Phase 16: Live Paper Trading — IBKR (DJ-088)
+Phase 17: Ablation Studies + Capstone Deliverable (DJ-088)
+Phase 18: Publication + Open Source Release (DJ-088)
 ```
 
 **Critical path for capstone:** Phases 0–10 + 14 + 17 form the minimum viable thesis. Everything else strengthens the David but can be deferred if time requires it.
@@ -926,6 +927,35 @@ Three gaps must be filled:
 - [ ] Episodic RAG: EpisodicStore + EpisodicRetriever + automated label-outcomes
 - [ ] Namespace partitioning: dev/eval/live isolation confirmed
 - [ ] 1500+ tests, 0 lint errors
+
+---
+
+## Phase 14.1: Pipeline Integration and Memory-Safe Orchestration
+
+**New sub-phase (DJ-106, 2026-06-20)**
+
+### Objective
+
+Integrate Phase 14's six infrastructure components (sequential ensemble, portfolio
+composer, risk manager, capital allocator, EDGAR RAG, episodic store) into an
+orchestrated end-to-end pipeline that runs safely within 98 GB unified memory.
+
+### Key Decisions (full rationale: plans/PHASE_14.1_CONTEXT.md)
+
+- DJ-106: Agent-first sequential sweep — one model in VRAM at a time (35 GB peak)
+- DJ-107: Stratified 22-ticker smoke universe (2 per GICS sector, 11 sectors)
+- DJ-108: End-to-end pipeline: ensemble -> compose -> risk -> allocate
+- DJ-109: Two-layer execution: smoke (validation) + orchestrator (production)
+- DJ-110: One replication notebook (not auto-generated per run)
+
+### Success Criteria
+
+- [ ] Agent-first orchestrator operational, deterministic run_id, 6 sequential passes
+- [ ] Full pipeline producing PortfolioSnapshot per evaluation date
+- [ ] 22-ticker smoke test passing with all MCP tools exercised
+- [ ] Master orchestrator ready for 98-ticker production runs
+- [ ] Replication notebook generating all visualizations
+- [ ] OQ-P14-07 answered: agent-first produces identical results to monolithic
 
 ---
 
