@@ -69,24 +69,28 @@ _FINETUNE_HEALTH_1235 = "http://localhost:1235/health"
 _FINETUNE_HEALTH_1236 = "http://localhost:1236/health"
 
 # Standard model config (full / parallel / no-memory conditions).
-# Tuples: (agent_type, lms_model_id | None, env_var | None, load_timeout_s)
-_AGENT_CONFIG: list[tuple[str, str | None, str | None, int]] = [
-    ("fundamental", "llama-3.3-70b-instruct",                  "HIFI_FUNDAMENTAL_MODEL", 600),
-    ("technical",   None,                                       None,                     0),
-    ("risk",        "mistral-small-3.2-24b-instruct-2506-mlx", "HIFI_RISK_MODEL",        300),
-    ("macro",       "deepseek-r1-distill-qwen-32b",             "HIFI_MACRO_MODEL",       600),
-    ("sentiment",   "gemma-3-12b-it",                           "HIFI_SENTIMENT_MODEL",   300),
-    ("contrarian",  "mlx-qwen3.5-35b-a3b",                     "HIFI_CONTRARIAN_MODEL",  300),
+# Tuples: (agent_type, lms_model_id | None, env_var | None, load_timeout_s, ctx_len | None)
+# ctx_len: override lms load -c <n>. Gemma 12B's default (~4096) is too small for
+# tickers with long EDGAR passages (prompt + output ≈ 4,357 tokens for AAPL).
+_AGENT_CONFIG: list[tuple[str, str | None, str | None, int, int | None]] = [
+    # fmt: (agent_type, lms_model_id, env_var, load_timeout_s, ctx_len_override)
+    ("fundamental", "llama-3.3-70b-instruct",      "HIFI_FUNDAMENTAL_MODEL", 600, None),
+    ("technical",   None,                           None,                     0,   None),
+    ("risk",        "mistral-small-3.2-24b-instruct-2506-mlx",
+                                                    "HIFI_RISK_MODEL",        300, None),
+    ("macro",       "deepseek-r1-distill-qwen-32b", "HIFI_MACRO_MODEL",       600, None),
+    ("sentiment",   "gemma-3-12b-it",               "HIFI_SENTIMENT_MODEL",   300, 8192),
+    ("contrarian",  "mlx-qwen3.5-35b-a3b",          "HIFI_CONTRARIAN_MODEL",  300, None),
 ]
 
 # Homogeneous model config (Phase 13 qwen-dominant baseline, DJ-096).
-_HOMOGENEOUS_AGENT_CONFIG: list[tuple[str, str | None, str | None, int]] = [
-    ("fundamental", "qwen2.5-coder-32b-instruct-mlx",  "HIFI_FUNDAMENTAL_MODEL", 300),
-    ("technical",   "qwen2.5-coder-32b-instruct-mlx",  "HIFI_TECHNICAL_MODEL",   300),
-    ("risk",        "gemma-3-4b-it",                    "HIFI_RISK_MODEL",        120),
-    ("macro",       "mlx-community-qwen3-235b-a22b",    "HIFI_MACRO_MODEL",       600),
-    ("sentiment",   "qwen2.5-coder-32b-instruct-mlx",  "HIFI_SENTIMENT_MODEL",   300),
-    ("contrarian",  "mlx-community-qwen3-235b-a22b",    "HIFI_CONTRARIAN_MODEL",  600),
+_HOMOGENEOUS_AGENT_CONFIG: list[tuple[str, str | None, str | None, int, int | None]] = [
+    ("fundamental", "qwen2.5-coder-32b-instruct-mlx",  "HIFI_FUNDAMENTAL_MODEL", 300, None),
+    ("technical",   "qwen2.5-coder-32b-instruct-mlx",  "HIFI_TECHNICAL_MODEL",   300, None),
+    ("risk",        "gemma-3-4b-it",                    "HIFI_RISK_MODEL",        120, None),
+    ("macro",       "mlx-community-qwen3-235b-a22b",    "HIFI_MACRO_MODEL",       600, None),
+    ("sentiment",   "qwen2.5-coder-32b-instruct-mlx",  "HIFI_SENTIMENT_MODEL",   300, None),
+    ("contrarian",  "mlx-community-qwen3-235b-a22b",    "HIFI_CONTRARIAN_MODEL",  600, None),
 ]
 
 CANONICAL_ORDER = ["fundamental", "technical", "risk", "macro", "sentiment", "contrarian"]
@@ -150,7 +154,7 @@ def _resolve_dates(period: str, start_date: str | None, end_date: str | None) ->
 
 def _agent_config_for_condition(
     condition: str,
-) -> list[tuple[str, str | None, str | None, int]]:
+) -> list[tuple[str, str | None, str | None, int, int | None]]:
     return _HOMOGENEOUS_AGENT_CONFIG if condition == "homogeneous" else _AGENT_CONFIG
 
 
@@ -194,18 +198,30 @@ def _setup_agent_model(
     lms_model_id: str | None,
     env_var: str | None,
     load_timeout: int,
+    context_length: int | None = None,
 ) -> bool:
     """
     Load model and set env vars. Returns True if agent is ready to run.
     """
+    import urllib.request as _ur  # noqa: PLC0415
+
     from hifi.simulation.model_manager import load_model, model_is_loaded  # noqa: PLC0415
 
     if agent_type == "technical" and lms_model_id is None:
         ok = _port_is_listening(_FINETUNE_HEALTH_1235)
         if ok:
+            # mlx_lm server registers the model under its full local path, not the
+            # short LM Studio name. Query /v1/models to get the actual registered ID
+            # so requests are routed to the loaded model instead of triggering a
+            # dynamic HuggingFace download (which would 404 for local-only models).
+            try:
+                with _ur.urlopen("http://localhost:1235/v1/models", timeout=5) as _r:
+                    _registered_id = json.loads(_r.read())["data"][0]["id"]
+            except Exception:
+                _registered_id = _FINETUNE_MODEL  # fallback
             os.environ["HIFI_TECHNICAL_FINETUNE_URL"] = _TECHNICAL_FINETUNE_URL
-            os.environ["HIFI_TECHNICAL_MODEL"] = _FINETUNE_MODEL
-            logger.info("Technical fine-tuned server ready (port 1235)")
+            os.environ["HIFI_TECHNICAL_MODEL"] = _registered_id
+            logger.info("Technical fine-tuned server ready (port 1235, model=%s)", _registered_id)
         else:
             logger.warning("port 1235 not healthy; technical passes will fail")
         return ok
@@ -220,7 +236,7 @@ def _setup_agent_model(
 
     logger.info("Loading %s ...", lms_model_id)
     t0 = time.monotonic()
-    ok = load_model(lms_model_id, timeout_s=load_timeout)
+    ok = load_model(lms_model_id, timeout_s=load_timeout, context_length=context_length)
     elapsed = int(time.monotonic() - t0)
 
     if ok:
@@ -271,8 +287,11 @@ def run_agent_mode(
     from hifi.simulation.agent_executor import run_agent_pass  # noqa: PLC0415
     from hifi.simulation.model_manager import unload_model  # noqa: PLC0415
 
-    agent_cfg = {at: (mid, ev, lt) for at, mid, ev, lt in _agent_config_for_condition(condition)}
-    lms_model_id, env_var, load_timeout = agent_cfg[agent_type]
+    agent_cfg = {
+        at: (mid, ev, lt, cl)
+        for at, mid, ev, lt, cl in _agent_config_for_condition(condition)
+    }
+    lms_model_id, env_var, load_timeout, ctx_len = agent_cfg[agent_type]
 
     total = len(dates) * len(tickers)
     n_done = n_skip = n_fail = 0
@@ -289,7 +308,7 @@ def run_agent_mode(
         )
         return {"done": 0, "skip": existing, "fail": 0}
 
-    agent_ready = _setup_agent_model(agent_type, lms_model_id, env_var, load_timeout)
+    agent_ready = _setup_agent_model(agent_type, lms_model_id, env_var, load_timeout, ctx_len)
 
     for date in dates:
         for ticker in tickers:
@@ -414,6 +433,7 @@ def _load_ohlcv(
             if not path.exists():
                 continue
             df = pd.read_parquet(path)
+            df.columns = df.columns.str.lower()   # normalize 'Close' → 'close'
             df.index = pd.to_datetime(df.index)
             df = df[df.index <= as_of_date].tail(90)
             if df.empty:
