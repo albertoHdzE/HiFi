@@ -1,6 +1,6 @@
 # HiFi Project Status
 
-**Last Updated:** 2026-06-21 (Phase 14.1 complete — awaiting smoke run)
+**Last Updated:** 2026-06-21 (Phase 14.1 smoke PASS — ready for full run)
 **Current Phase:** Phase 14.1 (COMPLETE — branch: phase14/heterogeneous-ensemble)
 
 ---
@@ -218,7 +218,22 @@ into an orchestrated end-to-end pipeline:
 - DJ-109: old smoke script set `HIFI_FUNDAMENTAL_FINETUNE_URL` but not `HIFI_FUNDAMENTAL_FINETUNE_MODEL`
   for the fine-tuned fallback. fundamental_agent.py checks both. Both now set correctly.
 
-### NEXT: `make walkforward-smoke-full` (requires LM Studio + finetune server on port 1235)
+### Smoke Test Result (2026-06-21, commit 95c3f6a) — PASS
+
+Three infrastructure bugs fixed during the live run:
+1. **Technical model ID**: mlx_lm server v0.31 registers full local path; query /v1/models at
+   startup to get the actual model ID instead of hardcoding the short LM Studio name.
+2. **OHLCV column case**: parquet stores 'Close' (capital C); `df.columns.str.lower()` fixes it.
+3. **Gemma context overflow**: AAPL sentiment prompt (~3,333 tokens) + max_tokens=1024 exceeds
+   Gemma 12B's default context. Fix: `lms load -c 8192` for sentiment model.
+
+**Results (condition=full, date=2022-01-31, $500K capital):**
+- Passes: 132/132 agent passes, 22/22 aggregated
+- Distribution: Buy=2 (9.1%), Hold=11 (50.0%), Sell=9 (40.9%), H=1.34 bits
+- Pipeline: 2 orders, $49,705 notional, Health Care 5% + CommSvc 5% sector exposure
+- Scientific check: rate-shock sector rotation correct (REITs/Utilities Sell, HC Buy, Tech mixed)
+
+### NEXT: `make walkforward-orchestrate` (full 98-ticker × 24-date × 4-condition run)
 
 ---
 
