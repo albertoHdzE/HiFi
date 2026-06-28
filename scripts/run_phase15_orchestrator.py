@@ -234,6 +234,12 @@ def _setup_agent_model(
         logger.info("Model already loaded: %s", lms_model_id)
         return True
 
+    # Evict stale models before loading (handles variant IDs that substring-match
+    # at detection but fail to unload, e.g. mlx-qwen3.5-35b-a3b-claude-4.6-opus-
+    # reasoning-distilled blocking Llama-70B at condition boundaries).
+    from hifi.simulation.model_manager import unload_all  # noqa: PLC0415
+    unload_all()
+
     logger.info("Loading %s ...", lms_model_id)
     t0 = time.monotonic()
     ok = load_model(lms_model_id, timeout_s=load_timeout, context_length=context_length)

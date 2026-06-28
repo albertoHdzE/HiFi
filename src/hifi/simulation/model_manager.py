@@ -148,3 +148,20 @@ def unload_model(model_id: str) -> None:
         logger.info("Model unloaded: %s", model_id)
     else:
         logger.warning("lms unload rc=%d for %s: %s", rc, model_id, out[:100])
+
+
+def unload_all() -> None:
+    """
+    Unload every model currently loaded in LM Studio.
+
+    Uses the actual registered IDs from /api/v0/models so substring-aliased
+    models (e.g. mlx-qwen3.5-35b-a3b-claude-4.6-opus-reasoning-distilled
+    matching the config key mlx-qwen3.5-35b-a3b) are correctly evicted.
+
+    Safe to call even when no models are loaded; logs nothing in that case.
+    """
+    loaded = get_loaded_ids()
+    for model_id in loaded:
+        unload_model(model_id)
+    if loaded:
+        logger.info("Cleared %d model(s) from LM Studio RAM: %s", len(loaded), loaded)
