@@ -87,10 +87,10 @@ _AGENT_CONFIG: list[tuple[str, str | None, str | None, int, int | None]] = [
 _HOMOGENEOUS_AGENT_CONFIG: list[tuple[str, str | None, str | None, int, int | None]] = [
     ("fundamental", "qwen2.5-coder-32b-instruct-mlx",  "HIFI_FUNDAMENTAL_MODEL", 300, None),
     ("technical",   "qwen2.5-coder-32b-instruct-mlx",  "HIFI_TECHNICAL_MODEL",   300, None),
-    ("risk",        "gemma-3-4b-it",                    "HIFI_RISK_MODEL",        120, None),
-    ("macro",       "mlx-community-qwen3-235b-a22b",    "HIFI_MACRO_MODEL",       600, None),
+    ("risk",        "google/gemma-3-4b",                "HIFI_RISK_MODEL",        120, None),
+    ("macro",       "mlx-qwen3.5-35b-a3b",             "HIFI_MACRO_MODEL",       600, None),
     ("sentiment",   "qwen2.5-coder-32b-instruct-mlx",  "HIFI_SENTIMENT_MODEL",   300, None),
-    ("contrarian",  "mlx-community-qwen3-235b-a22b",    "HIFI_CONTRARIAN_MODEL",  600, None),
+    ("contrarian",  "mlx-qwen3.5-35b-a3b",             "HIFI_CONTRARIAN_MODEL",  600, None),
 ]
 
 CANONICAL_ORDER = ["fundamental", "technical", "risk", "macro", "sentiment", "contrarian"]
