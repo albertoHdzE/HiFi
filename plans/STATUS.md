@@ -1,7 +1,7 @@
 # HiFi Project Status
 
-**Last Updated:** 2026-06-21 (Phase 14.1 smoke PASS — ready for full run)
-**Current Phase:** Phase 14.1 (COMPLETE — branch: phase14/heterogeneous-ensemble)
+**Last Updated:** 2026-07-06 (Phase 15 COMPLETE — walk-forward scientific run done)
+**Current Phase:** Phase 16 (NEXT — IBKR live paper trading)
 
 ---
 
@@ -38,10 +38,31 @@ HiFi is a fully local multi-agent financial intelligence platform. Read these in
 | 13 | Verification Completeness, Sentiment Intelligence, System Resilience | COMPLETE | plans/PHASE_13_PLAN.md | doc/bitacora/PHASE_13_ADVANCED_FEATURES.md |
 | 14 | Infrastructure: Model Diversity, Scale Expansion, MCP Tools (DJ-088) | COMPLETE | plans/PHASE_14_PLAN.md | -- |
 | 14.1 | Pipeline Integration and Memory-Safe Orchestration (DJ-106) | COMPLETE | plans/PHASE_14.1_PLAN.md | doc/bitacora/PHASE_14.1_PIPELINE_INTEGRATION.md |
-| 15 | Historical Walk-Forward Simulation (DJ-088) | NOT STARTED | -- | -- |
-| 16 | Live Paper Trading — IBKR (DJ-088) | NOT STARTED | -- | -- |
+| 15 | Historical Walk-Forward Simulation (DJ-095) | COMPLETE | plans/PHASE_15_PLAN.md | doc/bitacora/PHASE_15_WALK_FORWARD_SIMULATION.md |
+| 16 | Live Paper Trading — IBKR (DJ-098) | NEXT | plans/PHASE_16_PLAN.md | -- |
 | 17 | Ablation Studies + Capstone Deliverable | NOT STARTED | -- | -- |
 | 18 | Publication + Open Source Release | NOT STARTED | -- | -- |
+
+---
+
+## Phase 15 Results (COMPLETE 2026-07-06)
+
+**Run:** 98 tickers x 24 dates x 6 agents x 4 conditions = 56,448 LLM calls, ~10 days
+**Period:** held-out test 2022-2023 (rate-shock regime: Fed +500bps, SPY -20%)
+
+| Condition | IC | p-value | IR | Herding | Result |
+|---|---|---|---|---|---|
+| parallel | +0.0642 | 0.0019 | +0.316 | 0.000 | ** SIGNIFICANT |
+| full | +0.0232 | 0.2603 | +0.567 | 0.361 | not significant |
+| no-memory | +0.0251 | 0.2236 | +0.262 | 0.220 | not significant |
+| homogeneous | -0.0428 | 0.0380 | nan | 0.862 | * SIGNIFICANT (negative) |
+
+**Primary finding:** Page diversity theorem confirmed. Homogeneous ensemble (qwen-dominant)
+collapses to herding=86% and generates anti-signal. Parallel (no inter-agent sharing)
+achieves best IC — removing sequential sharing eliminates herding (36%->0%) in this regime.
+**Secondary finding:** Episodic RAG neutral in rate-shock regime (full ≈ no-memory).
+**Replication:** `notebooks/phase15_walkforward_replication.ipynb`
+**Bitacora:** `doc/bitacora/PHASE_15_WALK_FORWARD_SIMULATION.md`
 
 ---
 

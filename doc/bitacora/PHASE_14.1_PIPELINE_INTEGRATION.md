@@ -280,10 +280,8 @@ Fail-graceful throughout: all cells print `PENDING` if data is not yet available
 
 | OQ | Question | Status |
 |---|---|---|
-| OQ-P14-07 | Does agent-first sweep produce identical results to monolithic ensemble? | DEFERRED — requires a completed smoke run for comparison |
-| OQ-P14-08 | Is fine-tuned Qwen 32B an acceptable substitute for Llama 70B? | DEFERRED — requires smoke run with fallback active |
-
-Both questions are answered by `make walkforward-smoke-full`.
+| OQ-P14-07 | Does agent-first sweep produce identical results to monolithic ensemble? | CLOSED — agent-first is the only viable execution model on 98 GB hardware; no monolithic baseline exists to compare against. The scientific question is moot: the agent-first model is the definition of the system. |
+| OQ-P14-08 | Is fine-tuned Qwen 32B an acceptable substitute for Llama 70B? | CLOSED — the fallback was not activated during Phase 15. Llama 70B ran successfully for all 2352 fundamental agent passes across all 4 conditions after the unload_all() fix. The fine-tuned Qwen 32B fallback remains available but was not needed. |
 
 ---
 
@@ -333,4 +331,50 @@ at meso-scale: 22×22 correlation matrix (231 unique pairs), two stocks per sect
 This is the minimum scale at which the system's collective intelligence properties
 can be meaningfully observed.
 
-**NEXT:** `make walkforward-smoke-full` — first real smoke run with live LLMs.
+---
+
+## Production Run Results (Phase 15, 2026-06-28 → 2026-07-06)
+
+The first real execution of the pipeline infrastructure was Phase 15 itself —
+the full 4-condition walk-forward. No smoke test intermediary was used.
+
+**Scale:** 98 tickers × 24 dates × 6 agents × 4 conditions = 56,448 LLM calls.
+**Duration:** ~10 days of continuous compute on Mac Studio M3 Ultra (98 GB).
+
+### Production bugs found and fixed
+
+**Bug 1: Llama-70B RAM block at agent transitions (commit 27d6639)**
+
+Between conditions, Qwen3.5-35B (contrarian, the last agent) lingered in
+LM Studio RAM under its full variant ID
+`mlx-qwen3.5-35b-a3b-claude-4.6-opus-reasoning-distilled`, blocking the next
+condition's Llama-70B load. Root cause: `model_manager.unload_model()` used the
+config key (`mlx-qwen3.5-35b-a3b`) while LM Studio registered the full path.
+
+Fix: added `unload_all()` to `model_manager.py`, called in `_setup_agent_model()`
+before every model load. Queries `/api/v0/models` for the actual registered IDs
+and evicts all loaded models. Eliminated all manual interventions between conditions.
+
+**Bug 2: Homogeneous condition model key errors (commit ec9a529)**
+
+The `_HOMOGENEOUS_AGENT_CONFIG` had three wrong model keys:
+- `risk`: `gemma-3-4b-it` → `google/gemma-3-4b` (wrong key format)
+- `macro`: `mlx-community-qwen3-235b-a22b` → `mlx-qwen3.5-35b-a3b` (hallucinated 235B)
+- `contrarian`: same 235B hallucination → `mlx-qwen3.5-35b-a3b`
+
+This caused 3/6 agents to fail silently in the first homogeneous run. All 2352
+sidecar dirs were deleted and the condition was rerun from scratch (causal history
+integrity — sequential mode means later agents depend on earlier agents' context).
+Clean rerun completed 2026-07-06.
+
+### Run timeline
+
+| Condition | Period | Duration |
+|---|---|---|
+| full | 2026-06-24 → ~2026-06-26 | ~2 days |
+| no-memory | ~2026-06-26 → 2026-06-28 | ~2 days |
+| parallel | 2026-06-28 → 2026-06-30 | ~2 days |
+| homogeneous (clean rerun) | 2026-07-03 → 2026-07-06 | ~3.5 days |
+
+**Phase 15 IC computation: COMPLETE 2026-07-06.** See `doc/bitacora/PHASE_15_WALK_FORWARD_SIMULATION.md`
+for full scientific results.
