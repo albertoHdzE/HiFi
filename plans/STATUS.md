@@ -36,7 +36,7 @@ HiFi is a fully local multi-agent financial intelligence platform. Read these in
 | 12 | GraphRAG + Structured Debate | COMPLETE | plans/PHASE_12_PLAN.md | doc/bitacora/PHASE_12_GRAPHRAG_DEBATE.md |
 | 12.1 | Completion and Correction | COMPLETE | plans/PHASE_12.1_PLAN.md | doc/bitacora/PHASE_12.1_COMPLETION.md |
 | 13 | Verification Completeness, Sentiment Intelligence, System Resilience | COMPLETE | plans/PHASE_13_PLAN.md | doc/bitacora/PHASE_13_ADVANCED_FEATURES.md |
-| 14 | Infrastructure: Model Diversity, Scale Expansion, MCP Tools (DJ-088) | COMPLETE | plans/PHASE_14_PLAN.md | -- |
+| 14 | Infrastructure: Model Diversity, Scale Expansion, MCP Tools (DJ-088) | COMPLETE | plans/PHASE_14_PLAN.md | *(no bitacora — see Phase 14.1)* |
 | 14.1 | Pipeline Integration and Memory-Safe Orchestration (DJ-106) | COMPLETE | plans/PHASE_14.1_PLAN.md | doc/bitacora/PHASE_14.1_PIPELINE_INTEGRATION.md |
 | 15 | Historical Walk-Forward Simulation (DJ-095) | COMPLETE | plans/PHASE_15_PLAN.md | doc/bitacora/PHASE_15_WALK_FORWARD_SIMULATION.md |
 | 16 | Live Paper Trading — IBKR (DJ-098) | NEXT | plans/PHASE_16_PLAN.md | -- |
