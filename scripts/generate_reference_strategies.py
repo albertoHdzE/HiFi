@@ -1,16 +1,23 @@
 """
 generate_reference_strategies.py -- Dataset Family C generation (P11-E1-T2, DJ-054).
+Full code functionality explanation:
+This script creates historical trading strategy labels for training AI trading agents. It processes
+15 stock tickers between 2016-2022 to generate two types of reference strategy labels saved as Parquet files:
+1. Max-return labels: For training a Technical Agent that prioritizes pure profit maximization
+2. Risk-adjusted Sharpe ratio labels: For training a Fundamental Agent that balances returns vs risk
 
-Generates reference strategy labels for 15 tickers, 2016-2022:
-  1. Max-return labels (for Technical Agent training)
-  2. Risk-adjusted Sharpe labels (for Fundamental Agent training)
+Core workflow:
+- Loads historical OHLCV price data for each ticker
+- For every date in the 2016-2022 window, it calculates future performance over the next 60 trading days
+- Assigns a categorical "best action" label (buy/hold/sell) that would have delivered the optimal outcome
+- Saves these label files for AI model fine-tuning, skipping any tickers that already have valid label files
+
+Idempotent: skips tickers whose output Parquet already exists with the correct
+row count (>= 400 rows, sufficient for fine-tuning per DJ-054).
 
 Output Parquets:
   data/reference_strategies/max_return/{ticker}_60d.parquet
   data/reference_strategies/risk_adjusted/{ticker}_60d.parquet
-
-Idempotent: skips tickers whose output Parquet already exists with the correct
-row count (>= 400 rows, sufficient for fine-tuning per DJ-054).
 
 Usage:
     uv run python scripts/generate_reference_strategies.py [--data-dir DIR]
@@ -93,9 +100,11 @@ def main() -> None:
             n_skipped += 1
         else:
             try:
+                # generate_max_return_labels creates optimal action labels that maximize raw returns
+                # It looks at the next `horizon` trading days of price data to pick the best action
                 df = generate_max_return_labels(ticker, args.data_dir, args.horizon)
                 if not df.empty:
-                    # Filter to training window
+                    # Filter to user-specified training date window to align with model training requirements
                     df = df[(df["date"].astype(str) >= f"{args.start_year}-01-01") &
                             (df["date"].astype(str) <= f"{args.end_year}-12-31")]
                 n_rows = len(df)
@@ -117,6 +126,8 @@ def main() -> None:
             n_skipped += 1
         else:
             try:
+                # generate_risk_adjusted_labels creates optimal action labels that maximize Sharpe ratio
+                # This accounts for both returns and volatility, producing more risk-balanced actions
                 df = generate_risk_adjusted_labels(ticker, args.data_dir, args.horizon)
                 if not df.empty:
                     df = df[(df["date"].astype(str) >= f"{args.start_year}-01-01") &

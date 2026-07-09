@@ -68,6 +68,15 @@ def _provenance_from_dict(d: dict) -> ProvenanceRecord:
 def write_ohlcv(dataset: OHLCVDataset, path: Path) -> Path:
     """
     Write an OHLCVDataset to a Parquet file.
+    # What is a Parquet file?
+    # Apache Parquet is an open-source, columnar storage file format designed for efficient
+    # data storage and retrieval. Unlike row-based formats (like CSV or JSON) that store
+    # all data for a record sequentially, Parquet stores data by column, which enables:
+    # 1. Significant compression reductions (since same-type column data compresses better)
+    # 2. Faster query performance by only reading the columns needed for an operation
+    # 3. Built-in support for complex data types and schema metadata embedding
+    # This makes Parquet an ideal format for large analytical datasets, which is why we
+    # use it to store self-contained HiFi datasets with all their metadata embedded.
 
     The columns written are: date, open, high, low, close, volume, adjusted_close.
     Dataset-level metadata (ticker, source, dates, provenance) is embedded in the

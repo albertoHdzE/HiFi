@@ -234,6 +234,13 @@ data/market/
 data/macro/
 data/agent_performance_history.json
 data/agent_performance_history.json.tmp
+data/fundamentals/
+data/knowledge.lance/
+data/runs/
+data/walkforward/
+
+# MCP / tooling caches
+.codebase-memory/
 
 # Isolated virtual environments (content managed by setup scripts; only requirements.txt committed)
 venvs/*/bin/

@@ -29,8 +29,8 @@ logger = logging.getLogger(__name__)
 
 import os  # noqa: E402
 
-from hifi.data.market import MarketDataFetcher  # noqa: E402
-from hifi.data.storage import write_ohlcv  # noqa: E402
+from hifi.data.market import MarketDataFetcher  # noqa: E402, download from Yahoo Finance
+from hifi.data.storage import write_ohlcv  # noqa: E402, save to a Parqu
 
 _NEW_TICKERS = [
     "MSFT", "NVDA", "GOOGL",          # Technology
