@@ -238,6 +238,7 @@ data/fundamentals/
 data/knowledge.lance/
 data/runs/
 data/walkforward/
+data/live/
 
 # MCP / tooling caches
 .codebase-memory/

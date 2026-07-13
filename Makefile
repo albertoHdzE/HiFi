@@ -17,7 +17,8 @@ DOCKER_ENV_FILE     := docker/langfuse/.env
 	validate-sentiment-corpus-v2 eval-reset eval-ingest-through live-reset \
 	walkforward-smoke walkforward-full walkforward-parallel walkforward-homogeneous \
 	walkforward-no-memory walkforward-held-out walkforward-status walkforward-ic \
-	walkforward-smoke-full walkforward-orchestrate walkforward-pipeline walkforward-report
+	walkforward-smoke-full walkforward-orchestrate walkforward-pipeline walkforward-report \
+	live-status live-update-data live-dry-run live-execute
 
 FINETUNE_VENV := venvs/finetune/bin/python
 
@@ -388,4 +389,20 @@ walkforward-pipeline: ## Run MCP pipeline on existing ensemble JSONs (no LM Stud
 walkforward-report: ## Show status + IC/IR summary for all conditions (no LM Studio needed)
 	uv run python scripts/run_phase15_orchestrator.py --status --period held-out-test
 	$(MAKE) walkforward-ic
+
+# ---------------------------------------------------------------------------
+# Phase 16: Live Paper Trading — 3-account Alpaca ablation (DJ-111)
+# ---------------------------------------------------------------------------
+
+live-status: ## Show portfolio status for all provisioned Alpaca accounts
+	uv run python scripts/run_phase16_live.py --status
+
+live-update-data: ## Refresh OHLCV parquets through today via Alpaca (98 tickers)
+	uv run python scripts/run_phase16_live.py --update-data
+
+live-dry-run: ## Nightly cycle for all accounts, no orders placed (requires LM Studio)
+	uv run python scripts/run_phase16_live.py --account all --dry-run
+
+live-execute: ## Full nightly batch: all accounts, real paper orders (requires LM Studio)
+	uv run python scripts/run_phase16_live.py --account all --execute
 

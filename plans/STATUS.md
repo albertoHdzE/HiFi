@@ -1,7 +1,13 @@
 # HiFi Project Status
 
-**Last Updated:** 2026-07-06 (Phase 15 COMPLETE — walk-forward scientific run done)
-**Current Phase:** Phase 16 (NEXT — IBKR live paper trading)
+**Last Updated:** 2026-07-13 (Phase 16 IN PROGRESS — Alpaca 3-account live ablation, DJ-111)
+**Current Phase:** Phase 16 (live paper trading — Alpaca active, IBKR pending, Binance future)
+
+**DJ-111 (2026-07-13):** Three-account live ablation on Alpaca paper trading.
+A=parallel ensemble (champion), B=full sequential (herding contrast),
+C=equal-weight control (null model). Same 98-ticker universe, $1M each,
+one decision cycle/day. Live out-of-time replication of Page's theorem.
+See plans/PHASE_16_PLAN.md.
 
 ---
 
@@ -411,7 +417,7 @@ Phase 11 creates venvs/finetune/ to pin these versions.
 | Metric | Value |
 |---|---|
 | Tests passing | 1809 (3 skipped, 0 lint errors) |
-| DJ decisions | DJ-000 through DJ-110 |
+| DJ decisions | DJ-000 through DJ-111 |
 | Technical Agent GR (Phase 5) | 0.667 (improvement target Phase 11) |
 | Fundamental Agent GR (Phase 5) | 1.000 |
 | Bootstrap accuracy: risk | 0.349 |

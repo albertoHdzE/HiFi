@@ -1,6 +1,6 @@
-# Phase 16 Plan: Live Paper Trading — IBKR
+# Phase 16 Plan: Live Paper Trading — Multi-Broker
 
-**Status:** NEXT
+**Status:** IN PROGRESS
 **Context:** plans/PHASE_16_CONTEXT.md (DJ-098, DJ-099, DJ-100)
 **Depends on:** Phase 15 COMPLETE (IC results available)
 
@@ -8,66 +8,108 @@
 
 ## Objective
 
-Transition from historical simulation to live paper trading on IBKR.
+Transition from historical simulation to live paper trading.
 Validate that walk-forward IC translates to live signal quality.
 Fulfill WQU capstone paper trading requirement (non-negotiable).
 Begin accumulating outcome-labeled live episodes for episodic RAG maturation.
+
+**Broker strategy:** Alpaca (primary, active), IBKR (pending application), Binance (future).
+Broker-agnostic `BrokerExecutor` protocol enables hot-swap.
+
+---
+
+## Experimental Design (DJ-111): 3-Account Live Ablation
+
+Three Alpaca paper accounts, same 98-ticker universe, same $1M capital,
+one decision cycle per day (evening after close, orders fill at open):
+
+| Account | Condition | Rationale |
+|---|---|---|
+| A | `parallel` ensemble | Phase 15 champion (IC=+0.0642, herding=0.000) — the fundable system |
+| B | `full` sequential ensemble | Herding contrast (IC=+0.0232, herding=0.361) — live Page-theorem replication |
+| C | Equal-weight buy-and-hold, no LLM | Null model — separates intelligence from market beta |
+
+**Why conditions, not universe sizes:** universe-size ablation measures
+diversification mechanics (solved since Markowitz). The open question is
+whether agent diversity produces live alpha with herding as the mechanism.
+If A > B > C in live IC/Sharpe over 8-12 weeks, that is a live,
+out-of-time replication of Page's diversity theorem — the paper's
+strongest figure.
+
+**Daily frequency rationale:** ~980 labeled episodes/week feed the
+episodic RAG loop (vs 22/week under weekly rebalancing). The capital
+allocator's 5% drift threshold suppresses churn when signals are stable,
+so daily cadence costs nothing in commissions. Inference budget: 2 LLM
+conditions × 588 passes ≈ 5 h/night on the Mac Studio — fits overnight.
+
+**Statistical note:** daily decisions with 60-day forward labels give
+overlapping return windows; use Newey-West / block bootstrap for live IC
+inference, not naive t-tests.
+
+**Account provisioning (user task):** two additional Alpaca signups →
+`.env` keys `ALPACA_API_KEY_B`/`ALPACA_SECRET_B`, `ALPACA_API_KEY_C`/
+`ALPACA_SECRET_C`; reset all three accounts to $1M. Account A falls back
+to the existing unsuffixed keys. Missing accounts skip gracefully.
 
 ---
 
 ## Pre-Phase Checklist
 
-### Infrastructure (from Phase 14)
+### Infrastructure — Alpaca (DONE)
+- [x] Alpaca paper trading account active (PA35PLMC2LMK)
+- [x] Credentials in `.env`: `ALPACA_API_KEY`, `ALPACA_SECRET`, `ALPACA_END_POINT`
+- [x] `alpaca-py` installed
+- [x] Connection validated: $564 equity, $127 cash, BA position live
+- [x] OHLCV data updated through 2026-07-13 (22 tickers, +132 bars each)
+
+### Infrastructure — IBKR (PENDING)
 - [ ] IBKR paper trading account active (TWS or IB Gateway)
 - [ ] TWS/Gateway running locally, port 7497 (TWS) or 4002 (Gateway)
 - [ ] IBKR credentials in `.env`: `IBKR_HOST`, `IBKR_PORT`, `IBKR_CLIENT_ID`
 - [ ] `ib_insync` installed: `uv add ib_insync`
-- [ ] `data/live/` directory created
-- [ ] `hifi-live-episodes` LanceDB namespace initialized
 
 ### Validation gates (must pass before first live order)
-- [ ] Paper account connects: `python -c "from ib_insync import IB; ib=IB(); ib.connect('127.0.0.1', 7497, clientId=1); print(ib.accountValues())"`
-- [ ] Single-ticker dry run: `make live-dry-run TICKER=AAPL` (no order placed)
-- [ ] Full-universe dry run: verify all 98 tickers resolve to valid IBKR contract IDs
+- [x] Paper account connects: `uv run python scripts/run_phase16_live.py --status`
+- [ ] Single-ticker dry run: `uv run python scripts/run_phase16_live.py --dry-run`
+- [ ] Full-universe dry run: verify all 22 tickers resolve to valid orders
 - [ ] Circuit breaker test: verify halt logic triggers on simulated 2% daily loss
 
 ---
 
 ## Epics
 
-### E0: IBKR Connection and Order Execution (DJ-098)
+### E0: Broker-Agnostic Execution Layer (DJ-098) — DONE
 
-**File:** `src/hifi/execution/ibkr_executor.py` (new)
+**Files:**
+- `src/hifi/execution/broker.py` — `BrokerExecutor` protocol + `Position`/`OrderResult` dataclasses
+- `src/hifi/execution/alpaca_executor.py` — Alpaca implementation (alpaca-py SDK)
+- `src/hifi/execution/market_data.py` — Live OHLCV via Alpaca bars API + local parquet merge
+- `tests/unit/execution/test_alpaca_executor.py` — 9 tests (mocked)
 
-- `connect(host, port, client_id)` — ib_insync IB() wrapper
-- `resolve_contract(ticker) -> Contract` — STK, SMART, USD
-- `place_market_order(contract, action, quantity) -> Trade`
-- `get_portfolio_positions() -> dict[str, Position]`
-- `get_account_value() -> float`
-- Async-safe: all calls within asyncio event loop
+**Design:** Protocol-based. Future `IBKRExecutor`, `BinanceExecutor` implement same interface.
 
-**Tests:** `tests/unit/execution/test_ibkr_executor.py` (mock ib_insync)
+### E1: Live Orchestrator (DJ-099, DJ-111) — DONE
 
-### E1: Live Orchestrator (DJ-099)
+**File:** `scripts/run_phase16_live.py`
 
-**File:** `scripts/run_phase16_live.py` (new)
-
-Daily batch pipeline (runs 22:00-06:00 local):
+Daily batch pipeline, per account:
 ```
-1. load_ohlcv_through(today)           # update market data
-2. run_phase15_orchestrator(condition=full, date=today)  # generate signals
-3. run_pipeline(signals, ohlcv, portfolio_state)         # MCP pipeline
-4. ibkr_executor.place_orders(snapshot.orders)           # paper execution
-5. log_episode(decision, execution)    # write to hifi-live-episodes
-6. langfuse.trace(full_pipeline)       # observability
+1. update_local_ohlcv(98 tickers)        # Alpaca bars API → extend parquets
+2. check_circuit_breakers()              # daily loss 2%, position loss 10%
+3. signals: run_ensemble(condition)      # A/B: 6 agents × 98 tickers, agent-first
+           | run_control_strategy()      # C: equal-weight buy-and-hold, no LLM
+4. run_mcp_pipeline(compose→risk→alloc)  # A/B only
+5. execute_orders(snapshot)              # Alpaca paper orders (per-account keys)
+6. log_episode(data/live/{account}/decisions.jsonl)
 ```
 
-Flags: `--dry-run`, `--condition`, `--no-execute` (signals only, no orders)
+Flags: `--account A|B|C|all`, `--execute`, `--dry-run`, `--status`,
+`--update-data`, `--smoke` (22-ticker test), `--date`
 
-Makefile targets:
-- `live-dry-run`: signals + pipeline, no orders
-- `live-execute`: full daily batch
-- `live-status`: portfolio positions + P&L
+Makefile: `live-status`, `live-update-data`, `live-dry-run`, `live-execute`
+
+**Universe:** 98-ticker PHASE14_UNIVERSE (all 11 GICS sectors)
+**Tests:** `tests/unit/execution/test_phase16_live.py` (control strategy + account routing)
 
 ### E2: Outcome Labeling Pipeline (DJ-099)
 
