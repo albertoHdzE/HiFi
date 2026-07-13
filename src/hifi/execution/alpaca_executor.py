@@ -73,6 +73,12 @@ class AlpacaExecutor:
             )
         return result
 
+    def is_fractionable(self, ticker: str) -> bool:
+        try:
+            return bool(self.client.get_asset(ticker).fractionable)
+        except Exception:
+            return False
+
     def place_market_order(self, ticker: str, qty: float, side: str) -> OrderResult:
         order_side = OrderSide.BUY if side.lower() == "buy" else OrderSide.SELL
         req = MarketOrderRequest(

@@ -198,7 +198,10 @@ def run_ensemble(
             dates=[date],
             tickers=tickers,
             data_dir=_DATA_DIR,
+            db_path=_DB_PATH,
             output_dir=output_dir,
+            dry_run=False,
+            quiet=False,
         )
 
 
@@ -216,10 +219,11 @@ def load_ensemble_signals(
             continue
         with open(ens_path) as f:
             ens = json.load(f)
+        ed = ens.get("ensemble_decision") or {}
         signals.append({
             "ticker": ticker,
-            "decision": ens.get("consensus_decision", "Hold"),
-            "confidence": ens.get("mean_confidence", 0.5),
+            "decision": ed.get("collective_decision", "Hold"),
+            "confidence": ed.get("collective_confidence", 0.5),
             "sector": sectors.get(ticker, "Unknown"),
         })
     return signals
@@ -307,9 +311,18 @@ def run_control_strategy(tickers: list[str], executor, dry_run: bool) -> list[di
         if not price or price <= 0:
             logger.warning("Control: no price for %s, skipping", ticker)
             continue
-        # Fractional shares (Alpaca supports them) so expensive tickers
-        # (LLY, GS, BLK, EQIX > slice) still get their equal weight.
-        qty = round(target_value / price, 3)
+        # Fractional shares so expensive tickers (LLY, GS, BLK, EQIX > slice)
+        # still get their equal weight — but only where Alpaca allows it
+        # (e.g. HON is not fractionable: whole shares, skip if price > slice).
+        fractionable = dry_run or executor.is_fractionable(ticker)
+        if fractionable:
+            qty = round(target_value / price, 3)
+        else:
+            qty = float(int(target_value / price))
+            if qty < 1:
+                logger.warning("Control: %s not fractionable and price $%.2f > slice, skipping",
+                               ticker, price)
+                continue
         if qty <= 0:
             continue
         if spend + qty * price > cash:
