@@ -20,6 +20,24 @@
 
 version: "3.8"
 
+# S3 config shared by web and worker: newer langfuse:3 images require
+# blob storage for event uploads; MinIO provides it locally.
+x-langfuse-s3-env: &langfuse-s3-env
+  LANGFUSE_S3_EVENT_UPLOAD_BUCKET: "langfuse"
+  LANGFUSE_S3_EVENT_UPLOAD_REGION: "auto"
+  LANGFUSE_S3_EVENT_UPLOAD_ACCESS_KEY_ID: "minio"
+  LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY: "${MINIO_ROOT_PASSWORD:-miniosecret}"
+  LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT: "http://minio:9000"
+  LANGFUSE_S3_EVENT_UPLOAD_FORCE_PATH_STYLE: "true"
+  LANGFUSE_S3_EVENT_UPLOAD_PREFIX: "events/"
+  LANGFUSE_S3_MEDIA_UPLOAD_BUCKET: "langfuse"
+  LANGFUSE_S3_MEDIA_UPLOAD_REGION: "auto"
+  LANGFUSE_S3_MEDIA_UPLOAD_ACCESS_KEY_ID: "minio"
+  LANGFUSE_S3_MEDIA_UPLOAD_SECRET_ACCESS_KEY: "${MINIO_ROOT_PASSWORD:-miniosecret}"
+  LANGFUSE_S3_MEDIA_UPLOAD_ENDPOINT: "http://minio:9000"
+  LANGFUSE_S3_MEDIA_UPLOAD_FORCE_PATH_STYLE: "true"
+  LANGFUSE_S3_MEDIA_UPLOAD_PREFIX: "media/"
+
 services:
   langfuse-web:
     image: langfuse/langfuse:3
@@ -31,6 +49,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      minio:
+        condition: service_healthy
     ports:
       - "3000:3000"
     environment:
@@ -39,6 +59,9 @@ services:
       CLICKHOUSE_URL: "http://clickhouse:8123"
       CLICKHOUSE_USER: "${CLICKHOUSE_USER:-clickhouse}"
       CLICKHOUSE_PASSWORD: "${CLICKHOUSE_PASSWORD:-clickhouse}"
+      # Single-node ClickHouse: without this, langfuse:3 images run
+      # ON CLUSTER migrations that require ZooKeeper and crash-loop.
+      CLICKHOUSE_CLUSTER_ENABLED: "false"
       REDIS_HOST: "redis"
       REDIS_PORT: "6379"
       REDIS_AUTH: "${REDIS_AUTH:-}"
@@ -48,6 +71,7 @@ services:
       NEXTAUTH_URL: "http://localhost:3000"
       TELEMETRY_ENABLED: "${TELEMETRY_ENABLED:-false}"
       LANGFUSE_ENABLE_EXPERIMENTAL_FEATURES: "${LANGFUSE_ENABLE_EXPERIMENTAL_FEATURES:-true}"
+      <<: *langfuse-s3-env
       LANGFUSE_INIT_ORG_ID: "${LANGFUSE_INIT_ORG_ID:-}"
       LANGFUSE_INIT_ORG_NAME: "${LANGFUSE_INIT_ORG_NAME:-}"
       LANGFUSE_INIT_PROJECT_ID: "${LANGFUSE_INIT_PROJECT_ID:-}"
@@ -68,12 +92,15 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      minio:
+        condition: service_healthy
     environment:
       DATABASE_URL: "postgresql://langfuse:langfuse@db:5432/langfuse"
       CLICKHOUSE_MIGRATION_URL: "clickhouse://clickhouse:9000/default"
       CLICKHOUSE_URL: "http://clickhouse:8123"
       CLICKHOUSE_USER: "${CLICKHOUSE_USER:-clickhouse}"
       CLICKHOUSE_PASSWORD: "${CLICKHOUSE_PASSWORD:-clickhouse}"
+      CLICKHOUSE_CLUSTER_ENABLED: "false"
       REDIS_HOST: "redis"
       REDIS_PORT: "6379"
       REDIS_AUTH: "${REDIS_AUTH:-}"
@@ -81,6 +108,7 @@ services:
       SALT: "${SALT:-changeme-salt}"
       TELEMETRY_ENABLED: "${TELEMETRY_ENABLED:-false}"
       LANGFUSE_ENABLE_EXPERIMENTAL_FEATURES: "${LANGFUSE_ENABLE_EXPERIMENTAL_FEATURES:-true}"
+      <<: *langfuse-s3-env
 
   db:
     image: postgres:16-alpine
@@ -108,10 +136,13 @@ services:
       - langfuse_clickhouse_data:/var/lib/clickhouse
       - langfuse_clickhouse_logs:/var/log/clickhouse-server
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8123/ping"]
+      # 127.0.0.1 (not localhost): busybox wget resolves localhost to ::1,
+      # where ClickHouse does not listen inside this container.
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:8123/ping"]
       interval: 5s
       timeout: 5s
       retries: 10
+      start_period: 60s
     ulimits:
       nofile:
         soft: 262144
@@ -128,6 +159,24 @@ services:
       timeout: 5s
       retries: 10
 
+  minio:
+    image: minio/minio
+    restart: unless-stopped
+    entrypoint: sh
+    # Pre-create the langfuse bucket, then start the server.
+    command: -c 'mkdir -p /data/langfuse && minio server --address ":9000" --console-address ":9001" /data'
+    environment:
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: "${MINIO_ROOT_PASSWORD:-miniosecret}"
+    volumes:
+      - langfuse_minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
 volumes:
   langfuse_postgres_data:
     driver: local
@@ -136,4 +185,6 @@ volumes:
   langfuse_clickhouse_logs:
     driver: local
   langfuse_redis_data:
+    driver: local
+  langfuse_minio_data:
     driver: local
