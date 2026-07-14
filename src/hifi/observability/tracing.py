@@ -220,17 +220,18 @@ class LangFuseTracer(AbstractTracer):
         return trace.id
 
     def get_callback_handler(self, trace_id: str) -> Any | None:
+        # Custom handler: langfuse v2's bundled CallbackHandler imports legacy
+        # langchain.schema paths that were removed in langchain 1.x.
         try:
-            from langfuse.callback import CallbackHandler  # noqa: PLC0415
-
-            return CallbackHandler(
-                public_key=self._public_key,
-                secret_key=self._secret_key,
-                host=self._host,
-                trace_id=trace_id,
+            from hifi.observability.langchain_callback import (  # noqa: PLC0415
+                HiFiLangfuseCallbackHandler,
             )
+
+            return HiFiLangfuseCallbackHandler(self._client, trace_id)
         except Exception as exc:
-            logger.warning("Failed to create LangFuse CallbackHandler: %s", exc)
+            if not _WARNED.get("callback_handler"):
+                _WARNED["callback_handler"] = True
+                logger.warning("Failed to create LangFuse CallbackHandler: %s", exc)
             return None
 
     @contextmanager
