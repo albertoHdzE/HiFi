@@ -22,10 +22,16 @@ def get_data_client(
     api_key: str | None = None,
     secret_key: str | None = None,
 ) -> StockHistoricalDataClient:
-    return StockHistoricalDataClient(
-        api_key=api_key or os.environ["ALPACA_API_KEY"],
-        secret_key=secret_key or os.environ["ALPACA_SECRET"],
-    )
+    # Market data is account-independent: any valid key pair works.
+    if not api_key or not secret_key:
+        for suffix in ("", "_FIRST", "_SECOND", "_THIRD", "_A", "_B", "_C"):
+            api_key = os.environ.get(f"ALPACA_API_KEY{suffix}")
+            secret_key = os.environ.get(f"ALPACA_SECRET{suffix}")
+            if api_key and secret_key:
+                break
+    if not api_key or not secret_key:
+        raise KeyError("No ALPACA_API_KEY[_suffix] / ALPACA_SECRET[_suffix] found in env")
+    return StockHistoricalDataClient(api_key=api_key, secret_key=secret_key)
 
 
 def fetch_bars(
@@ -96,7 +102,10 @@ def update_local_ohlcv(
                 existing = existing.reset_index()
             existing.columns = existing.columns.str.lower()
             last_date = pd.to_datetime(existing["date"]).max()
-            start = last_date + timedelta(days=1)
+            # Re-fetch the last stored day: if it was fetched intraday it is a
+            # partial bar (wrong close/volume) and must be replaced by the
+            # settled bar once the session ends.
+            start = last_date
             n_existing = len(existing)
         else:
             parquet_path.parent.mkdir(parents=True, exist_ok=True)
@@ -121,8 +130,11 @@ def update_local_ohlcv(
         new_bars = new_bars.drop(columns=["ticker"], errors="ignore")
         combined = pd.concat([existing, new_bars], ignore_index=True)
         combined["date"] = pd.to_datetime(combined["date"])
+        # keep="last": freshly fetched bars replace stale intraday partials
         combined = (
-            combined.drop_duplicates(subset=["date"]).sort_values("date").reset_index(drop=True)
+            combined.drop_duplicates(subset=["date"], keep="last")
+            .sort_values("date")
+            .reset_index(drop=True)
         )
         new_count = len(combined) - n_existing
 
