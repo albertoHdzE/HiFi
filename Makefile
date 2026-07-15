@@ -18,7 +18,7 @@ DOCKER_ENV_FILE     := docker/langfuse/.env
 	walkforward-smoke walkforward-full walkforward-parallel walkforward-homogeneous \
 	walkforward-no-memory walkforward-held-out walkforward-status walkforward-ic \
 	walkforward-smoke-full walkforward-orchestrate walkforward-pipeline walkforward-report \
-	live-status live-update-data live-dry-run live-execute
+	live-status live-update-data live-dry-run live-execute live-nightly
 
 FINETUNE_VENV := venvs/finetune/bin/python
 
@@ -405,4 +405,9 @@ live-dry-run: ## Nightly cycle for all accounts, no orders placed (requires LM S
 
 live-execute: ## Full nightly batch: all accounts, real paper orders (requires LM Studio)
 	uv run python scripts/run_phase16_live.py --account all --execute
+
+live-nightly: ## Manual nightly run (daily ~19:00): pre-flight checks + weekend guard + log, survives terminal close
+	nohup bash scripts/nightly_live_execute.sh > /dev/null 2>&1 &
+	@echo "Nightly cycle started in background."
+	@echo "Follow progress:  tail -f data/live/logs/nightly_$$(date +%Y%m%d).log"
 
