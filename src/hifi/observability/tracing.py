@@ -272,9 +272,17 @@ class LangFuseTracer(AbstractTracer):
 # Each key maps to True once the warning has been emitted for this process.
 _WARNED: dict[str, bool] = {}
 
+# Process-level tracer singleton (DJ-112). The LangFuse SDK client spawns
+# background consumer/flush threads on construction; building a fresh client
+# per agent call leaked ~3 threads each and, over ~1764 passes/night, blew
+# past the OS pthread limit and panicked the macOS kernel. Reusing one
+# thread-safe client for the whole process fixes this at the source.
+_TRACER: AbstractTracer | None = None
+_TRACER_KEY: tuple[str, str, str, str] | None = None
+
 
 def get_tracer() -> AbstractTracer:
-    """Return LangFuseTracer when enabled, NoOpTracer otherwise.
+    """Return a cached LangFuseTracer when enabled, NoOpTracer otherwise.
 
     Controlled by LANGFUSE_ENABLED env var (default: true when unset).
     NoOpTracer is returned when:
@@ -283,6 +291,11 @@ def get_tracer() -> AbstractTracer:
       - langfuse package is not installed
       - any other initialisation error (fail-open design)
 
+    The tracer is memoised per process, keyed on (enabled, host, public,
+    secret). A new client is built only when that configuration changes
+    (e.g. tests flipping LANGFUSE_ENABLED), never once per agent call —
+    this is what prevents the background-thread leak (DJ-112).
+
     Fail-open means a misconfigured LangFuse instance never prevents an
     agent from running. The agent's functional behaviour is identical whether
     get_tracer() returns a NoOpTracer or a LangFuseTracer.
@@ -290,13 +303,38 @@ def get_tracer() -> AbstractTracer:
     Warnings are emitted at most once per process per failure mode to avoid
     log noise during batch evaluation runs (e.g. E0-T5 with 120+ agent calls).
     """
-    enabled_raw = os.environ.get("LANGFUSE_ENABLED", "true").lower().strip()
-    if enabled_raw in ("false", "0", "no", "off"):
-        return NoOpTracer()
+    global _TRACER, _TRACER_KEY
 
+    enabled_raw = os.environ.get("LANGFUSE_ENABLED", "true").lower().strip()
     host = os.environ.get("LANGFUSE_HOST", "http://localhost:3000")
     public_key = os.environ.get("LANGFUSE_PUBLIC_KEY", "")
     secret_key = os.environ.get("LANGFUSE_SECRET_KEY", "")
+    key = (enabled_raw, host, public_key, secret_key)
+
+    if _TRACER is not None and key == _TRACER_KEY:
+        return _TRACER
+
+    # Configuration changed (or first call): shut down any prior client so its
+    # background threads are released before a new one is built.
+    if _TRACER is not None:
+        try:
+            _TRACER.flush()
+            shutdown = getattr(getattr(_TRACER, "_client", None), "shutdown", None)
+            if callable(shutdown):
+                shutdown()
+        except Exception:
+            pass
+
+    _TRACER = _build_tracer(enabled_raw, host, public_key, secret_key)
+    _TRACER_KEY = key
+    return _TRACER
+
+
+def _build_tracer(
+    enabled_raw: str, host: str, public_key: str, secret_key: str
+) -> AbstractTracer:
+    if enabled_raw in ("false", "0", "no", "off"):
+        return NoOpTracer()
 
     if not public_key or not secret_key:
         if not _WARNED.get("no_keys"):
