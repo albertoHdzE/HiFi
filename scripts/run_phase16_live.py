@@ -37,6 +37,8 @@ import json
 import logging
 import os
 import sys
+import threading
+import time
 from datetime import datetime
 from pathlib import Path
 
@@ -52,6 +54,36 @@ logging.basicConfig(
     format="%(asctime)s %(levelname)s %(name)s %(message)s",
 )
 logger = logging.getLogger(__name__)
+
+
+# Thread watchdog (DJ-112 backstop). The real fix is the memoised tracer in
+# tracing.py; this is defence-in-depth. macOS panics the kernel when a process
+# nears ~2048 pthreads (three crashes cost full nights). If thread count ever
+# climbs abnormally, abort THIS process cleanly long before it can take down
+# the machine — a lost run is recoverable via checkpoint-resume; a kernel
+# panic is not.
+_THREAD_ABORT = 600   # healthy live run sits under ~30; 600 = clearly leaking
+
+
+def _start_thread_watchdog(interval_s: int = 30) -> None:
+    def _watch() -> None:
+        peak = 0
+        while True:
+            n = threading.active_count()
+            peak = max(peak, n)
+            if n >= _THREAD_ABORT:
+                logger.critical(
+                    "THREAD WATCHDOG: %d active threads >= %d limit — aborting "
+                    "to prevent kernel panic. Re-run to resume via checkpoint.",
+                    n, _THREAD_ABORT,
+                )
+                os._exit(75)  # EX_TEMPFAIL: transient, safe to retry
+            if n > 100:
+                logger.warning("THREAD WATCHDOG: elevated thread count %d (peak %d)", n, peak)
+            time.sleep(interval_s)
+
+    t = threading.Thread(target=_watch, name="thread-watchdog", daemon=True)
+    t.start()
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -552,6 +584,10 @@ def main() -> None:
     parser.add_argument("--date", type=str, default=None,
                         help="Override decision date (YYYY-MM-DD)")
     args = parser.parse_args()
+
+    # Only guard long inference runs; --status/--update-data are short.
+    if args.execute or args.dry_run:
+        _start_thread_watchdog()
 
     tickers = _get_tickers(smoke=args.smoke)
     date = args.date or _today_str()
