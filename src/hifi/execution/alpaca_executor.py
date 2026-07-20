@@ -59,6 +59,35 @@ class AlpacaExecutor:
     def get_portfolio_value(self) -> float:
         return float(self.client.get_account().equity)
 
+    def get_account_snapshot(self) -> dict:
+        """Full point-in-time account state for the equity/performance record."""
+        a = self.client.get_account()
+        return {
+            "equity": float(a.equity),
+            "last_equity": float(a.last_equity),
+            "cash": float(a.cash),
+            "buying_power": float(a.buying_power),
+            "long_market_value": float(a.long_market_value or 0.0),
+        }
+
+    def get_portfolio_history(self, period: str = "all", timeframe: str = "1D") -> dict:
+        """Authoritative, close-marked daily equity curve from Alpaca.
+
+        Returns {timestamp: [epoch...], equity: [...], profit_loss: [...],
+        profit_loss_pct: [...]}. Server-computed, gap-free, no human input.
+        """
+        from alpaca.trading.requests import GetPortfolioHistoryRequest
+        req = GetPortfolioHistoryRequest(
+            period=period, timeframe=timeframe, intraday_reporting="market_hours"
+        )
+        h = self.client.get_portfolio_history(req)
+        return {
+            "timestamp": list(h.timestamp),
+            "equity": [float(x) if x is not None else None for x in h.equity],
+            "profit_loss": [float(x) if x is not None else None for x in h.profit_loss],
+            "profit_loss_pct": [float(x) if x is not None else None for x in h.profit_loss_pct],
+        }
+
     def get_positions(self) -> dict[str, Position]:
         positions = self.client.get_all_positions()
         result: dict[str, Position] = {}

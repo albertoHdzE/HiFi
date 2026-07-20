@@ -599,6 +599,10 @@ def run_account_cycle(account: str, tickers: list[str], date: str,
 
     log_episode(account, date, condition, signals, orders, executor.get_portfolio_value(),
                 strategy_meta=strategy_meta)
+    # Automatic financial-performance capture (DJ-114): equity + positions row
+    # and Alpaca's authoritative equity curve. No human intervention.
+    from hifi.execution.portfolio_recorder import record_account
+    record_account(executor, account, _DATA_DIR, decision_date=date)
     show_status(account, executor)
     executor.disconnect()
 
@@ -619,6 +623,8 @@ def main() -> None:
     parser.add_argument("--status", action="store_true",
                         help="Show portfolio status for all provisioned accounts")
     parser.add_argument("--update-data", action="store_true", help="Only refresh OHLCV data")
+    parser.add_argument("--snapshot", action="store_true",
+                        help="Capture equity/positions/history for all accounts (no trading)")
     parser.add_argument("--smoke", action="store_true",
                         help="Use 22-ticker smoke universe instead of 98")
     parser.add_argument("--date", type=str, default=None,
@@ -637,6 +643,15 @@ def main() -> None:
             executor = get_executor(account)
             if executor is not None:
                 show_status(account, executor)
+                executor.disconnect()
+        return
+
+    if args.snapshot:
+        from hifi.execution.portfolio_recorder import record_account
+        for account in _ACCOUNTS:
+            executor = get_executor(account)
+            if executor is not None:
+                record_account(executor, account, _DATA_DIR, decision_date=date)
                 executor.disconnect()
         return
 

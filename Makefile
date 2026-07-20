@@ -18,7 +18,7 @@ DOCKER_ENV_FILE     := docker/langfuse/.env
 	walkforward-smoke walkforward-full walkforward-parallel walkforward-homogeneous \
 	walkforward-no-memory walkforward-held-out walkforward-status walkforward-ic \
 	walkforward-smoke-full walkforward-orchestrate walkforward-pipeline walkforward-report \
-	live-status live-update-data live-dry-run live-execute live-nightly
+	live-status live-update-data live-dry-run live-execute live-nightly live-snapshot
 
 FINETUNE_VENV := venvs/finetune/bin/python
 
@@ -396,6 +396,9 @@ walkforward-report: ## Show status + IC/IR summary for all conditions (no LM Stu
 
 live-status: ## Show portfolio status for all provisioned Alpaca accounts
 	uv run python scripts/run_phase16_live.py --status
+
+live-snapshot: ## Capture equity + positions + Alpaca equity curve for all accounts (no trading)
+	uv run python scripts/run_phase16_live.py --snapshot
 
 live-update-data: ## Refresh OHLCV parquets through today via Alpaca (98 tickers)
 	uv run python scripts/run_phase16_live.py --update-data
