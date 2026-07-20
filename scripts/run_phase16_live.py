@@ -107,6 +107,9 @@ _ACCOUNTS: dict[str, dict] = {
           "label": "full sequential ensemble (herding contrast)"},
     "C": {"condition": "control", "suffixes": ["_THIRD", "_C"],
           "label": "equal-weight buy-and-hold (null model)"},
+    # DJ-113: external deterministic quant strategy (riskbudget calm_exposure).
+    "D": {"condition": "riskbudget", "suffixes": ["_FOURTH", "_D"],
+          "label": "riskbudget calm_exposure (deterministic quant)"},
 }
 
 
@@ -275,8 +278,12 @@ def run_mcp_pipeline(signals: list[dict], tickers: list[str], executor):
     sectors = _get_sectors()
     positions = executor.get_positions()
     portfolio_value = executor.get_portfolio_value()
-    cash = executor.get_account_cash()
     prices = _latest_prices(tickers)
+    # Allocator contract: current_capital = value of EXISTING holdings
+    # (0.0 = all cash / fresh). Passing cash here made every fresh Buy read
+    # current_weight=0, trip the 5% rebalance-skip, and drop the order — the
+    # bug that kept A/B in cash (HiFi issue #1).
+    invested_value = sum(p.market_value for p in positions.values())
 
     portfolio_state = {
         "portfolio": {
@@ -297,7 +304,7 @@ def run_mcp_pipeline(signals: list[dict], tickers: list[str], executor):
         "max_sector": 0.20,
         "min_position": 0.01,
         "capital": portfolio_value,
-        "current_capital": cash,
+        "current_capital": invested_value,
     }
 
     ohlcv = {}
@@ -392,7 +399,8 @@ def execute_orders(snapshot, executor, dry_run: bool) -> list[dict]:
     for order in orders_src:
         ticker = order.get("ticker", order.get("symbol"))
         side = order.get("action", order.get("side", "buy")).lower()
-        qty = order.get("shares", order.get("qty", 0))
+        # allocate_capital emits "quantity"; accept "shares"/"qty" too (HiFi issue #1).
+        qty = order.get("quantity", order.get("shares", order.get("qty", 0)))
         if qty <= 0:
             continue
 
@@ -415,7 +423,8 @@ def execute_orders(snapshot, executor, dry_run: bool) -> list[dict]:
 
 
 def log_episode(account: str, date: str, condition: str,
-                signals: list[dict], orders: list[dict], portfolio_value: float) -> None:
+                signals: list[dict], orders: list[dict], portfolio_value: float,
+                strategy_meta: dict | None = None) -> None:
     log_path = _decisions_log(account)
     log_path.parent.mkdir(parents=True, exist_ok=True)
     episode = {
@@ -428,6 +437,10 @@ def log_episode(account: str, date: str, condition: str,
         "orders": orders,
         "portfolio_value": portfolio_value,
     }
+    # Provider/version attribution for external strategies (DJ-113) — required
+    # for scientific traceability (which version produced which orders).
+    if strategy_meta is not None:
+        episode["strategy_meta"] = strategy_meta
     with open(log_path, "a") as f:
         f.write(json.dumps(episode) + "\n")
     logger.info("[%s] Episode logged: %d signals, %d orders, $%.2f portfolio",
@@ -543,9 +556,35 @@ def run_account_cycle(account: str, tickers: list[str], date: str,
         logger.error("[%s] HALTED: circuit breaker triggered. No orders.", account)
         return
 
+    strategy_meta: dict | None = None
+
     if condition == "control":
         orders = run_control_strategy(tickers, executor, dry_run=is_dry)
         signals = []
+    elif condition == "riskbudget":
+        # External deterministic quant provider (DJ-113). as_of_date is the
+        # last completed trading day; the store already holds it.
+        from hifi.execution.riskbudget_strategy import get_riskbudget_signals
+        payload = get_riskbudget_signals(tickers, date, _DATA_DIR, sectors=_get_sectors())
+        signals = payload.get("signals", [])
+        strategy_meta = {
+            "provider": "riskbudget",
+            "strategy": payload.get("strategy"),
+            "strategy_version": payload.get("strategy_version"),
+            "call_id": payload.get("call_id"),
+            "skipped": payload.get("skipped", []),
+        }
+        if not signals:
+            logger.warning("[%s] riskbudget returned no signals for %s — skipping", account, date)
+            return
+        if dry_run:
+            from collections import Counter
+            c = Counter(s["decision"] for s in signals)
+            logger.info("[%s] Dry-run: riskbudget %s -> %s, %d skipped",
+                        account, dict(c), payload.get("call_id"), len(strategy_meta["skipped"]))
+            return
+        snapshot = run_mcp_pipeline(signals, tickers, executor)
+        orders = execute_orders(snapshot, executor, dry_run=is_dry)
     else:
         run_ensemble(tickers, date, condition, account, dry_run=dry_run)
         if dry_run:
@@ -558,7 +597,8 @@ def run_account_cycle(account: str, tickers: list[str], date: str,
         snapshot = run_mcp_pipeline(signals, tickers, executor)
         orders = execute_orders(snapshot, executor, dry_run=is_dry)
 
-    log_episode(account, date, condition, signals, orders, executor.get_portfolio_value())
+    log_episode(account, date, condition, signals, orders, executor.get_portfolio_value(),
+                strategy_meta=strategy_meta)
     show_status(account, executor)
     executor.disconnect()
 
@@ -573,7 +613,7 @@ def main() -> None:
         description="Phase 16 Live Paper Trading (3-account ablation, DJ-111)"
     )
     parser.add_argument("--account", type=str, default="A",
-                        choices=["A", "B", "C", "all"], help="Which account(s) to run")
+                        choices=["A", "B", "C", "D", "all"], help="Which account(s) to run")
     parser.add_argument("--execute", action="store_true", help="Place real paper orders")
     parser.add_argument("--dry-run", action="store_true", help="Print orders without executing")
     parser.add_argument("--status", action="store_true",

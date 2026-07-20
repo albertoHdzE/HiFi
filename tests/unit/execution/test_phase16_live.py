@@ -85,11 +85,48 @@ class TestControlStrategy:
         assert orders[0]["status"] == "accepted"
 
 
+class TestExecuteOrders:
+    """Regression guard for HiFi issue #1 — allocator emits 'quantity'/'BUY'."""
+
+    class _Snap:
+        def __init__(self, orders):
+            self.orders = orders
+
+    def test_reads_allocator_quantity_field(self):
+        # allocate_capital output schema: ticker, side="BUY", quantity
+        snap = self._Snap([
+            {"ticker": "JPM", "side": "BUY", "quantity": 14, "order_type": "MARKET"},
+            {"ticker": "KO", "side": "BUY", "quantity": 61, "order_type": "MARKET"},
+        ])
+        ex = MagicMock()
+        out = live.execute_orders(snap, ex, dry_run=True)
+        assert [(o["ticker"], o["side"], o["qty"]) for o in out] == [
+            ("JPM", "buy", 14), ("KO", "buy", 61),
+        ]
+
+    def test_zero_quantity_skipped(self):
+        snap = self._Snap([{"ticker": "X", "side": "BUY", "quantity": 0}])
+        assert live.execute_orders(snap, MagicMock(), dry_run=True) == []
+
+    def test_places_real_orders_with_quantity(self):
+        snap = self._Snap([{"ticker": "JPM", "side": "BUY", "quantity": 14}])
+        ex = MagicMock()
+        res = MagicMock()
+        res.status = "accepted"
+        res.order_id = "o1"
+        res.filled_avg_price = None
+        ex.place_market_order.return_value = res
+        out = live.execute_orders(snap, ex, dry_run=False)
+        ex.place_market_order.assert_called_once_with("JPM", 14, "buy")
+        assert out[0]["status"] == "accepted"
+
+
 class TestAccountRouting:
     def test_account_conditions(self):
         assert live._ACCOUNTS["A"]["condition"] == "parallel"
         assert live._ACCOUNTS["B"]["condition"] == "full"
         assert live._ACCOUNTS["C"]["condition"] == "control"
+        assert live._ACCOUNTS["D"]["condition"] == "riskbudget"
 
     def test_missing_credentials_returns_none(self, monkeypatch):
         for suffix in live._ACCOUNTS["C"]["suffixes"]:
