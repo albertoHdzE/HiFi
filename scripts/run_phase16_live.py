@@ -213,7 +213,12 @@ def run_ensemble(
         run_aggregate_mode,
     )
 
-    output_dir = str(_account_dir(account) / "walkforward")
+    # Date-partition the ensemble output (HiFi issue #2). The walk-forward
+    # _ensemble_path is MONTH-keyed and the aggregate step skips-if-exists
+    # (checkpoint-resume); in live trading multiple decision dates share a
+    # month, so without this every run after the first-of-month reused the
+    # first run's stale ensemble. One dir per date isolates each decision.
+    output_dir = str(_account_dir(account) / "walkforward" / date)
 
     for agent_type in CANONICAL_ORDER:
         run_agent_mode(
@@ -248,7 +253,8 @@ def load_ensemble_signals(
     signals = []
     for ticker in tickers:
         ens_path = (
-            _account_dir(account) / "walkforward" / condition / year / month / f"{ticker}.json"
+            _account_dir(account) / "walkforward" / date
+            / condition / year / month / f"{ticker}.json"
         )
         if not ens_path.exists():
             continue
