@@ -34,9 +34,23 @@ for i in $(seq 1 18); do
     sleep 10
 done
 
-# Pre-flight: LangFuse (best effort — tracing degrades to NoOp if down)
+# Pre-flight: LangFuse. START it (not just check) so AI telemetry is captured;
+# on nights it was down we silently lost prompts/tokens/latency. Fail-open:
+# if it never comes up, the run still proceeds (sidecars are the durable record).
+if ! curl -s -m 5 http://localhost:3000/api/public/health >/dev/null; then
+    echo "LangFuse down — starting stack..."
+    docker info >/dev/null 2>&1 || open -a Docker
+    for i in $(seq 1 24); do docker info >/dev/null 2>&1 && break; sleep 5; done
+    docker compose -f docker/langfuse/docker-compose.yml \
+        --env-file docker/langfuse/.env up -d >/dev/null 2>&1 || true
+    for i in $(seq 1 24); do
+        curl -s -m 3 http://localhost:3000/api/public/health >/dev/null 2>&1 && break
+        echo "waiting for LangFuse (${i}/24)..."; sleep 5
+    done
+fi
 curl -s -m 5 http://localhost:3000/api/public/health >/dev/null \
-    || echo "WARNING: LangFuse not reachable; run proceeds without tracing"
+    && echo "LangFuse up — tracing enabled" \
+    || echo "WARNING: LangFuse still down; run proceeds, AI telemetry to sidecars only"
 
 "${UV}" run python scripts/run_phase16_live.py --account all --execute
 rc=$?
