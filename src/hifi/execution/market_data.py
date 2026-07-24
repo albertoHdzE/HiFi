@@ -15,6 +15,8 @@ from alpaca.data.historical import StockHistoricalDataClient
 from alpaca.data.requests import StockBarsRequest
 from alpaca.data.timeframe import TimeFrame
 
+from hifi.execution.retry import with_retry
+
 logger = logging.getLogger(__name__)
 
 
@@ -34,6 +36,7 @@ def get_data_client(
     return StockHistoricalDataClient(api_key=api_key, secret_key=secret_key)
 
 
+@with_retry()
 def fetch_bars(
     tickers: list[str],
     start: datetime,

@@ -14,6 +14,7 @@ from alpaca.trading.enums import OrderSide, TimeInForce
 from alpaca.trading.requests import MarketOrderRequest
 
 from hifi.execution.broker import OrderResult, Position
+from hifi.execution.retry import with_retry
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +33,7 @@ class AlpacaExecutor:
         self._paper = paper
         self._client: TradingClient | None = None
 
+    @with_retry()
     def connect(self) -> None:
         self._client = TradingClient(
             api_key=self._api_key,
@@ -53,12 +55,15 @@ class AlpacaExecutor:
             raise RuntimeError("Call connect() first")
         return self._client
 
+    @with_retry()
     def get_account_cash(self) -> float:
         return float(self.client.get_account().cash)
 
+    @with_retry()
     def get_portfolio_value(self) -> float:
         return float(self.client.get_account().equity)
 
+    @with_retry()
     def get_account_snapshot(self) -> dict:
         """Full point-in-time account state for the equity/performance record."""
         a = self.client.get_account()
@@ -70,6 +75,7 @@ class AlpacaExecutor:
             "long_market_value": float(a.long_market_value or 0.0),
         }
 
+    @with_retry()
     def get_portfolio_history(self, period: str = "all", timeframe: str = "1D") -> dict:
         """Authoritative, close-marked daily equity curve from Alpaca.
 
@@ -88,6 +94,7 @@ class AlpacaExecutor:
             "profit_loss_pct": [float(x) if x is not None else None for x in h.profit_loss_pct],
         }
 
+    @with_retry()
     def get_positions(self) -> dict[str, Position]:
         positions = self.client.get_all_positions()
         result: dict[str, Position] = {}
@@ -102,6 +109,7 @@ class AlpacaExecutor:
             )
         return result
 
+    @with_retry()
     def is_fractionable(self, ticker: str) -> bool:
         try:
             return bool(self.client.get_asset(ticker).fractionable)

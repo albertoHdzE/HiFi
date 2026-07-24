@@ -669,10 +669,22 @@ def main() -> None:
     update_data(tickers)
 
     accounts = list(_ACCOUNTS) if args.account == "all" else [args.account]
+    failed = []
     for account in accounts:
-        run_account_cycle(account, tickers, date, dry_run=args.dry_run, execute=args.execute)
+        # Isolate each account: a network failure (or any error) on one arm must
+        # not abort the others (DJ-117). Retries live in the executor; this is the
+        # last-resort guard so a partial outage still trades the reachable arms.
+        try:
+            run_account_cycle(account, tickers, date, dry_run=args.dry_run, execute=args.execute)
+        except Exception as exc:
+            failed.append(account)
+            logger.error("[%s] cycle FAILED (%s); continuing with remaining accounts", account, exc)
 
-    logger.info("Nightly batch complete: accounts=%s date=%s", ",".join(accounts), date)
+    if failed:
+        logger.warning("Nightly batch done with FAILURES: failed=%s ok=%s date=%s",
+                       ",".join(failed), ",".join(a for a in accounts if a not in failed), date)
+    else:
+        logger.info("Nightly batch complete: accounts=%s date=%s", ",".join(accounts), date)
 
 
 if __name__ == "__main__":
