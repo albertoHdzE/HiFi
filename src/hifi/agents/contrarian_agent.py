@@ -142,6 +142,9 @@ def run_contrarian_analysis(
     trace_id = _tracer.start_trace(
         "contrarian_agent", ticker=ticker, as_of_date=as_of_date
     )
+    handler = _tracer.get_callback_handler(trace_id)
+    # Only add config when tracing is active (keeps untraced call signature same).
+    _kw = {"config": {"callbacks": [handler]}} if handler is not None else {}
 
     start = time.monotonic()
     system_text, user_template = _load_prompt_template()
@@ -155,7 +158,7 @@ def run_contrarian_analysis(
     messages = [SystemMessage(content=system_text), HumanMessage(content=user_text)]
 
     with trace_context(trace_id):
-        response = llm.invoke(messages)
+        response = llm.invoke(messages, **_kw)
         raw = response.content
 
         parsed = _extract_json(raw)
@@ -166,7 +169,7 @@ def run_contrarian_analysis(
             ).invoke([
                 HumanMessage(content=raw),
                 HumanMessage(content=_RETRY_MSG),
-            ])
+            ], **_kw)
             raw = retry_response.content
             parsed = _extract_json(raw)
 

@@ -151,6 +151,7 @@ def _call_llm_for_sentiment(
     retrieved_context: str,
     memory_prefix: str = "",
     _test_llm: object | None = None,
+    callbacks: list | None = None,
 ) -> tuple[AgentSignal | None, str, list[str]]:
     """
     Call the LLM with the retrieved context.
@@ -197,8 +198,12 @@ def _call_llm_for_sentiment(
             logger.warning("Sentiment signal build failed: %s", exc)
             return None, "", []
 
+    # LangFuse tracing: attach the callback so this direct llm.invoke is traced
+    # like the LangGraph agents (DJ-116). Only add config when tracing is active
+    # so the untraced call signature is unchanged.
+    _kw = {"config": {"callbacks": callbacks}} if callbacks else {}
     messages = [SystemMessage(content=system_text), HumanMessage(content=user_text)]
-    response = llm.invoke(messages)
+    response = llm.invoke(messages, **_kw)
     signal, summary, notable = _try_parse(response.content)
     if signal is not None:
         return signal, summary, notable
@@ -207,7 +212,7 @@ def _call_llm_for_sentiment(
     retry_response = llm.invoke([
         HumanMessage(content=response.content),
         HumanMessage(content=_RETRY_MSG),
-    ])
+    ], **_kw)
     return _try_parse(retry_response.content)
 
 
@@ -251,6 +256,8 @@ def run_sentiment_analysis(
     trace_id = _tracer.start_trace(
         "sentiment_agent", ticker=ticker, as_of_date=as_of_date
     )
+    handler = _tracer.get_callback_handler(trace_id)
+    callbacks = [handler] if handler is not None else None
 
     start = time.monotonic()
     effective_data_dir = data_dir or os.environ.get("HIFI_DATA_DIR", "data")
@@ -272,7 +279,8 @@ def run_sentiment_analysis(
             )
 
         signal, sentiment_summary, notable_signals = _call_llm_for_sentiment(
-            ticker, as_of_date, retrieved_context, memory_prefix, _test_llm=_test_llm
+            ticker, as_of_date, retrieved_context, memory_prefix,
+            _test_llm=_test_llm, callbacks=callbacks,
         )
 
     _tracer.flush()
