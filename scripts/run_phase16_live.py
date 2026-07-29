@@ -93,8 +93,9 @@ _DATA_DIR = str(_ROOT / "data")
 _OUTPUT_DIR = str(_ROOT / "data" / "live")
 _DB_PATH = str(_ROOT / "data" / "knowledge.lance")
 
-_DAILY_LOSS_LIMIT = 0.02     # 2% portfolio loss -> halt
-_POSITION_LOSS_LIMIT = 0.10  # 10% single position -> flag
+_DAILY_LOSS_LIMIT = 0.02       # 2% portfolio loss -> halt
+_POSITION_LOSS_LIMIT = 0.10    # 10% single position -> FLAG only (never halts)
+_POSITION_IMPACT_LIMIT = 0.02  # single position costing >2% of equity -> halt
 
 _EDGAR_NAMESPACE = "hifi-dev-sec"
 _CONTEXT_NAMESPACE = "hifi-live-context"
@@ -140,6 +141,31 @@ def _decisions_log(account: str) -> Path:
 
 def _breaker_log(account: str) -> Path:
     return _account_dir(account) / "circuit_breakers.jsonl"
+
+
+def already_decided(account: str, date: str) -> bool:
+    """True if this account already logged an episode for `date` (DJ-119).
+
+    One decision cycle per account per day is the protocol. A second run on the
+    same date re-reads the cached ensemble (agents all skip), so the LLM arms
+    reproduce their signals — but the deterministic arms re-derive against the
+    *updated* portfolio state and trade again. That is what happened on
+    2026-07-28: account D placed 2 orders in the morning and 4 more that
+    evening. The check is per-account so a run that died partway can still be
+    resumed for the accounts that never completed.
+    """
+    log_path = _decisions_log(account)
+    if not log_path.exists():
+        return False
+    try:
+        with open(log_path) as f:
+            for line in f:
+                line = line.strip()
+                if line and json.loads(line).get("decision_date") == date:
+                    return True
+    except (OSError, json.JSONDecodeError) as exc:
+        logger.warning("[%s] Could not read decision log (%s) — proceeding", account, exc)
+    return False
 
 
 # ---------------------------------------------------------------------------
@@ -459,7 +485,28 @@ def log_episode(account: str, date: str, condition: str,
 
 
 def check_circuit_breakers(account: str, executor) -> bool:
-    """Returns True if trading should HALT for this account."""
+    """Returns True if trading should HALT for this account.
+
+    Position-loss scaling (DJ-119). A raw "any position down >10% halts the
+    account" rule does not survive contact with a wide book: with N names the
+    probability that at least one is down >10% on a given night approaches 1,
+    so it halted the equal-weight control (C) on every run from 2026-07-22 to
+    2026-07-28 while the concentrated arms kept trading — a silent confound in
+    the ablation, not a risk control.
+
+    The halt criterion is therefore the position's *impact on the portfolio*,
+    which self-scales with book width:
+
+        impact = |pnl_pct| * (market_value / equity)
+
+    and requires BOTH a materially adverse move (>_POSITION_LOSS_LIMIT) and a
+    material cost to the book (>_POSITION_IMPACT_LIMIT). For an equal-weight
+    N-name book the effective per-position threshold is _POSITION_IMPACT_LIMIT
+    * N, so it relaxes as the book widens; for a fully concentrated book the
+    weight is 1 and it collapses to the portfolio daily limit. The 10% breach
+    is still recorded as action="flag" — the observation is kept for the
+    science record, it just no longer stops the arm.
+    """
     try:
         acct = executor.client.get_account()
         equity = float(acct.equity)
@@ -468,19 +515,39 @@ def check_circuit_breakers(account: str, executor) -> bool:
         if last_equity > 0:
             daily_change = (equity - last_equity) / last_equity
             if daily_change < -_DAILY_LOSS_LIMIT:
-                _log_circuit_breaker(account, "daily_loss", daily_change, equity)
+                _log_circuit_breaker(account, "daily_loss", daily_change, equity,
+                                     action="halt")
                 logger.error("[%s] CIRCUIT BREAKER: daily loss %.2f%% exceeds %.0f%% limit",
                              account, daily_change * 100, _DAILY_LOSS_LIMIT * 100)
                 return True
 
-        for sym, pos in executor.get_positions().items():
-            if pos.avg_entry_price > 0 and pos.qty > 0:
-                pnl_pct = pos.unrealized_pnl / (pos.avg_entry_price * pos.qty)
-                if pnl_pct < -_POSITION_LOSS_LIMIT:
-                    _log_circuit_breaker(account, "position_loss", pnl_pct, equity, ticker=sym)
-                    logger.warning("[%s] CIRCUIT BREAKER: %s loss %.2f%% exceeds %.0f%% limit",
-                                   account, sym, pnl_pct * 100, _POSITION_LOSS_LIMIT * 100)
-                    return True
+        halt = False
+        for sym, pos in sorted(executor.get_positions().items()):
+            if pos.avg_entry_price <= 0 or pos.qty <= 0:
+                continue
+            pnl_pct = pos.unrealized_pnl / (pos.avg_entry_price * pos.qty)
+            if pnl_pct >= -_POSITION_LOSS_LIMIT:
+                continue
+
+            weight = (pos.market_value / equity) if equity > 0 else 0.0
+            impact = abs(pnl_pct) * weight
+            if impact > _POSITION_IMPACT_LIMIT:
+                _log_circuit_breaker(account, "position_loss", pnl_pct, equity,
+                                     ticker=sym, action="halt",
+                                     weight=weight, impact=impact)
+                logger.error("[%s] CIRCUIT BREAKER: %s loss %.2f%% at weight %.2f%% "
+                             "costs %.2f%% of equity (limit %.0f%%)",
+                             account, sym, pnl_pct * 100, weight * 100,
+                             impact * 100, _POSITION_IMPACT_LIMIT * 100)
+                halt = True
+            else:
+                _log_circuit_breaker(account, "position_loss", pnl_pct, equity,
+                                     ticker=sym, action="flag",
+                                     weight=weight, impact=impact)
+                logger.warning("[%s] FLAG: %s loss %.2f%% at weight %.2f%% "
+                               "costs %.2f%% of equity — below halt limit, trading continues",
+                               account, sym, pnl_pct * 100, weight * 100, impact * 100)
+        return halt
     except Exception as exc:
         logger.error("[%s] Circuit breaker check failed: %s", account, exc)
 
@@ -488,7 +555,9 @@ def check_circuit_breakers(account: str, executor) -> bool:
 
 
 def _log_circuit_breaker(account: str, trigger: str, value: float,
-                         equity: float, ticker: str = "") -> None:
+                         equity: float, ticker: str = "", action: str = "halt",
+                         weight: float | None = None,
+                         impact: float | None = None) -> None:
     log_path = _breaker_log(account)
     log_path.parent.mkdir(parents=True, exist_ok=True)
     entry = {
@@ -498,7 +567,13 @@ def _log_circuit_breaker(account: str, trigger: str, value: float,
         "value": round(value, 6),
         "equity": round(equity, 2),
         "ticker": ticker,
+        # Rows written before DJ-119 have no "action" key; they were all halts.
+        "action": action,
     }
+    if weight is not None:
+        entry["weight"] = round(weight, 6)
+    if impact is not None:
+        entry["impact"] = round(impact, 6)
     with open(log_path, "a") as f:
         f.write(json.dumps(entry) + "\n")
 
@@ -547,13 +622,22 @@ def show_status(account: str, executor) -> None:
 
 
 def run_account_cycle(account: str, tickers: list[str], date: str,
-                      dry_run: bool, execute: bool) -> None:
+                      dry_run: bool, execute: bool, force: bool = False) -> None:
     condition = _ACCOUNTS[account]["condition"]
+    is_dry = dry_run or not execute
+
+    if not is_dry and already_decided(account, date):
+        if force:
+            logger.warning("[%s] Already decided for %s — --force given, running again. "
+                           "Annotate this date as a protocol deviation.", account, date)
+        else:
+            logger.info("[%s] Already decided for %s — skipping (use --force to override)",
+                        account, date)
+            return
+
     executor = get_executor(account)
     if executor is None:
         return
-
-    is_dry = dry_run or not execute
 
     logger.info("[%s] Daily cycle: condition=%s date=%s tickers=%d dry_run=%s",
                 account, condition, date, len(tickers), is_dry)
@@ -635,6 +719,9 @@ def main() -> None:
                         help="Use 22-ticker smoke universe instead of 98")
     parser.add_argument("--date", type=str, default=None,
                         help="Override decision date (YYYY-MM-DD)")
+    parser.add_argument("--force", action="store_true",
+                        help="Run even if this account already decided for the date "
+                             "(protocol deviation — annotate the date)")
     args = parser.parse_args()
 
     # Only guard long inference runs; --status/--update-data are short.
@@ -675,7 +762,8 @@ def main() -> None:
         # not abort the others (DJ-117). Retries live in the executor; this is the
         # last-resort guard so a partial outage still trades the reachable arms.
         try:
-            run_account_cycle(account, tickers, date, dry_run=args.dry_run, execute=args.execute)
+            run_account_cycle(account, tickers, date, dry_run=args.dry_run,
+                              execute=args.execute, force=args.force)
         except Exception as exc:
             failed.append(account)
             logger.error("[%s] cycle FAILED (%s); continuing with remaining accounts", account, exc)

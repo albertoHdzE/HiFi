@@ -409,8 +409,17 @@ live-dry-run: ## Nightly cycle for all accounts, no orders placed (requires LM S
 live-execute: ## Full nightly batch: all accounts, real paper orders (requires LM Studio)
 	uv run python scripts/run_phase16_live.py --account all --execute
 
-live-nightly: ## Manual nightly run (daily ~19:00): pre-flight checks + weekend guard + log, survives terminal close
-	nohup bash scripts/nightly_live_execute.sh > /dev/null 2>&1 &
-	@echo "Nightly cycle started in background."
-	@echo "Follow progress:  tail -f data/live/logs/nightly_$$(date +%Y%m%d).log"
+live-nightly: ## Manual nightly run (daily ~19:00): pre-flight + weekend/market-hours guard + log, survives terminal close
+	@out=$$(bash scripts/nightly_live_execute.sh --check-window); rc=$$?; \
+	 if [ -n "$$out" ]; then echo "$$out"; fi; \
+	 if [ $$rc -ne 0 ]; then \
+	     if [ "$(ALLOW_MARKET_HOURS)" = "1" ]; then \
+	         echo "ALLOW_MARKET_HOURS=1 — overriding guard."; \
+	     else \
+	         echo "Not started."; exit 1; \
+	     fi; \
+	 fi; \
+	 nohup bash scripts/nightly_live_execute.sh > /dev/null 2>&1 & \
+	 echo "Nightly cycle started in background."; \
+	 echo "Follow progress:  tail -f data/live/logs/nightly_$$(date +%Y%m%d).log"
 

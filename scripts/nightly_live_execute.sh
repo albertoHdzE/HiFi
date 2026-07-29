@@ -3,7 +3,12 @@
 # Launched by launchd (com.hifi.live-execute) every day at 19:00 local.
 #
 # Pre-flight: verifies LM Studio, fine-tune servers, and Docker/LangFuse.
-# Skips weekends (no market close data worth trading on).
+# Skips weekends and refuses to start during the US cash session (see below).
+#
+# Usage:
+#   nightly_live_execute.sh                     normal run
+#   nightly_live_execute.sh --check-window      print window verdict, exit 0/1, run nothing
+#   nightly_live_execute.sh --allow-market-hours  run anyway (also: ALLOW_MARKET_HOURS=1)
 
 set -uo pipefail
 
@@ -13,14 +18,79 @@ LOG_DIR="${REPO}/data/live/logs"
 LOG="${LOG_DIR}/nightly_$(date +%Y%m%d).log"
 mkdir -p "${LOG_DIR}"
 
+ALLOW_MARKET_HOURS="${ALLOW_MARKET_HOURS:-0}"
+CHECK_ONLY=0
+for arg in "$@"; do
+    case "${arg}" in
+        --allow-market-hours) ALLOW_MARKET_HOURS=1 ;;
+        --check-window)       CHECK_ONLY=1 ;;
+        *) echo "unknown argument: ${arg}" >&2; exit 64 ;;
+    esac
+done
+
+# Timing guard (DJ-118). The experiment's protocol is: decide on completed
+# closes in the evening, orders fill at the NEXT open. A cycle takes ~5-6.5 h,
+# so *when* it is launched determines whether that holds. Two failure modes:
+#
+#   1. Launched inside the cash session (09:30-16:00 ET) -> the last OHLCV bar
+#      is a live partial and orders fill intraday, not at an open. Blocked.
+#   2. Launched pre-market -> starts clean but finishes mid-session, so the
+#      DAY orders fill intraday. Warned, not blocked (the decision inputs are
+#      still complete closes, which is the part that matters scientifically).
+#
+# All arithmetic is in ET because that is what Alpaca and the bar timestamps
+# use; local time is CST, which crosses midnight relative to ET. Note this is
+# a clock guard only — it does not know US market holidays.
+RUN_HOURS=6
+market_window_check() {
+    local et_dow et_hm now_min open_min close_min finish_min
+    et_dow=$(TZ=America/New_York date +%u)
+    et_hm=$(TZ=America/New_York date +%H%M)
+    now_min=$(( 10#${et_hm:0:2} * 60 + 10#${et_hm:2:2} ))
+    open_min=$(( 9 * 60 + 30 ))
+    close_min=$(( 16 * 60 ))
+
+    if [ "${et_dow}" -ge 6 ]; then
+        echo "Weekend in ET (dow=${et_dow}) — no session to trade into."
+        return 2
+    fi
+    if [ "${now_min}" -ge "${open_min}" ] && [ "${now_min}" -lt "${close_min}" ]; then
+        echo "REFUSING: market is OPEN (${et_hm} ET). Decisions would read a partial"
+        echo "bar and orders would fill intraday instead of at the next open."
+        echo "Run tonight after 16:00 ET, or override: ALLOW_MARKET_HOURS=1 make live-nightly"
+        return 1
+    fi
+    # Pre-market launch that would still be running when the bell rings.
+    if [ "${now_min}" -lt "${open_min}" ]; then
+        finish_min=$(( now_min + RUN_HOURS * 60 ))
+        if [ "${finish_min}" -ge "${open_min}" ]; then
+            echo "WARNING: launched ${et_hm} ET; a ~${RUN_HOURS} h cycle finishes after the 09:30 open,"
+            echo "so orders will fill intraday rather than at the open. Proceeding."
+        fi
+    fi
+    return 0
+}
+
+if [ "${CHECK_ONLY}" -eq 1 ]; then
+    market_window_check
+    exit $?
+fi
+
 exec >> "${LOG}" 2>&1
 echo "=== nightly_live_execute $(date '+%Y-%m-%d %H:%M:%S') ==="
 
-# Weekend guard: 6=Saturday 7=Sunday
-dow=$(date +%u)
-if [ "${dow}" -ge 6 ]; then
-    echo "Weekend (dow=${dow}) — skipping."
+market_window_check
+window_rc=$?
+if [ "${window_rc}" -eq 2 ]; then
+    echo "Weekend — skipping."
     exit 0
+fi
+if [ "${window_rc}" -eq 1 ]; then
+    if [ "${ALLOW_MARKET_HOURS}" = "1" ]; then
+        echo "ALLOW_MARKET_HOURS=1 — proceeding anyway; annotate this date as off-protocol."
+    else
+        exit 75
+    fi
 fi
 
 cd "${REPO}"

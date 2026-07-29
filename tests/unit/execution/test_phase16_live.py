@@ -168,3 +168,115 @@ class TestAccountRouting:
         mock_client_cls.assert_called_once_with(
             api_key="key-b", secret_key="secret-b", paper=True
         )
+
+
+def _breaker_executor(equity: float, positions: dict[str, Position],
+                      last_equity: float | None = None):
+    """Executor whose Alpaca account reports `equity` / `last_equity`."""
+    ex = _mock_executor(equity=equity, cash=0.0, positions=positions)
+    acct = MagicMock()
+    acct.equity = str(equity)
+    acct.last_equity = str(equity if last_equity is None else last_equity)
+    ex.client.get_account.return_value = acct
+    return ex
+
+
+class TestCircuitBreakerScaling:
+    """DJ-119: position loss halts on portfolio impact, not raw percentage."""
+
+    def test_wide_book_single_loser_does_not_halt(self, tmp_path):
+        # Equal-weight 98-name book: each name ~1% of equity, so a 21% drawdown
+        # on one costs ~0.21% of the portfolio. This is the case that froze
+        # account C on every run from 2026-07-22 to 2026-07-28.
+        positions = {
+            f"T{i}": Position(f"T{i}", 10, 1_000.0, 100.0, 0.0, "long")
+            for i in range(98)
+        }
+        positions["T7"] = Position("T7", 10, 790.0, 100.0, -210.0, "long")
+        ex = _breaker_executor(equity=100_000.0, positions=positions)
+
+        with patch.object(live, "_log_circuit_breaker") as log:
+            assert live.check_circuit_breakers("C", ex) is False
+
+        actions = [c.kwargs["action"] for c in log.call_args_list]
+        assert actions == ["flag"], "the 21% loser must still be recorded"
+
+    def test_concentrated_loser_halts(self, tmp_path):
+        # One name at 40% of equity down 20% costs 8% of the book -> halt.
+        positions = {
+            "BIG": Position("BIG", 400, 40_000.0, 125.0, -10_000.0, "long"),
+            "OK": Position("OK", 10, 1_000.0, 100.0, 0.0, "long"),
+        }
+        ex = _breaker_executor(equity=100_000.0, positions=positions)
+
+        with patch.object(live, "_log_circuit_breaker") as log:
+            assert live.check_circuit_breakers("A", ex) is True
+
+        assert log.call_args_list[0].kwargs["action"] == "halt"
+
+    def test_portfolio_daily_loss_still_halts(self):
+        ex = _breaker_executor(equity=95_000.0, positions={}, last_equity=100_000.0)
+        assert live.check_circuit_breakers("A", ex) is True
+
+    def test_small_loss_below_flag_threshold_is_silent(self):
+        positions = {"OK": Position("OK", 10, 950.0, 100.0, -50.0, "long")}
+        ex = _breaker_executor(equity=100_000.0, positions=positions)
+
+        with patch.object(live, "_log_circuit_breaker") as log:
+            assert live.check_circuit_breakers("A", ex) is False
+        log.assert_not_called()
+
+
+class TestAlreadyDecided:
+    """DJ-119: one decision cycle per account per day."""
+
+    def _write(self, tmp_path, account, dates):
+        d = tmp_path / account
+        d.mkdir(parents=True, exist_ok=True)
+        with open(d / "decisions.jsonl", "w") as f:
+            for dt in dates:
+                f.write(f'{{"decision_date": "{dt}", "n_orders": 0}}\n')
+
+    def test_detects_existing_date(self, tmp_path, monkeypatch):
+        self._write(tmp_path, "D", ["2026-07-24", "2026-07-28"])
+        monkeypatch.setattr(live, "_account_dir", lambda a: tmp_path / a)
+
+        assert live.already_decided("D", "2026-07-28") is True
+        assert live.already_decided("D", "2026-07-29") is False
+
+    def test_missing_log_is_not_decided(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(live, "_account_dir", lambda a: tmp_path / a)
+        assert live.already_decided("A", "2026-07-28") is False
+
+    def test_corrupt_log_fails_open(self, tmp_path, monkeypatch):
+        d = tmp_path / "A"
+        d.mkdir(parents=True)
+        (d / "decisions.jsonl").write_text("{not json\n")
+        monkeypatch.setattr(live, "_account_dir", lambda a: tmp_path / a)
+        # Fail open: a damaged log must not silently block the nightly cycle.
+        assert live.already_decided("A", "2026-07-28") is False
+
+    def test_cycle_skips_when_already_decided(self, monkeypatch):
+        monkeypatch.setattr(live, "already_decided", lambda a, d: True)
+        called = []
+        monkeypatch.setattr(live, "get_executor", lambda a: called.append(a))
+
+        live.run_account_cycle("D", ["AAPL"], "2026-07-28", dry_run=False, execute=True)
+        assert called == [], "must not even connect to the broker"
+
+    def test_force_overrides(self, monkeypatch):
+        monkeypatch.setattr(live, "already_decided", lambda a, d: True)
+        called = []
+        monkeypatch.setattr(live, "get_executor", lambda a: called.append(a) or None)
+
+        live.run_account_cycle("D", ["AAPL"], "2026-07-28", dry_run=False,
+                               execute=True, force=True)
+        assert called == ["D"]
+
+    def test_dry_run_not_blocked(self, monkeypatch):
+        monkeypatch.setattr(live, "already_decided", lambda a, d: True)
+        called = []
+        monkeypatch.setattr(live, "get_executor", lambda a: called.append(a) or None)
+
+        live.run_account_cycle("D", ["AAPL"], "2026-07-28", dry_run=True, execute=False)
+        assert called == ["D"], "dry-runs are free to repeat"
