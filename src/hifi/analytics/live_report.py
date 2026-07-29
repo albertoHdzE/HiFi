@@ -129,6 +129,81 @@ def signal_distribution(account: str, data_dir: str = "data") -> pd.DataFrame:
     return pd.DataFrame(rows).drop_duplicates("decision_date", keep="last")
 
 
+def exposure_series(account: str, data_dir: str = "data") -> pd.DataFrame:
+    """Per decision_date capital deployment: invested / equity (DJ-119).
+
+    The arms are not equally invested — as of 2026-07-28 A held one position on
+    ~5% of equity while C held 98 on ~99%. Raw return, Sharpe and drawdown at
+    that spread measure exposure, not signal quality, so any cross-arm reading
+    of the financial layer has to carry this column beside it.
+    """
+    rows = []
+    for snap in _read_jsonl(Path(data_dir) / "live" / account / "equity.jsonl"):
+        equity = snap.get("equity") or 0.0
+        invested = sum(p.get("market_value", 0.0) for p in snap.get("positions", []))
+        rows.append({
+            "decision_date": snap.get("decision_date"),
+            "equity": equity,
+            "cash": snap.get("cash"),
+            "invested": invested,
+            "n_positions": snap.get("n_positions", 0),
+            "exposure": (invested / equity) if equity else None,
+        })
+    if not rows:
+        return pd.DataFrame(columns=["decision_date", "equity", "cash", "invested",
+                                     "n_positions", "exposure"])
+    return pd.DataFrame(rows).drop_duplicates("decision_date", keep="last")
+
+
+def exposure_adjusted_returns(account: str, data_dir: str = "data") -> pd.Series:
+    """Daily returns divided by that day's exposure — the return the arm would
+    have earned fully invested (DJ-119).
+
+    This is the minimum correction that makes arms with different deployment
+    comparable at all. It is deliberately crude: it assumes the uninvested
+    remainder earns zero and that exposure is constant within the day. It is a
+    sanity overlay on the financial layer, NOT a substitute for IC — the
+    headline diversity claim rests on IC and herding, which never touch
+    position sizing. Days with exposure below 1% are dropped rather than
+    divided by a near-zero denominator.
+    """
+    returns = load_returns(account, data_dir)
+    if returns is None or len(returns) == 0:
+        return pd.Series(dtype=float)
+    exp = exposure_series(account, data_dir)
+    if exp.empty:
+        return pd.Series(dtype=float)
+    exp = exp.dropna(subset=["exposure"])
+    exp["decision_date"] = pd.to_datetime(exp["decision_date"])
+    lookup = exp.set_index("decision_date")["exposure"]
+    lookup = lookup[lookup >= 0.01]
+    aligned = lookup.reindex(pd.to_datetime(returns.index)).ffill()
+    out = returns / aligned.values
+    return out.dropna()
+
+
+def halted_days(account: str, data_dir: str = "data") -> pd.DataFrame:
+    """Days the circuit breaker stopped this arm from trading (DJ-119).
+
+    Rows written before DJ-119 have no "action" key and were all halts. Flags
+    (a position breach too small to matter) are excluded — they are observations,
+    not interventions, and must not be read as no-trade days.
+    """
+    rows = []
+    for e in _read_jsonl(Path(data_dir) / "live" / account / "circuit_breakers.jsonl"):
+        if e.get("action", "halt") != "halt":
+            continue
+        rows.append({
+            "date": (e.get("timestamp") or "")[:10],
+            "trigger": e.get("trigger"),
+            "ticker": e.get("ticker") or None,
+            "value": e.get("value"),
+        })
+    if not rows:
+        return pd.DataFrame(columns=["date", "trigger", "ticker", "value"])
+    return pd.DataFrame(rows).drop_duplicates("date", keep="last")
+
+
 # ---------------------------------------------------------------------------
 # AI-science layer (LLM arms only)
 # ---------------------------------------------------------------------------

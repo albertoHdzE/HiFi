@@ -554,6 +554,69 @@ def check_circuit_breakers(account: str, executor) -> bool:
     return False
 
 
+def effective_halt_threshold(n_positions: int, exposure: float = 1.0) -> float:
+    """Per-position loss that would halt an equal-weight book of this width.
+
+    Exposed so the invariance check can state, in one number per arm, how
+    unequally the apparatus constrains the arms.
+    """
+    if n_positions <= 0 or exposure <= 0:
+        return float("inf")
+    weight = exposure / n_positions
+    return max(_POSITION_LOSS_LIMIT, _POSITION_IMPACT_LIMIT / weight)
+
+
+def log_arm_invariance(accounts: list[str]) -> None:
+    """Pre-flight: the apparatus must not constrain arms differently (DJ-119).
+
+    An experiment comparing ensemble architectures is only valid if every rule
+    that is NOT the treatment applies equally to every arm. The old per-position
+    breaker violated this: halt probability was 1-(1-p)^N in book width N, and N
+    is downstream of the treatment (a diverse ensemble spreads, a herding one
+    concentrates), so the "risk control" was a trading tax monotone in exactly
+    the quantity under test. It silenced C for five runs before anyone noticed.
+
+    This logs each arm's book width, exposure and effective halt threshold so
+    that divergence is visible on every run instead of being inferred from a
+    week of missing orders. It only reports — it never blocks a cycle — because
+    a genuinely concentrated arm is a legitimate outcome, not a fault; what must
+    not happen silently is the apparatus *causing* the concentration.
+    """
+    rows = []
+    for account in accounts:
+        executor = get_executor(account)
+        if executor is None:
+            continue
+        try:
+            equity = executor.get_portfolio_value()
+            positions = executor.get_positions()
+            invested = sum(p.market_value for p in positions.values())
+            exposure = invested / equity if equity > 0 else 0.0
+            rows.append((account, _ACCOUNTS[account]["condition"], len(positions),
+                         exposure, effective_halt_threshold(len(positions), exposure)))
+        except Exception as exc:
+            logger.warning("[%s] invariance probe failed: %s", account, exc)
+        finally:
+            executor.disconnect()
+
+    if not rows:
+        return
+
+    logger.info("Arm invariance probe (DJ-119):")
+    for account, condition, n_pos, exposure, thresh in rows:
+        logger.info("  [%s] %-11s n_positions=%3d exposure=%5.1f%% halt_at=%.0f%% loss",
+                    account, condition, n_pos, exposure * 100, thresh * 100)
+
+    exposures = [r[3] for r in rows]
+    spread = max(exposures) - min(exposures)
+    if spread > 0.5:
+        logger.warning(
+            "Arms differ in capital deployment by %.0f pp (%.0f%% vs %.0f%%). Raw return, "
+            "Sharpe and drawdown are NOT comparable across arms at this spread — they "
+            "measure exposure, not signal. Use IC/herding, or exposure-adjust.",
+            spread * 100, max(exposures) * 100, min(exposures) * 100)
+
+
 def _log_circuit_breaker(account: str, trigger: str, value: float,
                          equity: float, ticker: str = "", action: str = "halt",
                          weight: float | None = None,
@@ -644,6 +707,16 @@ def run_account_cycle(account: str, tickers: list[str], date: str,
 
     if check_circuit_breakers(account, executor):
         logger.error("[%s] HALTED: circuit breaker triggered. No orders.", account)
+        # A halt must suppress ORDERS, not OBSERVATION (DJ-119). This return
+        # used to precede record_account(), so a halted arm silently stopped
+        # capturing its equity curve: account C's portfolio_history.json froze
+        # at 2026-07-17 while A/B/D ran to 07-27. Halted days are still days
+        # the book was marked to market, and a gap in the benchmark's curve is
+        # worse than the halt it recorded.
+        if not is_dry:
+            from hifi.execution.portfolio_recorder import record_account
+            record_account(executor, account, _DATA_DIR, decision_date=date)
+        executor.disconnect()
         return
 
     strategy_meta: dict | None = None
@@ -756,6 +829,8 @@ def main() -> None:
     update_data(tickers)
 
     accounts = list(_ACCOUNTS) if args.account == "all" else [args.account]
+    if len(accounts) > 1:
+        log_arm_invariance(accounts)
     failed = []
     for account in accounts:
         # Isolate each account: a network failure (or any error) on one arm must

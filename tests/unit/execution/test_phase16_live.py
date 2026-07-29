@@ -6,6 +6,8 @@ import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 _SCRIPTS = Path(__file__).resolve().parents[3] / "scripts"
 sys.path.insert(0, str(_SCRIPTS))
 
@@ -184,6 +186,16 @@ def _breaker_executor(equity: float, positions: dict[str, Position],
 class TestCircuitBreakerScaling:
     """DJ-119: position loss halts on portfolio impact, not raw percentage."""
 
+    @pytest.fixture(autouse=True)
+    def _isolate_breaker_log(self, tmp_path, monkeypatch):
+        # check_circuit_breakers() appends to data/live/<acct>/circuit_breakers.jsonl.
+        # Without this, a test run writes synthetic rows into the real live
+        # record (it did: three fake "A daily_loss -0.05" rows on 2026-07-28,
+        # removed by hand). Redirect every account dir at the filesystem level
+        # so no test in this class can reach data/live, whatever it patches.
+        monkeypatch.setattr(live, "_account_dir", lambda a: tmp_path / a)
+        self.breaker_dir = tmp_path
+
     def test_wide_book_single_loser_does_not_halt(self, tmp_path):
         # Equal-weight 98-name book: each name ~1% of equity, so a 21% drawdown
         # on one costs ~0.21% of the portfolio. This is the case that froze
@@ -217,6 +229,10 @@ class TestCircuitBreakerScaling:
     def test_portfolio_daily_loss_still_halts(self):
         ex = _breaker_executor(equity=95_000.0, positions={}, last_equity=100_000.0)
         assert live.check_circuit_breakers("A", ex) is True
+        # Isolation guard: the row must land in tmp, never in data/live.
+        assert (self.breaker_dir / "A" / "circuit_breakers.jsonl").exists()
+        assert not (live._ROOT / "data" / "live" / "A"
+                    / "circuit_breakers.jsonl").exists()
 
     def test_small_loss_below_flag_threshold_is_silent(self):
         positions = {"OK": Position("OK", 10, 950.0, 100.0, -50.0, "long")}
@@ -280,3 +296,62 @@ class TestAlreadyDecided:
 
         live.run_account_cycle("D", ["AAPL"], "2026-07-28", dry_run=True, execute=False)
         assert called == ["D"], "dry-runs are free to repeat"
+
+
+class TestArmInvariance:
+    """DJ-119: the apparatus must not constrain arms as a function of breadth.
+
+    Book width N is downstream of the treatment under test (a diverse ensemble
+    spreads, a herding one concentrates), so any rule whose bite depends on N
+    is confounded with the hypothesis. These tests pin that property.
+    """
+
+    @pytest.fixture(autouse=True)
+    def _isolate(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(live, "_account_dir", lambda a: tmp_path / a)
+
+    def _book(self, n: int, loser_pnl_pct: float, equity: float = 100_000.0):
+        """Equal-weight, fully invested book of n names, one down loser_pnl_pct."""
+        slice_value = equity / n
+        book = {}
+        for i in range(n):
+            cost = slice_value
+            book[f"T{i}"] = Position(f"T{i}", 10, cost, cost / 10, 0.0, "long")
+        cost = slice_value
+        mv = cost * (1 + loser_pnl_pct)
+        book["T0"] = Position("T0", 10, mv, cost / 10, cost * loser_pnl_pct, "long")
+        return book
+
+    @pytest.mark.parametrize("n", [1, 5, 20, 98])
+    def test_halt_decision_is_invariant_to_book_width(self, n):
+        # Same *portfolio impact* (one name losing 1% of total equity) at every
+        # width must give the same answer. Under the old rule this flipped from
+        # no-halt at n=1 to halt at n=98 purely because of N.
+        loss_frac_of_equity = 0.01
+        pnl_pct = -loss_frac_of_equity * n  # weight is 1/n, so impact is constant
+        if abs(pnl_pct) >= 1.0:
+            pytest.skip("loss beyond total wipeout is not representable")
+        ex = _breaker_executor(equity=100_000.0, positions=self._book(n, pnl_pct))
+        assert live.check_circuit_breakers("A", ex) is False, (
+            f"n={n}: a 1%-of-equity loss must never halt, at any book width"
+        )
+
+    def test_effective_threshold_scales_with_width(self):
+        # Equal-weight book: threshold relaxes linearly in N.
+        assert live.effective_halt_threshold(1, 1.0) == pytest.approx(0.10)
+        assert live.effective_halt_threshold(20, 1.0) == pytest.approx(0.40)
+        assert live.effective_halt_threshold(98, 1.0) == pytest.approx(1.96)
+
+    def test_threshold_floors_at_position_loss_limit(self):
+        # A concentrated book must not halt on a trivial move: the 10% floor
+        # holds even though 2%/weight would be smaller.
+        assert live.effective_halt_threshold(1, 1.0) == pytest.approx(0.10)
+
+    def test_threshold_accounts_for_cash_drag(self):
+        # A at 5% invested in one name: the name must move enormously to cost
+        # the book 2%, which is correct — it is 5% of the portfolio.
+        assert live.effective_halt_threshold(1, 0.05) == pytest.approx(0.40)
+
+    def test_degenerate_inputs_do_not_halt(self):
+        assert live.effective_halt_threshold(0, 1.0) == float("inf")
+        assert live.effective_halt_threshold(10, 0.0) == float("inf")

@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 from hifi.analytics import live_report as lr
 
 
@@ -97,3 +99,60 @@ class TestHerding:
     def test_non_llm_arm_empty(self, tmp_path):
         _live(tmp_path, "C")
         assert lr.herding_series("C", str(tmp_path)).empty
+
+
+class TestExposureAndHalts:
+    """DJ-119: arms differ in capital deployment; halts are no-trade days."""
+
+    def _write(self, tmp_path, account, name, rows):
+        d = tmp_path / "live" / account
+        d.mkdir(parents=True, exist_ok=True)
+        with open(d / name, "w") as f:
+            for r in rows:
+                f.write(json.dumps(r) + "\n")
+
+    def test_exposure_reflects_cash_drag(self, tmp_path):
+        # A: one position on 5% of equity (the real 2026-07-28 shape).
+        self._write(tmp_path, "A", "equity.jsonl", [{
+            "decision_date": "2026-07-28", "equity": 100_000.0, "cash": 95_000.0,
+            "n_positions": 1, "positions": [{"ticker": "NVDA", "market_value": 5_000.0}],
+        }])
+        df = lr.exposure_series("A", str(tmp_path))
+        assert df.loc[0, "exposure"] == pytest.approx(0.05)
+        assert df.loc[0, "invested"] == 5_000.0
+
+    def test_exposure_of_fully_invested_control(self, tmp_path):
+        self._write(tmp_path, "C", "equity.jsonl", [{
+            "decision_date": "2026-07-28", "equity": 100_000.0, "cash": 800.0,
+            "n_positions": 2,
+            "positions": [{"ticker": "X", "market_value": 60_000.0},
+                          {"ticker": "Y", "market_value": 39_200.0}],
+        }])
+        df = lr.exposure_series("C", str(tmp_path))
+        assert df.loc[0, "exposure"] == pytest.approx(0.992)
+
+    def test_missing_equity_log_returns_empty_frame(self, tmp_path):
+        df = lr.exposure_series("B", str(tmp_path))
+        assert df.empty
+        assert list(df.columns) == ["decision_date", "equity", "cash", "invested",
+                                    "n_positions", "exposure"]
+
+    def test_halted_days_excludes_flags(self, tmp_path):
+        self._write(tmp_path, "C", "circuit_breakers.jsonl", [
+            {"timestamp": "2026-07-24T03:58:26", "trigger": "position_loss",
+             "ticker": "TSLA", "value": -0.171, "action": "halt"},
+            {"timestamp": "2026-07-29T20:00:00", "trigger": "position_loss",
+             "ticker": "TSLA", "value": -0.215, "action": "flag"},
+        ])
+        df = lr.halted_days("C", str(tmp_path))
+        assert list(df["date"]) == ["2026-07-24"], "flags are observations, not halts"
+
+    def test_pre_dj119_rows_without_action_count_as_halts(self, tmp_path):
+        self._write(tmp_path, "C", "circuit_breakers.jsonl", [
+            {"timestamp": "2026-07-22T02:22:05", "trigger": "position_loss",
+             "ticker": "DHR", "value": -0.117},
+        ])
+        assert list(lr.halted_days("C", str(tmp_path))["date"]) == ["2026-07-22"]
+
+    def test_no_breaker_file_is_empty(self, tmp_path):
+        assert lr.halted_days("A", str(tmp_path)).empty
