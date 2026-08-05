@@ -36,6 +36,7 @@ Storage layout
 from __future__ import annotations
 
 import argparse
+import contextlib
 import json
 import logging
 import os
@@ -193,6 +194,97 @@ def _port_is_listening(url: str, timeout_s: int = 3) -> bool:
         return False
 
 
+def _select_served_model(model_ids: list[str], wanted: str) -> str:
+    """Pick the model mlx_lm actually loaded, from a /v1/models listing (DJ-120).
+
+    /v1/models enumerates every model in the shared ~/.cache/huggingface/hub, not
+    just the one this server loaded, so neither position nor name alone is
+    sufficient. Two disambiguating facts:
+
+      - mlx_lm registers the *loaded* model under the absolute local path passed
+        to --model; cache entries appear as "org/name". A local path is therefore
+        strong evidence of the served model.
+      - `wanted` is a short family name, so it can match several cache entries
+        (e.g. the HF original of the same model, which would NOT carry our
+        fine-tuned adapter and would silently produce plausible-but-wrong output).
+
+    Raises LookupError with a diagnostic listing whenever the choice is not
+    unambiguous. Failing loudly is required here: the failure this replaces was
+    silent for a whole night.
+    """
+    needle = wanted.lower()
+    matches = [m for m in model_ids if needle in m.lower()]
+    if not matches:
+        raise LookupError(
+            f"no served model matches {wanted!r}; available={model_ids}"
+        )
+
+    local = [m for m in matches if m.startswith("/")]
+    if len(local) == 1:
+        return local[0]
+    if len(local) > 1:
+        raise LookupError(
+            f"ambiguous: {len(local)} locally-pathed models match {wanted!r}: {local}"
+        )
+    if len(matches) == 1:
+        return matches[0]
+    raise LookupError(
+        f"ambiguous: {len(matches)} models match {wanted!r} and none is a local "
+        f"path (cannot tell which carries the fine-tuned adapter): {matches}"
+    )
+
+
+def _probe_chat_model(base_url: str, model_id: str, timeout: int = 60) -> tuple[str, str]:
+    """Send one minimal system+user request. Returns (status, detail) (DJ-120).
+
+    status is "ok" | "unusable" | "inconclusive".
+
+    Selection by name is necessary but not sufficient — it cannot detect a model
+    that is served yet unusable. The 2026-08-04 outage was exactly that shape:
+    the request was well-formed and the server healthy, but the model rejected
+    the system role, and we only learned that 98 identical 404s later.
+
+    The tri-state matters, and is not fastidiousness. A first probe of a COLD 32B
+    model timed out at 120 s in testing; treating that as failure would abort
+    healthy nights — strictly worse than the bug being fixed. So the caller must
+    abort only on positive evidence of wrongness:
+
+      4xx  -> "unusable"      server parsed the request and refused it: the model
+                              or the prompt shape is wrong. Definitive.
+      5xx  -> "inconclusive"  server-side trouble, says nothing about our choice.
+      timeout / connection error -> "inconclusive"  cold weights or a busy GPU.
+
+    Absence of evidence is not evidence of absence: an inconclusive probe warns
+    and proceeds, and the run surfaces any real problem on its own.
+    """
+    import urllib.error as _ue  # noqa: PLC0415
+    import urllib.request as _ur  # noqa: PLC0415
+
+    payload = json.dumps({
+        "model": model_id,
+        "messages": [
+            {"role": "system", "content": "ping"},
+            {"role": "user", "content": "ping"},
+        ],
+        "max_tokens": 1,
+    }).encode()
+    req = _ur.Request(f"{base_url}/chat/completions", data=payload,
+                      headers={"Content-Type": "application/json"})
+    try:
+        with _ur.urlopen(req, timeout=timeout) as resp:
+            if resp.status >= 400:
+                return "unusable", f"HTTP {resp.status}"
+            return "ok", "ok"
+    except _ue.HTTPError as exc:
+        detail = f"HTTP {exc.code}"
+        with contextlib.suppress(Exception):  # body is best-effort diagnostics
+            detail = f"{detail}: {exc.read().decode()[:200]}"
+        # 4xx is a verdict on our request; 5xx is a verdict on the server.
+        return ("unusable" if 400 <= exc.code < 500 else "inconclusive"), detail
+    except Exception as exc:
+        return "inconclusive", str(exc)
+
+
 def _setup_agent_model(
     agent_type: str,
     lms_model_id: str | None,
@@ -214,14 +306,44 @@ def _setup_agent_model(
             # short LM Studio name. Query /v1/models to get the actual registered ID
             # so requests are routed to the loaded model instead of triggering a
             # dynamic HuggingFace download (which would 404 for local-only models).
+            #
+            # Select by NAME, never by position (DJ-120). /v1/models enumerates
+            # every model in the shared ~/.cache/huggingface/hub, not just the one
+            # this server loaded, so data[0] silently changes the moment any other
+            # process downloads a model. On 2026-08-04 a `transformers` job pulled
+            # google/gemma-2-2b-it into that cache; it sorted first, every technical
+            # request was routed to a 2B model that rejects the system role, and the
+            # night died as 98x "404 System role not supported" -> 98x AGGREGATE
+            # FAIL -> no ensemble for arms A and B.
             try:
                 with _ur.urlopen("http://localhost:1235/v1/models", timeout=5) as _r:
-                    _registered_id = json.loads(_r.read())["data"][0]["id"]
-            except Exception:
-                _registered_id = _FINETUNE_MODEL  # fallback
+                    _ids = [m.get("id", "") for m in json.loads(_r.read()).get("data", [])]
+            except Exception as exc:
+                logger.error("port 1235 /v1/models unreachable (%s); technical will fail", exc)
+                return False
+
+            try:
+                _registered_id = _select_served_model(_ids, _FINETUNE_MODEL)
+            except LookupError as exc:
+                logger.error("Technical model selection failed on port 1235: %s. "
+                             "Aborting the pass rather than routing 98 tickers to the "
+                             "wrong model.", exc)
+                return False
+
+            _status, _detail = _probe_chat_model(_TECHNICAL_FINETUNE_URL, _registered_id)
+            if _status == "unusable":
+                logger.error("Technical model %s is served but unusable: %s. "
+                             "Aborting the pass.", _registered_id, _detail)
+                return False
+            if _status == "inconclusive":
+                # Cold 32B weights or a busy GPU. Not evidence of a wrong model.
+                logger.warning("Technical model %s probe inconclusive (%s); proceeding.",
+                               _registered_id, _detail)
+
             os.environ["HIFI_TECHNICAL_FINETUNE_URL"] = _TECHNICAL_FINETUNE_URL
             os.environ["HIFI_TECHNICAL_MODEL"] = _registered_id
-            logger.info("Technical fine-tuned server ready (port 1235, model=%s)", _registered_id)
+            logger.info("Technical fine-tuned server ready (port 1235, model=%s, probe=%s)",
+                        _registered_id, _status)
         else:
             logger.warning("port 1235 not healthy; technical passes will fail")
         return ok
