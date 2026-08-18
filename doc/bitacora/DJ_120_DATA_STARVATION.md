@@ -251,3 +251,90 @@ Per the decision on 2026-08-17, **A, B and D restart from the first clean run**;
 their prior history is void for performance purposes. C remains continuous and
 valid throughout. This compounds OSF amendment 002: the A/B restart announced
 for DJ-120 had not in fact begun, because the arms could not deploy capital.
+
+---
+
+# DJ-122 — Position limits were absolutes, not functions of the universe
+
+**Found:** 2026-08-17, from Alberto's observation that the arms looked "wired
+to a limited number of stocks — we tried 8, 16, 30 early on".
+
+## The finding
+
+There is **no** hardcoded position cap. Fed 98 Buy signals, `compose_portfolio`
+returns 98 weights and drops nothing. The intuition was right about the
+symptom and wrong about the mechanism.
+
+What existed instead was a set of absolute constants —
+`max_single_stock=0.05`, `max_sector=0.20`, `min_position=0.01` — restated
+independently in `run_mcp_pipeline` and as defaults on `compose_portfolio`,
+bearing no relation to how many names were being chosen from. Measured
+deployment against an equal-confidence buy list:
+
+| Buys | positions | capital deployed |
+|---|---|---|
+| 8 | 8 | **20%** |
+| 16 | 16 | **40%** |
+| 30 | 30 | **70%** |
+| 50+ | 50–98 | 100% |
+
+A narrow or sector-concentrated buy list silently stranded most of the
+account, with no error anywhere. At the other end the same 5% cap is 5x the
+equal weight across 98 names and never binds at all. One number was
+simultaneously far too tight and completely inert.
+
+**Why this matters beyond capital efficiency:** the binding constraint was a
+function of *how many names an arm selected*, and that is downstream of the
+treatment under test. A fixed absolute cap taxes a diversifying arm and leaves
+a concentrating one untouched — precisely the invariance failure recorded for
+the circuit breaker in DJ-119, in a different guise.
+
+A second defect surfaced in the same pass: the sector cap ignored positions
+already held. Arm A's held NVDA (a Hold, so invisible to the risk layer) would
+have pushed Information Technology to **21.86% against a 20% cap** while every
+individual check passed.
+
+## Fix
+
+New `src/hifi/portfolio/policy.py` — `PortfolioPolicy`, the single control
+point. Limits are expressed as multiples of the equal weight `1/n`, so one
+knob carries the same meaning at any book width:
+
+- `max_single_stock` = `concentration` (3.0) x equal weight, bounded to
+  [2%, **10%**]. The 10% ceiling is deliberate: this is a diversified
+  multi-name study, and a position above a tenth of the book would make
+  arm-level returns a story about one company rather than about ensemble
+  architecture.
+- `max_sector` = `sector_slack` (1.5) x the largest sector's actual share of
+  the buy list, floored at 25% — a genuinely sector-heavy signal set is
+  allowed to be sector-heavy instead of being forced into cash.
+- `min_position` = 0.25 x equal weight, held strictly below
+  `max_single_stock` so the two can never invert and empty the book.
+
+`policy.as_constraints()` is now the only place the pipeline's limit
+vocabulary is assembled, so call sites cannot drift apart again.
+
+`_apply_sector_cap` gained `existing_weights`: held names consume sector
+budget, and a sector already full from holdings receives zero new allocation
+rather than a negative one. `pipeline.run_pipeline` passes the current book
+through automatically. Also fixed a third `int()` truncation of holdings at
+`pipeline.py:169` that would have undone the DJ-121 fractional-share work.
+
+Deliberately left alone: `_KELLY_CAP` (0.25) is a strictly looser backstop
+than the 10% policy ceiling and never binds; `config/loader.py`'s
+`max_position_pct` / `max_sector_exposure_pct` are dead — consumed nowhere.
+
+## Verification (sandbox against live account state)
+
+`scripts/simulate_next_run.py` now asserts against the policy in force rather
+than copied percentages, and adds a deployment check that would have caught
+the original defect.
+
+| arm | Buys | policy | orders | deployed | largest position | largest sector |
+|---|---|---|---|---|---|---|
+| A | 30 | max_single 10.0%, max_sector 30.0% | 30 | **99.0%** | 4.88% | 21.83% |
+| B | 18 | max_single 10.0%, max_sector 33.3% | 18 | **99.0%** | 9.54% | 19.02% |
+| D | 12 | max_single 10.0%, max_sector 37.5% | 12 | **99.4%** | 7.74% | 20.55% |
+
+All checks pass on all three arms. Before this change A deployed 4.9% and
+would have breached its sector cap. 2,008 tests pass.

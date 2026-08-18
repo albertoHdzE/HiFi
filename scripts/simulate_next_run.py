@@ -128,10 +128,23 @@ def simulate(account: str, date: str | None, data_dir: str) -> dict | None:
         for sym, val in projected.items():
             by_sector[sectors.get(sym, "Unknown")] += val / equity if equity else 0.0
 
+        # Reconstruct the policy the run applied, so the checks below assert
+        # against the live limits rather than a copy of them.
+        from hifi.portfolio import PortfolioPolicy
+        buys = [s for s in signals if s.get("decision") == "Buy"]
+        sector_counts = collections.Counter(
+            sectors.get(s["ticker"], "Unknown") for s in buys
+        )
+        policy = PortfolioPolicy(n_candidates=len(buys))
+        largest = max(sector_counts.values()) if sector_counts else None
+
         return {
             "account": account,
             "condition": condition,
             "signal_date": sig_date,
+            "policy": policy.describe(),
+            "policy_max_single": policy.max_single_stock,
+            "policy_max_sector": policy.max_sector(largest),
             "signal_mix": dict(collections.Counter(s.get("decision") for s in signals)),
             "equity": equity,
             "cash": cash,
@@ -155,20 +168,35 @@ def simulate(account: str, date: str | None, data_dir: str) -> dict | None:
 
 
 def _checks(r: dict) -> list[tuple[bool, str]]:
-    """Constraint checks the live run must satisfy."""
+    """Constraint checks the live run must satisfy.
+
+    Position and sector limits are asserted against the *policy actually in
+    force* for this book width, not against hardcoded percentages — a
+    hardcoded check here would reintroduce exactly the drift DJ-122 removed.
+    A small tolerance absorbs the difference between decision-time and
+    fill-time prices.
+    """
+    tol = 1.10  # 10% headroom for intraday drift between decision and fill
+    pos_limit = r["policy_max_single"] * 100 * tol
+    sec_limit = r["policy_max_sector"] * 100 * tol
     return [
         (r["cash_after"] >= 0,
          f"cash stays non-negative (${r['cash_after']:,.0f} after)"),
         (r["buy_notional"] <= r["cash"],
          f"buy demand ${r['buy_notional']:,.0f} <= cash ${r['cash']:,.0f}"),
-        (r["max_position_pct"] <= 5.5,
-         f"largest position {r['max_position_pct']:.2f}% <= 5% (+tolerance)"),
-        (r["max_sector_pct"] <= 21.0,
-         f"largest sector {r['max_sector_pct']:.2f}% <= 20% (+tolerance)"),
+        (r["max_position_pct"] <= pos_limit,
+         f"largest position {r['max_position_pct']:.2f}% <= "
+         f"{r['policy_max_single']*100:.2f}% policy cap (+10% tol)"),
+        (r["max_sector_pct"] <= sec_limit,
+         f"largest sector {r['max_sector_pct']:.2f}% <= "
+         f"{r['policy_max_sector']*100:.2f}% policy cap (+10% tol)"),
         (all(o["quantity"] > 0 for o in r["orders"]),
          "all order quantities positive"),
         (r["n_positions_after"] >= r["n_positions_before"],
          f"book widens {r['n_positions_before']} -> {r['n_positions_after']} positions"),
+        (r["exposure_after"] >= 0.80,
+         f"capital deployed {r['exposure_after']*100:.1f}% >= 80% "
+         "(catches limits stranding cash)"),
     ]
 
 
@@ -197,6 +225,7 @@ def main() -> int:
             continue
 
         print(f"  signals {r['signal_date']}: {r['signal_mix']}")
+        print(f"  policy : {r['policy']}  max_sector={r['policy_max_sector']*100:.1f}%")
         print(f"  before : equity ${r['equity']:,.0f}  cash ${r['cash']:,.0f}  "
               f"{r['n_positions_before']} positions  exposure {r['exposure_before']*100:.1f}%")
         print(f"  orders : {r['n_buy']} buy (${r['buy_notional']:,.0f}) / "

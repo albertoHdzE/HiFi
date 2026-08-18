@@ -86,38 +86,64 @@ def _apply_sector_cap(
     weights: dict[str, float],
     sectors: dict[str, str],
     max_sector: float,
+    existing_weights: dict[str, float] | None = None,
 ) -> dict[str, float]:
     """Scale down positions in overweight sectors pro-rata.
 
     Each sector is handled independently.  Excess within an overweight
     sector flows to cash (not redistributed to other sectors).
 
+    ``existing_weights`` are positions already held that are NOT part of this
+    allocation — typically names the ensemble marked Hold. They consume sector
+    budget even though they are not being traded, so the cap must be applied
+    to the *combined* book. Omitting them let arm A's held NVDA push
+    Information Technology to 21.86% against a 20% cap while every individual
+    check passed (DJ-122).
+
     Parameters
     ----------
     weights : dict[str, float]
-        Current weights.
+        Weights being allocated now.
     sectors : dict[str, str]
-        Mapping of ticker -> GICS sector.
+        Mapping of ticker -> GICS sector, covering both dicts.
     max_sector : float
         Maximum allowed aggregate weight per GICS sector.
+    existing_weights : dict[str, float] | None
+        Already-held positions not in ``weights``, as portfolio weights.
 
     Returns
     -------
     dict[str, float]
-        Weights with no sector total exceeding max_sector.
+        Weights whose sector totals, combined with existing holdings, do not
+        exceed max_sector. A sector already over budget from holdings alone
+        receives zero new allocation rather than a negative one.
     """
     w = dict(weights)
-    # Compute sector totals
-    sector_totals: dict[str, float] = {}
+    held = {t: v for t, v in (existing_weights or {}).items() if t not in w}
+
+    # Budget consumed by positions we are not reallocating.
+    held_by_sector: dict[str, float] = {}
+    for ticker, weight in held.items():
+        s = sectors.get(ticker, "Unknown")
+        held_by_sector[s] = held_by_sector.get(s, 0.0) + weight
+
+    new_by_sector: dict[str, float] = {}
     for ticker, weight in w.items():
         s = sectors.get(ticker, "Unknown")
-        sector_totals[s] = sector_totals.get(s, 0.0) + weight
-    # Scale down overweight sectors
-    for sector, total in sector_totals.items():
-        if total > max_sector + 1e-9:
-            scale = max_sector / total
+        new_by_sector[s] = new_by_sector.get(s, 0.0) + weight
+
+    for sector, new_total in new_by_sector.items():
+        budget = max_sector - held_by_sector.get(sector, 0.0)
+        if budget <= 0:
+            # Holdings alone already fill or exceed the sector: allocate nothing new.
             for ticker in list(w):
-                if sectors.get(ticker) == sector:
+                if sectors.get(ticker, "Unknown") == sector:
+                    w[ticker] = 0.0
+            continue
+        if new_total > budget + 1e-9:
+            scale = budget / new_total
+            for ticker in list(w):
+                if sectors.get(ticker, "Unknown") == sector:
                     w[ticker] *= scale
     return w
 
@@ -173,9 +199,16 @@ def compose_portfolio(
     max_sector: float = 0.20,
     min_position: float = 0.01,
     long_only: bool = True,
+    existing_weights: dict[str, float] | None = None,
+    existing_sectors: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     """
     Compose a portfolio from agent signals with constraint enforcement.
+
+    The limit defaults below are legacy absolutes kept for backwards
+    compatibility. Production callers should pass values from
+    ``hifi.portfolio.PortfolioPolicy``, which derives them from the number of
+    candidates so one knob governs every book width (DJ-122).
 
     Parameters
     ----------
@@ -195,6 +228,14 @@ def compose_portfolio(
         their weight redistributed to remaining positions.
     long_only : bool, default True
         When True, only Buy signals are included; Hold and Sell are ignored.
+    existing_weights : dict[str, float] | None
+        Portfolio weights of positions already held that are not part of this
+        allocation (typically Holds). They consume sector budget and must be
+        counted, or the combined book can breach the sector cap while every
+        individual check passes.
+    existing_sectors : dict[str, str] | None
+        Ticker -> sector for ``existing_weights``, since those tickers are not
+        in the signal list being allocated.
 
     Returns
     -------
@@ -245,8 +286,12 @@ def compose_portfolio(
     # Step 3: per-stock cap
     weights = _apply_stock_cap(weights, max_single_stock)
 
-    # Step 4: sector cap
-    weights = _apply_sector_cap(weights, sectors, max_sector)
+    # Step 4: sector cap, against the combined book (new + already held)
+    if existing_weights:
+        for ticker, sector in (existing_sectors or {}).items():
+            sectors.setdefault(ticker, sector)
+    weights = _apply_sector_cap(weights, sectors, max_sector, existing_weights)
+    weights = {t: v for t, v in weights.items() if v > 1e-9}
 
     # Step 5: minimum position
     weights = _apply_min_position(weights, min_position)

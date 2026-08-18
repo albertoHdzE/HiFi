@@ -166,8 +166,23 @@ def run_pipeline(
     portfolio = dict(portfolio_state.get("portfolio", {}))
     portfolio_value = float(portfolio_state.get("portfolio_value", capital))
     hwm_value = float(portfolio_state.get("hwm_value", capital))
-    holdings = {str(k): int(v) for k, v in portfolio_state.get("holdings", {}).items()}
+    # float, not int: fractional shares are supported end to end (DJ-121).
+    holdings = {str(k): float(v) for k, v in portfolio_state.get("holdings", {}).items()}
     prices = {str(k): float(v) for k, v in portfolio_state.get("prices", {}).items()}
+
+    # Positions already held consume sector budget even when they are not
+    # being reallocated (the ensemble marked them Hold). The sector cap has to
+    # see them or the combined book can breach it (DJ-122).
+    existing_weights = {
+        str(sym): float(meta.get("weight", 0.0))
+        for sym, meta in portfolio.items()
+        if isinstance(meta, dict)
+    }
+    existing_sectors = {
+        str(sym): str(meta.get("sector", "Unknown"))
+        for sym, meta in portfolio.items()
+        if isinstance(meta, dict)
+    }
 
     # --- Step 1: compose_portfolio ---
     weights: dict[str, float] = compose_portfolio(
@@ -176,6 +191,8 @@ def run_pipeline(
         max_sector=max_sector,
         min_position=min_position,
         long_only=True,
+        existing_weights=existing_weights,
+        existing_sectors=existing_sectors,
     )
     if "error" in weights:
         logger.error("compose_portfolio error: %s", weights)

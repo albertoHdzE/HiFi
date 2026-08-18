@@ -33,6 +33,7 @@ Env (.env):
 from __future__ import annotations
 
 import argparse
+import collections
 import json
 import logging
 import os
@@ -383,14 +384,27 @@ def run_mcp_pipeline(signals: list[dict], tickers: list[str], executor):
         logger.warning("Could not read account cash (%s); falling back to equity - invested", exc)
         available_cash = max(0.0, portfolio_value - invested_value)
 
-    constraints = {
-        "max_single_stock": 0.05,
-        "max_sector": 0.20,
-        "min_position": 0.01,
-        "capital": portfolio_value,
-        "current_capital": invested_value,
-        "available_cash": available_cash,
-    }
+    # Single control point (DJ-122): limits are derived from how many names are
+    # actually actionable today, not restated as absolutes at each call site.
+    # Hardcoded 5%/20%/1% caps stranded capital on a narrow book (8 Buys in one
+    # sector invested 20% of the account) while being inert across 98 names,
+    # and they taxed a diversified arm more than a concentrated one — the same
+    # invariance failure as the old circuit breaker (DJ-119).
+    from hifi.portfolio import PortfolioPolicy
+
+    buys = [s for s in signals if s.get("decision") == "Buy"]
+    sector_counts = collections.Counter(
+        sectors.get(s["ticker"], "Unknown") for s in buys
+    )
+    policy = PortfolioPolicy(n_candidates=len(buys))
+    constraints = policy.as_constraints(
+        capital=portfolio_value,
+        current_capital=invested_value,
+        available_cash=available_cash,
+        n_in_largest_sector=max(sector_counts.values()) if sector_counts else None,
+    )
+    logger.info("Allocation %s max_sector=%.1f%%",
+                policy.describe(), constraints["max_sector"] * 100)
 
     ohlcv = {}
     for ticker in tickers:
