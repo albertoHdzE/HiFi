@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -480,3 +481,112 @@ class TestDataCoveragePreflight:
         with caplog.at_level("WARNING"):
             assert live.check_data_coverage(tickers) is True
         assert "STALE legacy flat layout" in caplog.text
+
+
+class TestOrderIsolation:
+    """One unroutable symbol must not abort an arm's cycle (DJ-123).
+
+    On 2026-08-17 EQR was removed from Alpaca's asset universe. The 404 raised
+    mid-loop, killing arm A after 37 of 39 orders had already filled — taking
+    EXC (a valid ticker later in the list) with it and leaving no decision
+    record for a day the account had actually traded.
+    """
+
+    @staticmethod
+    def _snapshot(tickers):
+        class S:
+            orders = [{"ticker": t, "side": "BUY", "quantity": 1.0} for t in tickers]
+        return S()
+
+    def test_bad_symbol_does_not_stop_later_orders(self):
+        placed = []
+
+        class Ex:
+            def place_market_order(self, ticker, qty, side):
+                if ticker == "EQR":
+                    raise RuntimeError('{"code":42210000,"message":"asset \\"EQR\\" not found"}')
+                placed.append(ticker)
+                return MagicMock(status="filled", order_id=f"id-{ticker}",
+                                 filled_avg_price=10.0)
+
+        results = live.execute_orders(
+            self._snapshot(["AAPL", "EQR", "EXC"]), Ex(), dry_run=False
+        )
+        assert placed == ["AAPL", "EXC"], "orders after the bad symbol must still be sent"
+        assert len(results) == 3
+
+    def test_rejection_is_recorded_not_dropped(self):
+        """A rejected order is data: the report's funnel must be able to show
+        conviction that never reached the broker."""
+        class Ex:
+            def place_market_order(self, ticker, qty, side):
+                raise RuntimeError("asset not found")
+
+        results = live.execute_orders(self._snapshot(["EQR"]), Ex(), dry_run=False)
+        assert results[0]["status"] == "rejected"
+        assert "asset not found" in results[0]["error"]
+
+    def test_successful_orders_unaffected(self):
+        class Ex:
+            def place_market_order(self, ticker, qty, side):
+                return MagicMock(status="filled", order_id="x", filled_avg_price=1.0)
+
+        results = live.execute_orders(self._snapshot(["AAPL", "MSFT"]), Ex(), dry_run=False)
+        assert [r["status"] for r in results] == ["filled", "filled"]
+
+
+class TestVanishedPositionValue:
+    """A position removed by the broker is not a trading loss (DJ-123).
+
+    Arm D's EQR holding vanished from equity without being credited to cash;
+    the resulting -3.72% halted a healthy arm for a day.
+    """
+
+    @staticmethod
+    def _account(tmp_path, positions, cash=1000.0):
+        d = tmp_path / "live" / "D"
+        d.mkdir(parents=True, exist_ok=True)
+        row = {
+            "decision_date": "2026-08-14", "equity": 99000.0, "cash": cash,
+            "n_positions": len(positions),
+            "positions": [{"ticker": t, "market_value": v} for t, v in positions.items()],
+        }
+        (d / "equity.jsonl").write_text(json.dumps(row) + "\n")
+
+    @staticmethod
+    def _executor(current, missing_assets):
+        ex = MagicMock()
+        ex.get_positions.return_value = dict.fromkeys(current, MagicMock())
+
+        def get_asset(sym):
+            if sym in missing_assets:
+                raise RuntimeError("asset not found")
+            return MagicMock(tradable=True)
+
+        ex.client.get_asset.side_effect = get_asset
+        return ex
+
+    def test_delisted_position_counted(self, tmp_path, monkeypatch):
+        self._account(tmp_path, {"EQR": 3813.50, "BAC": 4900.0})
+        monkeypatch.setattr(live, "_DATA_DIR", str(tmp_path))
+        ex = self._executor(current=["BAC"], missing_assets={"EQR"})
+        assert live._vanished_position_value("D", ex) == pytest.approx(3813.50)
+
+    def test_sold_position_not_counted(self, tmp_path, monkeypatch):
+        """A name we sold is absent too, but the asset still exists and its
+        value became cash — counting it would turn a flat day into a gain."""
+        self._account(tmp_path, {"AAPL": 5000.0, "BAC": 4900.0})
+        monkeypatch.setattr(live, "_DATA_DIR", str(tmp_path))
+        ex = self._executor(current=["BAC"], missing_assets=set())
+        assert live._vanished_position_value("D", ex) == 0.0
+
+    def test_nothing_missing_returns_zero(self, tmp_path, monkeypatch):
+        self._account(tmp_path, {"BAC": 4900.0})
+        monkeypatch.setattr(live, "_DATA_DIR", str(tmp_path))
+        ex = self._executor(current=["BAC"], missing_assets=set())
+        assert live._vanished_position_value("D", ex) == 0.0
+
+    def test_no_history_is_safe(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(live, "_DATA_DIR", str(tmp_path))
+        ex = self._executor(current=[], missing_assets=set())
+        assert live._vanished_position_value("D", ex) == 0.0

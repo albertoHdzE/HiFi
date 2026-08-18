@@ -338,3 +338,91 @@ the original defect.
 
 All checks pass on all three arms. Before this change A deployed 4.9% and
 would have breached its sector cap. 2,008 tests pass.
+
+---
+
+# DJ-123 — One delisted ticker took down a night
+
+**Found:** 2026-08-18, from the first live run after DJ-120/121/122.
+
+## What happened
+
+**EQR (Equity Residential) was removed from Alpaca's asset universe** — not
+marked untradable, deleted: `get_asset("EQR")` returns 404. Our parquet store
+still held bars through 2026-08-13, so the DJ-120 coverage gate passed 98/98
+and the problem only surfaced four hours later, mid-execution.
+
+One dead ticker produced four distinct failures:
+
+| arm | effect |
+|---|---|
+| **A** | 404 mid-loop aborted the cycle after **37 of 39 orders had already filled**. EXC, next in the list, was never submitted. `log_episode` never ran, so a day the account actually traded left **no decision record**. |
+| **B** | unaffected — its 15 Buys did not include EQR. 15 orders, 99.4% exposure. |
+| **C** | EQR position vanished: 98 -> 97 holdings. |
+| **D** | EQR vanished from equity **without a matching cash credit** (cash moved +$64 while equity fell $3,862), reading as a -3.72% daily loss. The circuit breaker halted a perfectly healthy arm. |
+
+The record/broker divergence on A is the worst of these: the equity curve moved
+with no decision to attribute it to. That is strictly worse than a clean
+failure.
+
+## Fixes
+
+- **Per-order isolation** in `execute_orders` and `run_control_strategy`. A
+  rejected order is recorded with its error rather than raising, so it becomes
+  visible in the report funnel as conviction that never reached the broker.
+- **Episode logging is best-effort and independent** of later failures; a
+  cycle that reached the broker always leaves a record.
+- **Broker-side tradability pre-flight** (`check_tradability`). The data gate
+  checks our store; this checks the broker, because the two can disagree.
+  Reports rather than blocks — a delisting is a fact about the world, not a
+  fault in the run — but it must be visible before agents spend a night
+  analysing a security that cannot be bought.
+- **Circuit breaker distinguishes corporate actions from losses**
+  (`_vanished_position_value`). A symbol we recorded holding, now absent from
+  the account *and* no longer recognised as an asset by the broker, is
+  unambiguously a delisting. Its value is excluded from the daily-change
+  calculation. Detection is by asset lookup rather than snapshot-date
+  alignment, which is unreliable: Alpaca's `last_equity` is struck at a close
+  we cannot observe, and our own snapshot may already have been rewritten
+  post-removal — the state D was actually left in.
+
+Verified against live accounts: D's raw -3.57% becomes **+0.29% -> trades**;
+C's -0.36% becomes +0.57%; A and B unaffected ($0 vanished). 2,015 tests pass.
+
+## Recovery
+
+A's 2026-08-17 episode was reconstructed and appended, flagged
+`reconstructed: true` with a note: 98 signals recovered from the ensemble
+sidecars, 37 orders recovered from the broker.
+
+## The agent layer was healthy
+
+Worth recording separately, because it is the first clean read since DJ-120:
+tool-failure rate **0.000 across all six agents in both arms**, 98/98 sidecars
+carrying a collective decision, and all 9 contrarian parse failures recovered
+on retry. The data-starvation fix is holding.
+
+## New finding: the technical agent is a constant
+
+With full data for the first time, the technical agent returned **Buy on 98/98
+tickers at confidence exactly 0.70** in both arms. This is not starvation — it
+reads the indicators correctly, and its rationales describe them accurately:
+
+> AAPL: "RSI of 43.4 indicates neutral conditions. EMA 312.17 vs SMA 317.38
+> shows **bearish** short-term momentum. MACD histogram of -2.290 confirms
+> **negative** momentum." -> **Buy @ 0.70**
+
+The narrative contradicts the decision. The signal field appears pinned
+regardless of the evidence the model just summarised.
+
+This was always true and was merely hidden: in the starved data the technical
+agent was `Buy 285/285` whenever its tools worked. It is now fully visible
+because the tools always work.
+
+**Consequence:** a constant member contributes no information to the ensemble
+and mechanically deflates disagreement. The technical agent is also what
+drives arm A's 39 Buys, so the current buy list is close to a single degenerate
+model's output rather than an ensemble decision. This is the next thing to
+investigate — likely the Phase 11 LoRA fine-tune (max-return labels bias
+toward Buy) or the prompt's output contract. Not fixed here: it needs a
+deliberate look, not a quick patch.

@@ -97,6 +97,7 @@ _DB_PATH = str(_ROOT / "data" / "knowledge.lance")
 _DAILY_LOSS_LIMIT = 0.02       # 2% portfolio loss -> halt
 _POSITION_LOSS_LIMIT = 0.10    # 10% single position -> FLAG only (never halts)
 _POSITION_IMPACT_LIMIT = 0.02  # single position costing >2% of equity -> halt
+_VANISH_LOOKBACK_SNAPSHOTS = 5  # snapshots scanned for broker-removed positions (DJ-123)
 
 _EDGAR_NAMESPACE = "hifi-dev-sec"
 _CONTEXT_NAMESPACE = "hifi-live-context"
@@ -472,11 +473,22 @@ def run_control_strategy(tickers: list[str], executor, dry_run: bool) -> list[di
             logger.info("[DRY-RUN] Control would buy %s x%d (~$%.2f)", ticker, qty, qty * price)
             orders.append({"ticker": ticker, "side": "buy", "qty": qty, "status": "dry_run"})
         else:
-            result = executor.place_market_order(ticker, qty, "buy")
-            orders.append({
-                "ticker": ticker, "side": "buy", "qty": qty,
-                "status": result.status, "order_id": result.order_id,
-            })
+            # Same per-order isolation as the pipeline arms (DJ-123): a symbol
+            # delisted since the universe was fixed must not stop the control
+            # from completing its book.
+            try:
+                result = executor.place_market_order(ticker, qty, "buy")
+                orders.append({
+                    "ticker": ticker, "side": "buy", "qty": qty,
+                    "status": result.status, "order_id": result.order_id,
+                })
+            except Exception as exc:
+                logger.error("[C] buy %s x%s REJECTED: %s", ticker, qty, exc)
+                orders.append({
+                    "ticker": ticker, "side": "buy", "qty": qty,
+                    "status": "rejected", "error": str(exc)[:200],
+                })
+                continue
         spend += qty * price
 
     logger.info("Control strategy: %d orders, ~$%.2f notional", len(orders), spend)
@@ -507,12 +519,34 @@ def execute_orders(snapshot, executor, dry_run: bool) -> list[dict]:
             logger.info("[DRY-RUN] Would %s %s x%s", side, ticker, qty)
             results.append({"ticker": ticker, "side": side, "qty": qty, "status": "dry_run"})
         else:
-            result = executor.place_market_order(ticker, qty, side)
-            results.append({
-                "ticker": ticker, "side": side, "qty": qty,
-                "status": result.status, "order_id": result.order_id,
-                "filled_price": result.filled_avg_price,
-            })
+            # Isolate each order (DJ-123). A single unroutable symbol used to
+            # abort the whole cycle: on 2026-08-17 EQR was removed from
+            # Alpaca's asset universe, and the resulting 404 killed arm A after
+            # 37 of 39 orders had already filled — taking EXC, a perfectly
+            # valid ticker later in the list, down with it, and leaving no
+            # decision record for a day the arm had actually traded.
+            #
+            # A rejected order is data, not a crash: it is recorded with its
+            # error so the funnel in the report shows conviction that never
+            # reached the broker.
+            try:
+                result = executor.place_market_order(ticker, qty, side)
+                results.append({
+                    "ticker": ticker, "side": side, "qty": qty,
+                    "status": result.status, "order_id": result.order_id,
+                    "filled_price": result.filled_avg_price,
+                })
+            except Exception as exc:
+                logger.error("[order] %s %s x%s REJECTED: %s", side, ticker, qty, exc)
+                results.append({
+                    "ticker": ticker, "side": side, "qty": qty,
+                    "status": "rejected", "error": str(exc)[:200],
+                })
+
+    rejected = [r for r in results if r.get("status") == "rejected"]
+    if rejected:
+        logger.warning("%d of %d orders rejected: %s", len(rejected), len(results),
+                       ",".join(r["ticker"] for r in rejected))
     return results
 
 
@@ -581,6 +615,25 @@ def check_circuit_breakers(account: str, executor) -> bool:
 
         if last_equity > 0:
             daily_change = (equity - last_equity) / last_equity
+
+            # A position removed by a corporate action is not a trading loss
+            # (DJ-123). On 2026-08-17 EQR was deleted from Alpaca's asset
+            # universe; arm D's holding vanished from equity without being
+            # credited to cash, and the resulting -3.72% "daily loss" halted a
+            # healthy arm for a day. The breaker must measure P&L, not
+            # bookkeeping, or delistings silently cost trading days.
+            vanished = _vanished_position_value(account, executor)
+            if vanished > 0:
+                adjusted = (equity + vanished - last_equity) / last_equity
+                logger.warning(
+                    "[%s] $%.2f of equity vanished with no matching cash credit "
+                    "(position removed by the broker, not sold). Daily change "
+                    "%.2f%% -> %.2f%% after excluding it.",
+                    account, vanished, daily_change * 100, adjusted * 100)
+                _log_circuit_breaker(account, "position_removed", vanished, equity,
+                                     action="flag")
+                daily_change = adjusted
+
             if daily_change < -_DAILY_LOSS_LIMIT:
                 _log_circuit_breaker(account, "daily_loss", daily_change, equity,
                                      action="halt")
@@ -682,6 +735,104 @@ def check_data_coverage(tickers: list[str], min_fraction: float = 0.99) -> bool:
             ",".join(missing[:15]) + ("..." if len(missing) > 15 else ""))
         return False
     return True
+
+
+def _vanished_position_value(account: str, executor) -> float:
+    """Value that left the book without becoming cash (DJ-123).
+
+    Compares the last recorded snapshot with the live account. A symbol held
+    then and absent now is either (a) sold, in which case its value reappears
+    as cash and equity is unaffected, or (b) removed by the broker through a
+    delisting or corporate action, in which case the value simply disappears.
+
+    Only the unexplained remainder is returned, so a legitimate sale is never
+    mistaken for a vanished position — which would turn a flat day into an
+    apparent gain and blind the breaker in the opposite direction.
+    """
+    from hifi.analytics.live_report import _read_jsonl  # noqa: PLC0415
+
+    rows = _read_jsonl(Path(_DATA_DIR) / "live" / account / "equity.jsonl")
+    if not rows:
+        return 0.0
+
+    try:
+        current = set(executor.get_positions())
+    except Exception as exc:
+        logger.warning("[%s] could not read positions for vanish check: %s", account, exc)
+        return 0.0
+
+    # Identify the event directly rather than inferring it from snapshot dates.
+    # Date alignment is unreliable: Alpaca's `last_equity` is struck at a
+    # session close we cannot observe, and our own snapshot may already have
+    # been rewritten post-removal (which is exactly the state arm D was left in
+    # after 2026-08-17). A symbol we recorded holding, which is absent from the
+    # account AND which the broker no longer recognises as an asset at all, is
+    # unambiguously a delisting — never a sale.
+    recent = rows[-_VANISH_LOOKBACK_SNAPSHOTS:]
+    believed: dict[str, float] = {}
+    for row in recent:
+        for p in row.get("positions", []):
+            sym = p.get("ticker")
+            if sym and sym not in current:
+                believed[sym] = float(p.get("market_value", 0.0))
+    if not believed:
+        return 0.0
+
+    total = 0.0
+    for sym, value in believed.items():
+        try:
+            executor.client.get_asset(sym)
+        except Exception:
+            # Asset no longer exists at the broker: its value did not become
+            # cash, it simply left the book.
+            logger.warning("[%s] %s is no longer a broker asset; $%.2f left the book "
+                           "without a matching cash credit", account, sym, value)
+            total += value
+    return total
+
+
+def check_tradability(tickers: list[str], account: str = "A") -> list[str]:
+    """Pre-flight: which universe tickers the broker will no longer trade (DJ-123).
+
+    The data-coverage gate checks our parquet store; this checks the broker.
+    The two can disagree, and on 2026-08-17 they did: EQR had been removed
+    from Alpaca's asset universe entirely while our store still held bars
+    through 2026-08-13, so coverage passed 98/98 and the failure only surfaced
+    four hours later as a 404 in the middle of order placement.
+
+    Reports rather than blocks. A delisting is a fact about the world, not a
+    fault in the run, and the remaining 97 names are still a valid experiment
+    — but it must be visible before the agents spend a night analysing a
+    security that cannot be bought, and before it silently changes the
+    universe out from under the ablation.
+    """
+    executor = get_executor(account)
+    if executor is None:
+        logger.warning("Tradability pre-flight skipped: no executor for %s", account)
+        return []
+    untradable = []
+    try:
+        for ticker in tickers:
+            try:
+                asset = executor.client.get_asset(ticker)
+                if not getattr(asset, "tradable", True):
+                    untradable.append(ticker)
+            except Exception:
+                untradable.append(ticker)
+    finally:
+        executor.disconnect()
+
+    if untradable:
+        logger.warning(
+            "Tradability pre-flight (DJ-123): %d/%d universe ticker(s) NOT tradable "
+            "at the broker: %s. Agents will still analyse them and any resulting "
+            "order will be rejected and recorded. Consider retiring them from the "
+            "universe and noting the change in the experiment record.",
+            len(untradable), len(tickers), ",".join(untradable))
+    else:
+        logger.info("Tradability pre-flight (DJ-123): %d/%d tickers tradable",
+                    len(tickers), len(tickers))
+    return untradable
 
 
 def log_arm_invariance(accounts: list[str]) -> None:
@@ -838,6 +989,10 @@ def run_account_cycle(account: str, tickers: list[str], date: str,
         return
 
     strategy_meta: dict | None = None
+    # Bound before the branches so the recovery block below can tell whether
+    # this cycle reached the broker (DJ-123).
+    orders: list[dict] = []
+    signals: list[dict] = []
 
     if condition == "control":
         orders = run_control_strategy(tickers, executor, dry_run=is_dry)
@@ -878,8 +1033,19 @@ def run_account_cycle(account: str, tickers: list[str], date: str,
         snapshot = run_mcp_pipeline(signals, tickers, executor)
         orders = execute_orders(snapshot, executor, dry_run=is_dry)
 
-    log_episode(account, date, condition, signals, orders, executor.get_portfolio_value(),
-                strategy_meta=strategy_meta)
+    # The broker and the experimental record must not diverge (DJ-123). On
+    # 2026-08-17 arm A filled 37 orders and then raised, so log_episode never
+    # ran: the account had traded but the record showed nothing for that date,
+    # which is worse than a clean failure — the equity curve moves with no
+    # decision to attribute it to. Recording is therefore best-effort and
+    # independent of whatever else fails afterwards.
+    try:
+        log_episode(account, date, condition, signals, orders,
+                    executor.get_portfolio_value(), strategy_meta=strategy_meta)
+    except Exception:
+        logger.exception("[%s] FAILED to log episode for %s — %d order(s) may be "
+                         "at the broker with no decision record", account, date, len(orders))
+        raise
     # Automatic financial-performance capture (DJ-114): equity + positions row
     # and Alpaca's authoritative equity curve. No human intervention.
     from hifi.execution.portfolio_recorder import record_account
@@ -967,6 +1133,10 @@ def main() -> None:
     # store is being repaired.
     if not args.dry_run and not check_data_coverage(tickers):
         raise SystemExit(2)
+
+    # Broker-side universe check (DJ-123). Reports, never blocks.
+    if not args.dry_run:
+        check_tradability(tickers, accounts[0])
 
     if len(accounts) > 1:
         log_arm_invariance(accounts)
