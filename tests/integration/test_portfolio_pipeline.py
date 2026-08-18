@@ -202,9 +202,12 @@ def test_no_blocked_ticker_in_orders(pipeline_result):
     assert not contamination, f"Blocked tickers in orders: {contamination}"
 
 
-def test_order_quantities_positive_ints(pipeline_result):
+def test_order_quantities_positive(pipeline_result):
+    """Quantities are fractional by default (DJ-121) — assert positive and
+    numeric rather than integral."""
     for o in pipeline_result["orders"]:
-        assert isinstance(o["quantity"], int)
+        assert isinstance(o["quantity"], int | float)
+        assert not isinstance(o["quantity"], bool)
         assert o["quantity"] > 0
 
 

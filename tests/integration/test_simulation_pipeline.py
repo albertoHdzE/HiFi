@@ -123,8 +123,11 @@ def test_pipeline_no_sector_cap_violations(pipeline_snapshot):
 
 
 def test_pipeline_orders_positive_quantities(pipeline_snapshot):
+    """Quantities are fractional by default (DJ-121); assert numeric and positive."""
     for order in pipeline_snapshot.orders:
-        assert isinstance(order["quantity"], int) and order["quantity"] > 0
+        assert isinstance(order["quantity"], int | float)
+        assert not isinstance(order["quantity"], bool)
+        assert order["quantity"] > 0
 
 
 def test_pipeline_commission_reasonable(pipeline_snapshot):

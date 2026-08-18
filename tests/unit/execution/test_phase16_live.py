@@ -355,3 +355,128 @@ class TestArmInvariance:
     def test_degenerate_inputs_do_not_halt(self):
         assert live.effective_halt_threshold(0, 1.0) == float("inf")
         assert live.effective_halt_threshold(10, 0.0) == float("inf")
+
+
+class TestLastCompletedSession:
+    """DJ-121: date the decision by the session the agents actually see."""
+
+    def _store(self, tmp_path, ticker, dates):
+        import pandas as pd
+        d = tmp_path / "market" / ticker
+        d.mkdir(parents=True, exist_ok=True)
+        df = pd.DataFrame(
+            {"Close": [1.0] * len(dates)},
+            index=pd.DatetimeIndex(pd.to_datetime(dates), name="Date"),
+        )
+        df.to_parquet(d / "ohlcv.parquet")
+
+    def test_returns_newest_bar_date(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(live, "_DATA_DIR", str(tmp_path))
+        self._store(tmp_path, "AAPL", ["2026-08-05", "2026-08-06", "2026-08-07"])
+        assert live._last_completed_session(["AAPL"]) == "2026-08-07"
+
+    def test_weekend_resolves_back_to_friday(self, tmp_path, monkeypatch):
+        # The Sunday 2026-08-09 case: newest bar is Friday, so the decision is
+        # Friday's cycle executed late — not a phantom Sunday observation.
+        monkeypatch.setattr(live, "_DATA_DIR", str(tmp_path))
+        self._store(tmp_path, "AAPL", ["2026-08-06", "2026-08-07"])
+        assert live._last_completed_session(["AAPL"]) == "2026-08-07"
+
+    def test_takes_max_so_one_stale_ticker_cannot_drag_it_back(self, tmp_path, monkeypatch):
+        # A halted or delisted name stops updating; it must not define the date.
+        monkeypatch.setattr(live, "_DATA_DIR", str(tmp_path))
+        self._store(tmp_path, "AAPL", ["2026-08-07"])
+        self._store(tmp_path, "HALTED", ["2026-06-01"])
+        assert live._last_completed_session(["HALTED", "AAPL"]) == "2026-08-07"
+
+    def test_holiday_is_handled_without_a_calendar(self, tmp_path, monkeypatch):
+        # No bar exists for a closed holiday, so the store answers correctly
+        # with no hard-coded calendar to maintain.
+        monkeypatch.setattr(live, "_DATA_DIR", str(tmp_path))
+        self._store(tmp_path, "AAPL", ["2026-07-02", "2026-07-06"])  # Jul 3/4 closed
+        assert live._last_completed_session(["AAPL"]) == "2026-07-06"
+
+    def test_missing_store_returns_none(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(live, "_DATA_DIR", str(tmp_path))
+        assert live._last_completed_session(["NOPE"]) is None
+
+    def test_unreadable_parquet_is_skipped_not_fatal(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(live, "_DATA_DIR", str(tmp_path))
+        bad = tmp_path / "market" / "BAD"
+        bad.mkdir(parents=True)
+        (bad / "ohlcv.parquet").write_text("not a parquet")
+        self._store(tmp_path, "AAPL", ["2026-08-07"])
+        assert live._last_completed_session(["BAD", "AAPL"]) == "2026-08-07"
+
+    def test_empty_frame_is_skipped(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(live, "_DATA_DIR", str(tmp_path))
+        self._store(tmp_path, "EMPTY", [])
+        self._store(tmp_path, "AAPL", ["2026-08-07"])
+        assert live._last_completed_session(["EMPTY", "AAPL"]) == "2026-08-07"
+
+
+class TestDataCoveragePreflight:
+    """The DJ-120 gate: refuse to write decision records over a starved universe.
+
+    This blocks rather than warns because the failure it guards is not an
+    outage but a plausible-looking result — agents told TICKER_NOT_FOUND
+    returned "no data available -- Sell" at confidence 1.0 for a month.
+    """
+
+    @staticmethod
+    def _store(tmp_path, tickers, layout="nested"):
+        import pandas as pd
+        for t in tickers:
+            if layout == "nested":
+                d = tmp_path / "market" / t
+                d.mkdir(parents=True, exist_ok=True)
+                idx = pd.date_range(end="2026-08-13", periods=3, freq="D", name="Date")
+                pd.DataFrame({"Open": 1.0, "High": 1.0, "Low": 1.0,
+                              "Close": 1.0, "Volume": 1.0}, index=idx
+                             ).to_parquet(d / "ohlcv.parquet")
+            else:
+                d = tmp_path / "market"
+                d.mkdir(parents=True, exist_ok=True)
+                pd.DataFrame({
+                    "Date": pd.date_range("2023-06-26", periods=3, freq="D"),
+                    "Open": 1.0, "High": 1.0, "Low": 1.0, "Close": 1.0,
+                    "Adj Close": 1.0, "Volume": 1.0,
+                }).to_parquet(d / f"{t}_2016-01-01_2023-06-30.parquet")
+
+    def test_passes_on_full_coverage(self, tmp_path, monkeypatch):
+        tickers = [f"T{i}" for i in range(10)]
+        self._store(tmp_path, tickers)
+        monkeypatch.setattr(live, "_DATA_DIR", str(tmp_path))
+        assert live.check_data_coverage(tickers) is True
+
+    def test_blocks_when_universe_is_starved(self, tmp_path, monkeypatch):
+        """83/98 missing was the production state; anything below the
+        threshold must abort rather than produce bearish-looking records."""
+        present = [f"T{i}" for i in range(15)]
+        self._store(tmp_path, present)
+        monkeypatch.setattr(live, "_DATA_DIR", str(tmp_path))
+        universe = present + [f"DARK{i}" for i in range(83)]
+        assert live.check_data_coverage(universe) is False
+
+    def test_blocks_on_a_single_missing_ticker_at_default_threshold(
+        self, tmp_path, monkeypatch
+    ):
+        tickers = [f"T{i}" for i in range(10)]
+        self._store(tmp_path, tickers)
+        monkeypatch.setattr(live, "_DATA_DIR", str(tmp_path))
+        assert live.check_data_coverage(tickers + ["MISSING"]) is False
+
+    def test_threshold_is_configurable(self, tmp_path, monkeypatch):
+        tickers = [f"T{i}" for i in range(10)]
+        self._store(tmp_path, tickers)
+        monkeypatch.setattr(live, "_DATA_DIR", str(tmp_path))
+        assert live.check_data_coverage(tickers + ["MISSING"], min_fraction=0.9) is True
+
+    def test_passes_but_warns_on_stale_flat_layout(self, tmp_path, monkeypatch, caplog):
+        """The quieter half of DJ-120: tickers that resolved, but to 2023 bars."""
+        tickers = [f"T{i}" for i in range(10)]
+        self._store(tmp_path, tickers, layout="flat")
+        monkeypatch.setattr(live, "_DATA_DIR", str(tmp_path))
+        with caplog.at_level("WARNING"):
+            assert live.check_data_coverage(tickers) is True
+        assert "STALE legacy flat layout" in caplog.text

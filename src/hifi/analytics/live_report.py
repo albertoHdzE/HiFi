@@ -129,6 +129,46 @@ def signal_distribution(account: str, data_dir: str = "data") -> pd.DataFrame:
     return pd.DataFrame(rows).drop_duplicates("decision_date", keep="last")
 
 
+def signal_layer_kind(account: str) -> str:
+    """How an arm produces signals — decides how it should be rendered.
+
+    Three genuinely different things get plotted on the same axes, and a blank
+    panel is ambiguous between "no data yet", "broken" and "by design". Arm C
+    is the last of those: it is a buy-once-hold null model that bypasses the
+    signal pipeline entirely and writes ``signals: []`` forever.
+    """
+    meta = ARMS.get(account, {})
+    if meta.get("llm"):
+        return "llm-ensemble"
+    if account == "C":
+        return "none-by-design"
+    return "deterministic"
+
+
+def deterministic_reasons(account: str, data_dir: str = "data") -> pd.DataFrame:
+    """Per date, the reason codes behind a rule-based arm's signals.
+
+    Arm D (riskbudget) records a ``reason`` and ``target_exposure`` per ticker.
+    That is the deterministic analogue of the LLM arms' rationales, so the
+    decision layer can show D's behaviour instead of leaving it out for lack of
+    an ensemble. Returns empty for arms without reason codes.
+    """
+    eps = _read_jsonl(Path(data_dir) / "live" / account / "decisions.jsonl")
+    rows = []
+    for ep in eps:
+        counts: dict[str, int] = {}
+        for s in ep.get("signals", []):
+            r = s.get("reason")
+            if r:
+                counts[r] = counts.get(r, 0) + 1
+        if counts:
+            rows.append({"decision_date": ep.get("decision_date"), **counts})
+    if not rows:
+        return pd.DataFrame()
+    df = pd.DataFrame(rows).drop_duplicates("decision_date", keep="last")
+    return df.set_index("decision_date").fillna(0).astype(int).sort_index()
+
+
 def exposure_series(account: str, data_dir: str = "data") -> pd.DataFrame:
     """Per decision_date capital deployment: invested / equity (DJ-119).
 

@@ -66,19 +66,27 @@ def _load_ohlcv_df(ticker: str):
     Load OHLCV data for a ticker as a pandas DataFrame.
 
     Uses pandas read_parquet directly (no hifi.data.storage imports) to avoid
-    dependency on pandas >= 3.0 features used in the main environment.
+    dependency on pandas >= 3.0 features used in the main environment. For the
+    same reason the nested-first path resolution of
+    hifi.data.market_store.resolve_ohlcv_path is duplicated here rather than
+    imported; keep the two in step.
 
     Returns a DataFrame with columns including Date, Open, High, Low, Close, Volume.
     Raises FileNotFoundError when no parquet file exists for the ticker.
     """
     import pandas as pd
 
-    pattern = str(_data_dir() / "market" / f"{ticker}_*.parquet")
-    files = sorted(glob.glob(pattern))
-    if not files:
-        raise FileNotFoundError(f"No OHLCV data found for ticker '{ticker}'")
+    root = _data_dir() / "market"
+    nested = root / ticker / "ohlcv.parquet"
+    if nested.exists():
+        path = nested
+    else:
+        files = sorted(glob.glob(str(root / f"{ticker}_*.parquet")))
+        if not files:
+            raise FileNotFoundError(f"No OHLCV data found for ticker '{ticker}'")
+        path = files[-1]
 
-    df = pd.read_parquet(files[-1])
+    df = pd.read_parquet(path)
     df = df.reset_index()
 
     # Normalise column names: lowercase, strip spaces

@@ -83,13 +83,32 @@ def test_correct_share_quantities():
     assert orders[0]["quantity"] == 25
 
 
-def test_share_quantity_floor():
-    """floor() applied: 0.05 * 100k / 333 = 15.01 → 15 shares."""
+def test_fractional_quantity_hits_target_exactly():
+    """Fractional sizing (default, DJ-121): 0.05 * 100k / 333 = 15.015 shares.
+
+    Whole-share flooring left a residue of cash on every position and, on a
+    name already near target, produced ±1-share BUY/SELL flip-flops on
+    consecutive days. Alpaca supports fractional quantities and arm C already
+    uses them.
+    """
     orders = generate_orders(
         weights={"JPM": 0.05},
         prices={"JPM": 333.0},
         holdings={"JPM": 0},
         capital=100_000.0,
+    )
+    assert orders[0]["quantity"] == pytest.approx(0.05 * 100_000 / 333, abs=1e-3)
+
+
+def test_whole_share_mode_still_floors():
+    """fractional=False preserves the old integer behaviour for brokers
+    that do not support fractional shares (IBKR is next in the queue)."""
+    orders = generate_orders(
+        weights={"JPM": 0.05},
+        prices={"JPM": 333.0},
+        holdings={"JPM": 0},
+        capital=100_000.0,
+        fractional=False,
     )
     assert orders[0]["quantity"] == math.floor(0.05 * 100_000 / 333)
 
@@ -157,17 +176,50 @@ def test_rebalancing_threshold_suppresses_trivial_order():
     assert orders == []
 
 
-def test_rebalancing_threshold_drift_within_band():
-    """Drift of exactly 5% (boundary) → no order generated (existing portfolio)."""
-    # current weight = 0.05, target = 0.10, drift = 0.05 → at threshold, skip
-    orders = generate_orders(
-        weights={"AAPL": 0.10},
+def test_rebalancing_band_is_relative_to_target():
+    """The band is a fraction of the target, not absolute percentage points.
+
+    An absolute 5pp band was >= max_single_stock (5%), so a fresh position's
+    drift (|target - 0| = target) could never exceed it and no new position
+    could ever be opened once a book existed. That froze arms A, B and D at
+    one position each for a month (DJ-121).
+    """
+    # Held 4.8% against a 5% target → 4% of target adrift → inside the band.
+    inside = generate_orders(
+        weights={"AAPL": 0.05},
         prices={"AAPL": 200.0},
-        holdings={"AAPL": 25},   # 25 * 200 / 100k = 5%
+        holdings={"AAPL": 24},   # 24 * 200 / 100k = 4.8%
         capital=100_000.0,
-        current_capital=100_000.0,  # existing portfolio → threshold applies
+        current_capital=100_000.0,
     )
-    assert orders == []
+    assert inside == []
+
+    # Held 2.5% against a 5% target → 50% of target adrift → rebalance.
+    outside = generate_orders(
+        weights={"AAPL": 0.05},
+        prices={"AAPL": 200.0},
+        holdings={"AAPL": 12.5},
+        capital=100_000.0,
+        current_capital=100_000.0,
+    )
+    assert len(outside) == 1
+    assert outside[0]["side"] == "BUY"
+
+
+def test_fresh_position_always_opens_despite_existing_book():
+    """The exact regression: 30 Buy signals produced 0 orders because every
+    target weight was below the absolute band."""
+    weights = {f"T{i}": 0.033 for i in range(30)}
+    prices = {f"T{i}": 100.0 for i in range(30)}
+    orders = generate_orders(
+        weights=weights,
+        prices=prices,
+        holdings={},              # all fresh
+        capital=100_438.67,
+        current_capital=4_974.20,  # a book exists (one legacy holding)
+    )
+    assert len(orders) == 30
+    assert all(o["side"] == "BUY" for o in orders)
 
 
 def test_rebalancing_threshold_drift_above_band():
@@ -319,3 +371,79 @@ def test_250k_capital_ten_tickers():
     assert total_notional <= 250_000.0 * 1.01  # small floor() rounding tolerance
     total_commission = sum(o["estimated_cost"] for o in orders)
     assert total_commission < total_notional * 0.005  # commission < 0.5% of notional
+
+
+# ---------------------------------------------------------------------------
+# Cash fitting and churn suppression (DJ-121)
+# ---------------------------------------------------------------------------
+
+
+def test_buys_scaled_to_fit_available_cash():
+    """compose_portfolio spreads ~100% of capital across Buy names alone while
+    Hold positions stay on the book, so demand can exceed buying power. Arm A
+    asked for $100,196 of buys against $95,464 cash."""
+    weights = {f"T{i}": 0.033 for i in range(30)}
+    prices = {f"T{i}": 100.0 for i in range(30)}
+    orders = generate_orders(
+        weights=weights, prices=prices, holdings={},
+        capital=100_438.67, current_capital=4_974.20,
+        available_cash=95_464.47,
+    )
+    notional = sum(o["estimated_value"] for o in orders)
+    assert notional <= 95_464.47
+    # 1% buffer retained for intraday drift between decision and fill.
+    assert notional == pytest.approx(95_464.47 * 0.99, rel=0.01)
+    # Proportional scaling, not truncation: every name survives.
+    assert len(orders) == 30
+
+
+def test_relative_weighting_preserved_when_scaling():
+    """Scaling must not bias the book toward names enumerated first."""
+    weights = {"A": 0.10, "B": 0.05}
+    prices = {"A": 100.0, "B": 100.0}
+    orders = generate_orders(
+        weights=weights, prices=prices, holdings={},
+        capital=100_000.0, current_capital=1_000.0,
+        available_cash=7_500.0,
+    )
+    by = {o["ticker"]: o["quantity"] for o in orders}
+    assert by["A"] == pytest.approx(2 * by["B"], rel=1e-3)
+
+
+def test_sells_are_never_scaled():
+    """SELLs raise cash and reduce risk; the cash guard must not touch them."""
+    orders = generate_orders(
+        weights={"AAPL": 0.01}, prices={"AAPL": 200.0}, holdings={"AAPL": 100},
+        capital=100_000.0, current_capital=100_000.0, available_cash=0.0,
+    )
+    assert len(orders) == 1
+    assert orders[0]["side"] == "SELL"
+
+
+def test_never_sells_more_than_held():
+    """Long-only book: a zero target on a small holding must not short."""
+    orders = generate_orders(
+        weights={"AAPL": 0.0}, prices={"AAPL": 200.0}, holdings={"AAPL": 3.5},
+        capital=100_000.0, current_capital=700.0,
+    )
+    assert orders[0]["quantity"] <= 3.5
+
+
+def test_min_notional_suppresses_rounding_churn():
+    """The BAC flip-flop: a ~$64 one-share delta traded every day, alternating
+    side as the price wiggled. A notional deadband makes it untradeable."""
+    orders = generate_orders(
+        weights={"BAC": 0.05}, prices={"BAC": 64.49}, holdings={"BAC": 77},
+        capital=99_037.05, current_capital=38_490.74,
+    )
+    assert orders == []
+
+
+def test_fractional_holdings_not_truncated():
+    """int() on a 3.9-share position read it as 3 and manufactured a phantom
+    rebalance every night."""
+    orders = generate_orders(
+        weights={"AAPL": 0.0078}, prices={"AAPL": 200.0}, holdings={"AAPL": 3.9},
+        capital=100_000.0, current_capital=780.0,
+    )
+    assert orders == []

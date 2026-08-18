@@ -111,11 +111,24 @@ def _default_insufficient_signal(ticker: str, as_of_date: str) -> AgentSignal:
 
 def _retrieve_context(ticker: str, as_of_date: str, data_dir: str) -> str:
     """
-    Query the knowledge MCP server for SEC filing passages.
+    Retrieve SEC filing passages for the sentiment agent.
+
+    Two sources, tried in order:
+
+    1. The knowledge MCP server's vector search over ingested chunks.
+    2. The EDGAR MD&A corpus (DJ-120 fallback).
+
+    The fallback exists because the vector store's ``chunks_a`` table was only
+    ever populated for three tickers, while the EDGAR table holds 209,722 MD&A
+    chunks for all 98. With no fallback the agent hit its "Insufficient Data"
+    path on 97% of passes and returned Hold at confidence 0.0 every time — a
+    silent constant inside an ensemble whose entire purpose is disagreement.
+
+    Both paths are queried with the same narrative-tuned query (DJ-034), which
+    also keeps the EDGAR chunks distinct from the head-of-document slice the
+    fundamental agent receives from the same filing.
 
     Fail-open: any error returns "" so the agent returns the default signal.
-    The query is tuned for qualitative/narrative content (management tone,
-    forward guidance) rather than numerical data (DJ-034).
     """
     query = (
         f"{ticker} management outlook guidance forward-looking statements risks "
@@ -139,9 +152,20 @@ def _retrieve_context(ticker: str, as_of_date: str, data_dir: str) -> str:
                 lines.append(p["text"])
                 lines.append("---")
             return "\n".join(lines)
-        return ""
     except Exception as exc:
         logger.warning("retrieve_context failed for %s: %s", ticker, exc)
+
+    try:
+        from hifi.knowledge.edgar_retriever import retrieve_mda_context
+
+        return retrieve_mda_context(
+            ticker=ticker,
+            as_of_date=as_of_date,
+            db_path=str(Path(data_dir) / "knowledge.lance"),
+            query=query,
+        )
+    except Exception as exc:
+        logger.warning("EDGAR MD&A fallback failed for %s: %s", ticker, exc)
         return ""
 
 

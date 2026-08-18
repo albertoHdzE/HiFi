@@ -211,6 +211,46 @@ def update_data(tickers: list[str]) -> dict[str, int]:
     return result
 
 
+def _last_completed_session(tickers: list[str], sample: int = 5) -> str | None:
+    """Date of the newest bar in the OHLCV store, or None (DJ-121).
+
+    The store is the authoritative trading calendar: the broker only returns
+    bars for sessions that actually happened, so the newest bar IS the last
+    completed session. That is correct across weekends AND market holidays
+    without hard-coding a calendar we would have to maintain — the gap called
+    out when the DJ-118 clock guard went in.
+
+    Why the decision date must be the session and not the wall-clock date: the
+    agents see that session's close and nothing later, and the orders fill at
+    the NEXT open. A Sunday-evening run is Friday's cycle executed late, not a
+    new observation. Dating it "Sunday" would invent a decision on a day with
+    no price, and would let a Friday-night run and a Sunday run both record
+    against the same information — double-counting one observation in the IC.
+    Resolving both to Friday makes already_decided() collapse them correctly.
+
+    Must be called AFTER update_data(), or it returns a stale session. Takes the
+    max over several tickers so one halted or delisted name cannot drag it back.
+    """
+    import pandas as pd
+
+    newest: str | None = None
+    for ticker in tickers[:sample]:
+        pq = Path(_DATA_DIR) / "market" / ticker / "ohlcv.parquet"
+        if not pq.exists():
+            continue
+        try:
+            idx = pd.read_parquet(pq).index
+            if len(idx) == 0:
+                continue
+            last = pd.Timestamp(idx.max()).strftime("%Y-%m-%d")
+        except Exception as exc:
+            logger.warning("Could not read %s for session date: %s", ticker, exc)
+            continue
+        if newest is None or last > newest:
+            newest = last
+    return newest
+
+
 def _latest_prices(tickers: list[str]) -> dict[str, float]:
     import pandas as pd
 
@@ -327,9 +367,21 @@ def run_mcp_pipeline(signals: list[dict], tickers: list[str], executor):
         },
         "portfolio_value": portfolio_value,
         "hwm_value": portfolio_value,
-        "holdings": {sym: int(p.qty) for sym, p in positions.items()},
+        # Fractional holdings preserved (DJ-121): int() truncation made a
+        # 3.9-share position read as 3 and manufactured phantom rebalances.
+        "holdings": {sym: float(p.qty) for sym, p in positions.items()},
         "prices": prices,
     }
+
+    # compose_portfolio spreads ~100% of capital across the Buy names alone,
+    # while Hold positions stay on the book — so targets can sum past 100% and
+    # exceed buying power. Passing cash lets the allocator scale buys to fit
+    # rather than emitting orders the broker will reject (DJ-121).
+    try:
+        available_cash = executor.get_account_cash()
+    except Exception as exc:
+        logger.warning("Could not read account cash (%s); falling back to equity - invested", exc)
+        available_cash = max(0.0, portfolio_value - invested_value)
 
     constraints = {
         "max_single_stock": 0.05,
@@ -337,6 +389,7 @@ def run_mcp_pipeline(signals: list[dict], tickers: list[str], executor):
         "min_position": 0.01,
         "capital": portfolio_value,
         "current_capital": invested_value,
+        "available_cash": available_cash,
     }
 
     ohlcv = {}
@@ -437,7 +490,7 @@ def execute_orders(snapshot, executor, dry_run: bool) -> list[dict]:
             continue
 
         if dry_run:
-            logger.info("[DRY-RUN] Would %s %s x%d", side, ticker, qty)
+            logger.info("[DRY-RUN] Would %s %s x%s", side, ticker, qty)
             results.append({"ticker": ticker, "side": side, "qty": qty, "status": "dry_run"})
         else:
             result = executor.place_market_order(ticker, qty, side)
@@ -564,6 +617,57 @@ def effective_halt_threshold(n_positions: int, exposure: float = 1.0) -> float:
         return float("inf")
     weight = exposure / n_positions
     return max(_POSITION_LOSS_LIMIT, _POSITION_IMPACT_LIMIT / weight)
+
+
+def check_data_coverage(tickers: list[str], min_fraction: float = 0.99) -> bool:
+    """Pre-flight: refuse to run agents over a starved universe (DJ-120).
+
+    Unlike the invariance probe this one BLOCKS, because the failure mode it
+    guards against is not a visible outage but a plausible-looking result. When
+    the MCP tools answered TICKER_NOT_FOUND the agents did not error — they
+    reasoned over the absence and returned "no data available -- Sell" at
+    confidence 1.0. Eighty-three of ninety-eight tickers were in that state for
+    a month of live trading and the only symptom was an unusually bearish arm.
+
+    A cycle that cannot see its universe produces decision records that are
+    worse than none: they are indistinguishable from opinions and they enter
+    the permanent experimental record. Better to fail loudly and lose a night.
+
+    Also warns on stale bars, which is the same defect's quieter half: the 15
+    tickers that *did* resolve were being analysed on 2023 prices.
+    """
+    from hifi.data.market_store import coverage_report
+
+    cov = coverage_report(tickers, _DATA_DIR)
+    missing = sorted(t for t, r in cov.items() if not r["found"])
+    legacy = sorted(t for t, r in cov.items() if r["layout"] == "flat-legacy")
+    found = len(tickers) - len(missing)
+    fraction = found / len(tickers) if tickers else 0.0
+
+    logger.info("Data coverage pre-flight (DJ-120): %d/%d tickers resolved (%.1f%%)",
+                found, len(tickers), fraction * 100)
+
+    if legacy:
+        logger.warning(
+            "%d ticker(s) resolved to the STALE legacy flat layout (bars end 2023-06-30): %s. "
+            "The canonical nested store data/market/<TICKER>/ohlcv.parquet is missing for these.",
+            len(legacy), ",".join(legacy[:10]) + ("..." if len(legacy) > 10 else ""))
+
+    last_dates = {r["last_date"] for r in cov.values() if r["found"] and r["last_date"]}
+    if last_dates:
+        logger.info("  bar coverage: last_date range %s .. %s",
+                    min(last_dates), max(last_dates))
+
+    if fraction < min_fraction:
+        logger.error(
+            "ABORT: only %d/%d tickers (%.1f%%) have OHLCV data; threshold is %.0f%%. "
+            "Missing: %s. Agents would report the gap as bearish conviction rather "
+            "than as an error (DJ-120) — refusing to write decision records. "
+            "Run `make live-update-data` or check data/market/ layout.",
+            found, len(tickers), fraction * 100, min_fraction * 100,
+            ",".join(missing[:15]) + ("..." if len(missing) > 15 else ""))
+        return False
+    return True
 
 
 def log_arm_invariance(accounts: list[str]) -> None:
@@ -828,7 +932,28 @@ def main() -> None:
     logger.info("Step 1: Updating OHLCV data for %d tickers...", len(tickers))
     update_data(tickers)
 
+    # Date the decision by the session the agents actually see (DJ-121). On a
+    # weekday evening this is today and nothing changes; on a weekend or the
+    # evening of a market holiday it resolves back to the last real session, so
+    # the run is that session's cycle executed late rather than a phantom
+    # decision on a day with no close.
+    if args.date is None:
+        session = _last_completed_session(tickers)
+        if session and session != date:
+            logger.info("Decision date -> %s (last completed session; wall-clock date is %s)",
+                        session, date)
+            date = session
+        elif not session:
+            logger.warning("Could not determine last completed session; using wall-clock %s", date)
+
     accounts = list(_ACCOUNTS) if args.account == "all" else [args.account]
+
+    # Data coverage gate (DJ-120). Runs before anything writes a decision
+    # record. --dry-run is exempt so the pipeline stays inspectable while the
+    # store is being repaired.
+    if not args.dry_run and not check_data_coverage(tickers):
+        raise SystemExit(2)
+
     if len(accounts) > 1:
         log_arm_invariance(accounts)
     failed = []

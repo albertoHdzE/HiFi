@@ -145,6 +145,8 @@ def run_pipeline(
         - min_position: float (default 0.01)
         - capital: float — total capital to deploy
         - current_capital: float — current portfolio value (0 = all cash)
+        - available_cash: float | None — buying power; when present, BUY
+          orders are scaled to fit it (optional)
 
     Returns
     -------
@@ -206,6 +208,7 @@ def run_pipeline(
         holdings=holdings,
         capital=capital,
         current_capital=current_capital,
+        available_cash=constraints.get("available_cash"),
     )
 
     # --- Summary statistics ---

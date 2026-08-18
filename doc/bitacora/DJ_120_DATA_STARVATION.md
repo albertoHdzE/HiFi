@@ -1,0 +1,253 @@
+# DJ-120 — Agent data starvation: three independent path defects
+
+**Date found:** 2026-08-14 · **Branch:** `phase14/heterogeneous-ensemble`
+**Severity:** invalidates the Phase 15 headline result and the Phase 16 A/B live
+record from 2026-07-16 to 2026-08-13.
+
+## Summary
+
+Three unrelated bugs each pointed a consumer at an empty or legacy store while
+the real, rich data sat elsewhere. Together they starved three of the five
+ensemble agents, so the "ensemble" under study was effectively two agents on 15
+tickers and a blanket no-data `Sell` on the other 83.
+
+The defects were invisible for a month because **the MCP tools return error
+payloads rather than raising**, and the agents faithfully reasoned over those
+payloads. A dead tool call and a considered bearish opinion produced the same
+downstream artefact: a `Sell` with a rationale. The failure therefore presented
+as a plausible trading signal, not as an outage.
+
+## The three defects
+
+### 1. OHLCV — legacy flat glob (critical)
+
+Five call sites globbed `data/market/{TICKER}_*.parquet`:
+
+| file | symbol |
+|---|---|
+| `src/hifi/mcp/financial_server.py` | `_load_ohlcv` |
+| `src/hifi/mcp/indicators_server.py` | `_load_ohlcv_df` |
+| `src/hifi/collective/labeler.py` | `_load_prices` |
+| `src/hifi/models/training_data.py` | `_load_close_series`, `_load_ohlcv_df` |
+
+That pattern matches only 16 leftover fixtures, all ending **2023-06-30**. The
+canonical store is nested — `data/market/{TICKER}/ohlcv.parquet`, 98 tickers,
+current to the previous close. Result: 83/98 tickers returned
+`TICKER_NOT_FOUND` on every pass; the remaining 15 were analysed on bars three
+years stale.
+
+Arm D was unaffected because `riskbudget_strategy.py` reads the nested store
+directly — the same layout mismatch noted in DJ-113, in the opposite direction.
+
+### 2. Macro — format mismatch (high)
+
+`data/macro/macro.parquet` was a *wide* frame (`treasury_10y`, `treasury_2y`,
+`spread_10y2y`) from an earlier regime-detection phase. `read_macro` expects
+long single-series files carrying a `hifi_dataset_metadata` schema block, so it
+raised, `_load_all_macro` returned `{}`, and every `get_macro_snapshot` answered
+`NO_MACRO_DATA`. The macro agent voted Hold on 99.8% of passes.
+
+### 3. Sentiment — wrong knowledge table (high)
+
+`knowledge_server` reads `HIFI_KNOWLEDGE_DATA_DIR`, default `data/knowledge`,
+whose `chunks_a` table holds **169 rows for 3 tickers** (AAPL, JPM, XOM). The
+populated corpus is `data/knowledge.lance` table `hifi-dev-sec-sec-mda` —
+**209,722 MD&A chunks covering all 98 tickers**, already used by the fundamental
+agent via `retrieve_mda_context`. Sentiment never reached it and took its
+"Insufficient Data" path on 97% of passes, returning Hold at confidence 0.0.
+
+Arithmetic confirmation: 57 live non-default sentiment passes = 3 tickers × 19
+dates exactly.
+
+## Measured impact
+
+Across 1,862 sidecars per LLM arm:
+
+| agent | tools ok | tools failed |
+|---|---|---|
+| technical | **Buy 285/285 (100%)** | Sell 1338, Hold 239 |
+| risk | Hold 201, Sell 84 | **Sell 1577/1577 (100%)** |
+| fundamental | — (0 clean) | Hold 1841, Buy 21 |
+| macro | — (0 clean) | Hold 1858, Sell 3 |
+| sentiment | Hold 1862/1862 (conf 0.0) | — |
+
+Three of five agents were constant. Because unanimity requires *all* members to
+agree, constant members also **suppress** measured herding — so the diversity
+metrics were biased, not merely noisy.
+
+### Phase 15 headline result does not survive
+
+`compute_phase15_ic.py` reads forward returns from the nested store, so the
+*labels* were always correct; only the *signals* were starved. Decomposing the
+published IC by data availability:
+
+| condition | all | 16 data-bearing tickers | 83 dark tickers |
+|---|---|---|---|
+| **parallel** | **+0.0642** (p=0.0019) | **−0.1377** (p=0.0089) | **+0.0669** (p=0.0028) |
+| full | +0.0232 | −0.0147 | +0.0207 |
+| homogeneous | −0.0428 | −0.0481 | −0.0422 |
+| no-memory | +0.0251 | −0.0427 | +0.0162 |
+
+The positive headline IC lives **entirely in the subset where the agents had no
+data**. Where they could see, the champion condition is significantly negative.
+
+A second, independent statistical problem: p-values treat 2,352 (ticker, date)
+pairs as independent when they are 25 dates × 99 tickers with overlapping
+60-trading-day forward windows. Effective n is nearer the number of
+non-overlapping dates, so `p=0.0019` is substantially overstated regardless of
+the data defect.
+
+**Conclusion:** Phase 15 cannot be read as evidence for or against the Page
+theorem. The walk-forward harness is sound; it needs re-running on repaired
+data.
+
+## Fixes
+
+- **New** `src/hifi/data/market_store.py` — `resolve_ohlcv_path` (nested-first,
+  flat fallback) and `coverage_report`. All five call sites now use it;
+  `indicators_server` duplicates the logic by design (pandas 1.5.3 env).
+- `financial_server._load_raw_ohlcv` handles the nested shape (DatetimeIndex, no
+  `Adj Close`) and labels provenance `market_store` vs `fixture` honestly.
+- **New** `scripts/refresh_macro_store.py` — writes the 7 series
+  `compute_macro_snapshot` actually reads, in `write_macro` format; retires the
+  wide frame to `macro_wide_legacy.parquet.bak`.
+- `edgar_retriever.retrieve_mda_context` gained an optional `query` for
+  lexical chunk selection; `sentiment_agent._retrieve_context` falls back to it
+  when the vector store is empty. The query differs from the fundamental
+  agent's head-of-document slice **deliberately**: identical evidence would
+  correlate two nominally independent members in an experiment whose dependent
+  variable is agreement.
+- **New** `src/hifi/analytics/decision_audit.py` — per-stock traceability with
+  tool-call health as a first-class column, plus `degenerate_agents` to catch
+  constant members before they are read as consensus.
+
+## Verification
+
+- 98/98 tickers resolve to the nested store, all `last_date = 2026-08-13`; zero
+  flat-legacy fallbacks. 98/98 covered in the EDGAR corpus.
+- `get_macro_snapshot("2026-08-13")` returns a full cross-section.
+- End-to-end agent re-run, ACN on 2026-08-13, same ticker and date as the
+  starved live pass:
+
+| | before | after |
+|---|---|---|
+| tool errors | 7 | **0** |
+| technical | Sell @ 1.0 ("no data available") | Buy @ 0.7 (real indicators) |
+| risk | Sell @ 1.0 | Sell @ 0.95 |
+| sentiment | Hold @ 0.0 (insufficient data) | Hold @ 0.7 (real MD&A) |
+| macro | Hold @ 0.1 | Hold @ 0.6 |
+| **ensemble** | **Sell** @ 0.769 | **Hold** @ 0.548 |
+| entropy | 0.971 | 1.371 |
+
+- 1,690 tests pass (1,660 pre-existing + 30 new), lint clean.
+
+## Known gaps, deliberately not fixed here
+
+- **SPY benchmark** exists only as a flat 2023 fixture, so `beta` would be stale
+  if requested. No agent currently passes `benchmark_ticker`, so beta is always
+  `None` — a pre-existing gap, unchanged by this work.
+- **`indicators_server`** is dormant: nothing in the agent pipeline calls it. Its
+  `venvs/ta` env also lacks `pyarrow`. Patched for consistency, not exercised.
+- **`google/gemma-2-2b-it`** shows 139 LangFuse calls at a 100% error rate.
+  Unrelated to this defect; worth a separate look.
+
+## Consequences for the experiment
+
+Arms A and B are void for 2026-07-16 → 2026-08-13. Arms C and D are unaffected
+*by this defect*. Per the decision on 2026-08-14, A and B restart clean after
+the fix rather than continuing across a regime break. This warrants **OSF
+amendment 002**, and it is the more consequential of the two now pending.
+
+> **Superseded in part by DJ-121 below.** D was *not* in fact unaffected: it
+> shares the allocator with A and B and was crippled by a separate defect there,
+> so D's history is void for performance purposes too. Only C — which bypasses
+> the pipeline entirely — remains continuous and valid.
+
+---
+
+# DJ-121 — Allocator froze every arm at one position
+
+**Found:** 2026-08-17, immediately after DJ-120 went live.
+
+## How it surfaced
+
+The first post-fix run (Friday 2026-08-14, executed 04:41 Monday) confirmed
+DJ-120 was cured — tool-failure rate 0.000 across all agents, and A's signal
+mix moved from `Sell 86 / Buy 1` to `Sell 0 / Buy 30`. But A placed **zero
+orders**, and had ~95% cash against a single NVDA position.
+
+DJ-120 had been *masking* this. While 86 of 98 names were blind-Sells there was
+only ever one Buy per day, so nobody could see that the allocator was discarding
+Buys. Restoring sight produced 30, and all 30 died.
+
+## Defects in `mcp/capital_allocator.generate_orders`
+
+**1. Rebalance band wider than the maximum position (primary).**
+`_REBAL_THRESHOLD` was 0.05 absolute, and `max_single_stock` is also 0.05. A
+fresh position has `current_weight = 0`, so its drift is `|target − 0| = target
+≤ 0.05` — it can never exceed a 0.05 band. The guard only engages once
+`current_capital > 0`, so each arm opened exactly one position on day one while
+100% cash and was then structurally frozen. Sweep:
+
+```
+target=0.033 -> 0 orders      target=0.050 -> 0 orders
+target=0.049 -> 0 orders      target=0.051 -> 1 order
+```
+
+**2. Mismatched denominators.** `target_value = weight × capital` (equity) but
+`current_weight = current_value / current_capital` (invested value). At 61%
+cash this inflated held weights ~2.6×:
+
+| | as computed | true |
+|---|---|---|
+| BAC | 0.1284 | 0.0499 |
+| JPM | 0.1223 | 0.0475 |
+
+That inflation was the *only* reason D traded: BAC's fake 12.84% cleared the
+band against a 5% target and `floor()` yielded a ±1-share delta — buy 1, sell 1,
+buy 1 on consecutive days. Rounding churn on one name, not a strategy.
+
+**3. Integer share truncation.** `int(floor(...))` on quantities and
+`int(p.qty)` on holdings; a 3.9-share position read as 3 and manufactured
+phantom rebalances. Alpaca supports fractional shares and arm C already used them.
+
+**4. Over-allocation (found while fixing 1–3).** `compose_portfolio` spreads
+~100% of capital across the Buy names alone while Hold positions stay on the
+book, so targets can sum past 100%. A's repaired run demanded $100,196 of buys
+against $95,464 cash.
+
+## Fixes
+
+- Band is now **relative to the target** (`_REBAL_DRIFT_FRAC = 0.20`): a fresh
+  position is 100% adrift and always trades; a held position near target does not.
+- Both weights measured against `capital`. `current_capital` is now only an
+  "is there a book yet?" flag.
+- Fractional quantities by default (`fractional=False` retains whole shares for
+  IBKR), plus a `$50` notional deadband that makes rounding noise untradeable.
+- `_fit_to_cash` scales BUYs **proportionally** to available cash less a 1%
+  buffer. Proportional, not truncating the tail — the experiment measures how
+  signals map to a portfolio, so dropping the end of the buy list would bias the
+  book toward whichever names were enumerated first. SELLs are never scaled.
+- Long-only guard: a SELL can never exceed shares held.
+
+## Verification (against live broker state, 2026-08-17)
+
+| arm | before | after | buy notional vs cash |
+|---|---|---|---|
+| A | 30 Buys → **0 orders** | 30 orders | $94,511 / $95,464 ✓ |
+| B | 18 Buys → **0 orders** | 17 orders | $85,352 / $95,508 ✓ |
+| D | 12 Buys → 1 churn order | 10 orders | $49,432 / $60,611 ✓ |
+
+1,971 tests pass. Three tests encoded the old contract and were rewritten
+deliberately: absolute-band, integer-quantity and `isinstance(int)` assertions.
+
+## Consequence for the experiment
+
+A, B and D were all crippled by one allocator, from two different signal
+sources — A/B from the LLM ensemble, D from riskbudget. C is unaffected (it
+bypasses the pipeline entirely) and is the only arm that ever held 98 names.
+
+Per the decision on 2026-08-17, **A, B and D restart from the first clean run**;
+their prior history is void for performance purposes. C remains continuous and
+valid throughout. This compounds OSF amendment 002: the A/B restart announced
+for DJ-120 had not in fact begun, because the arms could not deploy capital.
