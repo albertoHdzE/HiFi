@@ -1,7 +1,9 @@
 """
 PHASE14_UNIVERSE: ~100-stock ticker universe for Phase 14+ (DJ-090).
 
-~98 large-cap US equities across all 11 GICS sectors (8-10 per sector).
+97 large-cap US equities across all 11 GICS sectors (8-10 per sector).
+EQR was retired 2026-08-18 (DJ-123) after its removal from the broker's asset
+universe; the count was 98 through that date.
 All tickers are S&P 500 components or former components with EDGAR filing
 coverage. Used as the base universe for:
   - Bulk OHLCV + fundamentals acquisition (E2-T2)
@@ -487,11 +489,17 @@ PHASE14_UNIVERSE: list[dict[str, str]] = [
         "sector": "Real Estate",
         "sub_industry": "Health Care REITs",
     },
-    {
-        "ticker": "EQR",
-        "sector": "Real Estate",
-        "sub_industry": "Residential REITs",
-    },
+    # EQR (Equity Residential, Residential REITs) RETIRED 2026-08-18, DJ-123.
+    # Removed from Alpaca's asset universe entirely — get_asset("EQR") returns
+    # 404, not merely tradable=False. Our parquet store still held bars, so the
+    # data-coverage gate passed 98/98 and the mismatch only surfaced mid-order:
+    # one 404 aborted arm A after 37 of 39 fills, and the position vanishing
+    # from equity without a cash credit false-halted arm D.
+    #
+    # Left as a comment rather than deleted so the universe's history is
+    # legible: the experiment ran on 98 names through 2026-08-18 and on 97
+    # thereafter. A static universe is perishable; `check_tradability` now
+    # reports the drift each night.
     # ------------------------------------------------------------------
     # Utilities (9)
     # ------------------------------------------------------------------
