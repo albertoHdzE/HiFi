@@ -76,7 +76,26 @@ _FINETUNE_HEALTH_1236 = "http://localhost:1236/health"
 _AGENT_CONFIG: list[tuple[str, str | None, str | None, int, int | None]] = [
     # fmt: (agent_type, lms_model_id, env_var, load_timeout_s, ctx_len_override)
     ("fundamental", "llama-3.3-70b-instruct",      "HIFI_FUNDAMENTAL_MODEL", 600, None),
-    ("technical",   None,                           None,                     0,   None),
+    # Technical runs on the BASE model, not the technical_v2 LoRA (DJ-124).
+    # Setting lms_model_id to None routes this agent to the fine-tuned server on
+    # port 1235; that adapter collapses the agent to a constant.
+    #
+    # Measured on 2026-08-18, same 15 tickers, same date, same indicators, same
+    # prompt — the adapter is the only difference:
+    #   technical_v2 : Buy 15/15, confidence 0.70 every time  (zero variance)
+    #   base qwen2.5 : Hold 9, Buy 3, Sell 3, confidences 0.65/0.75/0.85
+    #
+    # This reproduces the project's own Phase 12.1 finding (OQ-M02: "diversity
+    # preserved under fine-tuning? NO — 100% entropy degradation, 0.367 -> 0.000;
+    # technical_v2 + fundamental_v1 vote unanimously Buy"). technical_v1 was
+    # rejected outright at DJ-058 (GR 1.000 -> 0.000) and technical_v2's GR gate
+    # was never formally tested — W2 was skipped — yet v2 shipped into the live
+    # experiment anyway.
+    #
+    # A constant member contributes no information to an ensemble and mechanically
+    # drives measured herding to 1.0, which is fatal to an experiment whose
+    # dependent variable IS disagreement.
+    ("technical",   "qwen2.5-coder-32b-instruct-mlx", "HIFI_TECHNICAL_MODEL",  300, None),
     ("risk",        "mistral-small-3.2-24b-instruct-2506-mlx",
                                                     "HIFI_RISK_MODEL",        300, None),
     ("macro",       "deepseek-r1-distill-qwen-32b", "HIFI_MACRO_MODEL",       600, None),
@@ -350,6 +369,17 @@ def _setup_agent_model(
 
     assert lms_model_id is not None
     assert env_var is not None
+
+    # An agent routed to a named LM Studio model must never also carry a
+    # fine-tune URL (DJ-124). technical_agent reads HIFI_TECHNICAL_FINETUNE_URL
+    # unconditionally, so a value left in the environment by an earlier pass, a
+    # shell export or a stale .env would silently send every request back to the
+    # rejected adapter while the logs claimed the base model was in use.
+    if agent_type == "technical":
+        stale = os.environ.pop("HIFI_TECHNICAL_FINETUNE_URL", None)
+        if stale:
+            logger.warning("Cleared HIFI_TECHNICAL_FINETUNE_URL=%s; technical runs on "
+                           "the base model (DJ-124)", stale)
 
     if model_is_loaded(lms_model_id):
         os.environ[env_var] = lms_model_id

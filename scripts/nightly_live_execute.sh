@@ -50,9 +50,18 @@ market_window_check() {
     open_min=$(( 9 * 60 + 30 ))
     close_min=$(( 16 * 60 ))
 
+    # Weekends are ALLOWED (DJ-121). They used to be refused on the reasoning
+    # that there is no fresh close to trade on — but the real risk was never the
+    # day of the week, it was deciding twice on the same information. That is now
+    # handled properly: the decision date resolves to the last completed session
+    # (read from the OHLCV store), so a Friday-night run and a Sunday run both
+    # date to Friday and already_decided() collapses the second one. A weekend
+    # run is simply the last session's cycle executed late, filling at the next
+    # open exactly as the protocol requires.
     if [ "${et_dow}" -ge 6 ]; then
-        echo "Weekend in ET (dow=${et_dow}) — no session to trade into."
-        return 2
+        echo "Weekend in ET (dow=${et_dow}) — decision will use the last completed"
+        echo "session; orders fill at the next open. Proceeding."
+        return 0
     fi
     if [ "${now_min}" -ge "${open_min}" ] && [ "${now_min}" -lt "${close_min}" ]; then
         echo "REFUSING: market is OPEN (${et_hm} ET). Decisions would read a partial"
@@ -81,10 +90,6 @@ echo "=== nightly_live_execute $(date '+%Y-%m-%d %H:%M:%S') ==="
 
 market_window_check
 window_rc=$?
-if [ "${window_rc}" -eq 2 ]; then
-    echo "Weekend — skipping."
-    exit 0
-fi
 if [ "${window_rc}" -eq 1 ]; then
     if [ "${ALLOW_MARKET_HOURS}" = "1" ]; then
         echo "ALLOW_MARKET_HOURS=1 — proceeding anyway; annotate this date as off-protocol."
@@ -95,12 +100,16 @@ fi
 
 cd "${REPO}"
 
-# Pre-flight: fine-tune servers (launchd keeps them alive; wait up to 3 min)
+# Pre-flight: LM Studio, which now serves every agent including technical.
+#
+# This used to block on the fine-tune servers on ports 1235/1236. Neither is
+# used by the live conditions any more (DJ-124): technical runs on the base
+# qwen2.5-coder via LM Studio because the technical_v2 adapter collapsed the
+# agent to a constant Buy, and fundamental has always used llama-3.3-70b.
+# Waiting on them would block a run for infrastructure nothing reads.
 for i in $(seq 1 18); do
-    ok1=$(curl -s -m 3 http://localhost:1235/health | grep -c ok || true)
-    ok2=$(curl -s -m 3 http://localhost:1236/health | grep -c ok || true)
-    [ "${ok1}" = "1" ] && [ "${ok2}" = "1" ] && break
-    echo "waiting for fine-tune servers (${i}/18)..."
+    curl -s -m 3 http://localhost:1234/v1/models >/dev/null 2>&1 && break
+    echo "waiting for LM Studio on :1234 (${i}/18)..."
     sleep 10
 done
 

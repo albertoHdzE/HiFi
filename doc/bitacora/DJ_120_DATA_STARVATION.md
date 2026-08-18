@@ -426,3 +426,85 @@ model's output rather than an ensemble decision. This is the next thing to
 investigate — likely the Phase 11 LoRA fine-tune (max-return labels bias
 toward Buy) or the prompt's output contract. Not fixed here: it needs a
 deliberate look, not a quick patch.
+
+---
+
+# DJ-124 — The technical agent was a rejected fine-tune
+
+**Found:** 2026-08-18, following the constant-Buy observation in DJ-123.
+
+## The finding
+
+The technical agent was served by the **`technical_v2` LoRA adapter** on port
+1235. It emitted `Buy` at confidence exactly `0.70` on 98/98 tickers in both
+arms — while its own rationales accurately described bearish indicators:
+
+> AAPL: "RSI of 43.4 indicates neutral conditions. EMA 312.17 vs SMA 317.38
+> shows **bearish** short-term momentum. MACD histogram of -2.290 confirms
+> **negative** momentum." -> **Buy @ 0.70**
+
+It reads the data correctly and then ignores it. The decision field is pinned.
+
+## Causal proof
+
+Same 15 tickers, same date, same indicators, same prompt. The adapter is the
+only difference:
+
+| served model | decisions |
+|---|---|
+| **technical_v2 (LoRA)** | **Buy 15/15, confidence 0.70 every time** |
+| **base qwen2.5-coder-32b** | Hold 9, Buy 3, Sell 3 — confidences 0.65 / 0.75 / 0.85 |
+
+## This was already known
+
+The project's own research had measured it and said so:
+
+- **DJ-058 (Phase 11, 2026-06-13):** `technical_v1` **NOT DEPLOYED** — Tier 1
+  fail, GR degraded 1.000 -> 0.000. Root cause recorded at the time: *"1000
+  iters at rank 8 may have overfit to the training label distribution,
+  disrupting the structured output format."* The technical labels are
+  max-return (`Buy if forward_return > +0.02`), so overfitting to that
+  distribution produces exactly a constant Buy.
+- **Phase 12.1, OQ-M02:** *"Diversity preserved under fine-tuning? **NO** —
+  100% entropy degradation (A=0.367 -> B=0.000)."* And: *"technical_v2 +
+  fundamental_v1 vote unanimously Buy across all 30 B/D cells (herding=1.000).
+  Fine-tuning collapses ensemble diversity."*
+- `technical_v2`'s own GR gate: **"NOT FORMALLY TESTED"** — W2 was skipped. It
+  was trained as the v1 remediation (500 iters instead of 1000), never
+  evaluated against the >= 0.720 deployment gate, and shipped anyway.
+
+So the adapter that collapses ensemble diversity to zero was deployed into a
+live experiment whose entire dependent variable is ensemble diversity.
+
+## Fix
+
+`_AGENT_CONFIG` now routes technical to the base `qwen2.5-coder-32b-instruct-mlx`
+through LM Studio, exactly as the homogeneous config already did. Setting
+`lms_model_id=None` was what routed it to the fine-tuned server.
+
+Two supporting changes:
+- `_prepare_agent` clears `HIFI_TECHNICAL_FINETUNE_URL` for the technical agent.
+  `technical_agent.py` reads that variable unconditionally, so a value left by
+  an earlier pass, a shell export or a stale `.env` would silently route every
+  request back to the adapter while the logs claimed the base model.
+- `nightly_live_execute.sh` no longer blocks on ports 1235/1236. Neither is used
+  by the live conditions; waiting on them would stall a run for infrastructure
+  nothing reads.
+
+Verified through the real orchestrator on 10 tickers: `Hold 6, Sell 3, Buy 1`,
+`model_id=qwen2.5-coder-32b-instruct-mlx`. 2,015 tests pass.
+
+## Remaining diversity concern (not a defect)
+
+With technical fixed, the 2026-08-17 agent profile reads:
+
+| agent | modal share | decisions |
+|---|---|---|
+| risk | 0.58 | Sell 36, Hold 57, Buy 5 |
+| macro | 0.71 | Buy 70, Hold 28 |
+| fundamental | 0.94 | Hold 92, Buy 6 |
+| sentiment | 0.95 | Hold 93, Buy 5 |
+
+`fundamental` and `sentiment` are narrow — two distinct decisions each, never
+Sell — but they do vary and both run on base models with no adapter. Recorded
+as something to watch in the first clean walk-forward, not treated as a fault.
