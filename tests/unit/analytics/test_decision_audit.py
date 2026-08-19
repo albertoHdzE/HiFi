@@ -166,3 +166,32 @@ class TestTickerHistory:
 
     def test_empty_for_unknown_ticker(self, store):
         assert da.ticker_history("A", "ZZZZ", store).empty
+
+
+class TestDateScoping:
+    """Health questions are about the present, not the pooled past (DJ-125).
+
+    Without a date filter, `degenerate_agents` keeps reporting agents that were
+    constant only during the DJ-120 starved period. On 2026-08-18 the pooled
+    view still flagged fundamental and sentiment while that day alone had no
+    agent above a 0.948 modal share — the history was masquerading as the
+    current state.
+    """
+
+    def test_agent_behaviour_scopes_to_one_date(self, store):
+        allb = da.agent_behaviour("A", store).set_index("agent")
+        scoped = da.agent_behaviour("A", store, date="2026-08-13").set_index("agent")
+        assert allb.loc["technical", "n"] == 3
+        assert scoped.loc["technical", "n"] == 2
+
+    def test_degenerate_agents_scopes_to_one_date(self, store):
+        """technical is Sell-only on 08-12 and Buy-only on 08-13; constant
+        within each date, varied when pooled."""
+        pooled = set(da.degenerate_agents("A", store)["agent"])
+        d12 = set(da.degenerate_agents("A", store, date="2026-08-12")["agent"])
+        assert "technical" not in pooled
+        assert "technical" in d12
+
+    def test_unknown_date_is_empty_not_an_error(self, store):
+        assert da.agent_behaviour("A", store, date="1999-01-01").empty
+        assert da.degenerate_agents("A", store, date="1999-01-01").empty

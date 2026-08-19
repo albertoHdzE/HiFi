@@ -164,16 +164,25 @@ def provenance_matrix(account: str, data_dir: str = "data") -> pd.DataFrame:
     return pd.DataFrame(out)
 
 
-def agent_behaviour(account: str, data_dir: str = "data") -> pd.DataFrame:
+def agent_behaviour(
+    account: str, data_dir: str = "data", date: str | None = None
+) -> pd.DataFrame:
     """Per agent: decision mix, mean confidence and tool-failure rate.
 
     Splits each agent's decisions by whether its tool calls succeeded. That
     split is the diagnostic: an agent whose behaviour changes completely
     between the two columns is reporting on data availability, not on the
     security.
+
+    ``date`` scopes the analysis to one decision date. Without it every
+    sidecar ever written is pooled, which after a defect makes the *history*
+    the finding rather than the present state: on 2026-08-18 the pooled view
+    still flagged fundamental and sentiment as constant purely on the strength
+    of the DJ-120 starved period, while that day alone had no agent above a
+    0.948 modal share. Pass a date when asking "is the ensemble healthy now".
     """
     acc: dict[str, dict] = {}
-    for d in iter_sidecars(account, data_dir):
+    for d in iter_sidecars(account, data_dir, date=date):
         for key, block in d.items():
             if not key.endswith("_analysis") or not isinstance(block, dict):
                 continue
@@ -218,7 +227,8 @@ def agent_behaviour(account: str, data_dir: str = "data") -> pd.DataFrame:
 
 
 def degenerate_agents(
-    account: str, data_dir: str = "data", threshold: float = 0.98
+    account: str, data_dir: str = "data", threshold: float = 0.98,
+    date: str | None = None,
 ) -> pd.DataFrame:
     """Agents emitting the same decision on at least ``threshold`` of passes.
 
@@ -226,8 +236,12 @@ def degenerate_agents(
     every disagreement statistic. Because unanimity requires all members to
     agree, a constant agent also *suppresses* measured herding -- so this
     check has to run before any Page-theorem claim is read off the data.
+
+    Pass ``date`` to ask about a single decision date. Pooled across all dates
+    this keeps reporting agents that were constant only during a past defect,
+    which is history, not current state (see ``agent_behaviour``).
     """
-    beh = agent_behaviour(account, data_dir)
+    beh = agent_behaviour(account, data_dir, date=date)
     if beh.empty:
         return beh
     flagged = beh[beh["modal_share"] >= threshold].copy()
