@@ -476,20 +476,31 @@ def run_control_strategy(tickers: list[str], executor, dry_run: bool) -> list[di
             # Same per-order isolation as the pipeline arms (DJ-123): a symbol
             # delisted since the universe was fixed must not stop the control
             # from completing its book.
+            #
+            # Notional sizing where the asset allows it (DJ-126), for the same
+            # reason as the pipeline arms AND to keep the arms comparable: if
+            # C sized in shares while A/B/D sized in dollars, the control alone
+            # would absorb the overnight gap and its deployed exposure would
+            # drift from theirs for a purely mechanical reason.
+            notional = round(target_value, 2) if fractionable else None
             try:
-                result = executor.place_market_order(ticker, qty, "buy")
+                result = executor.place_market_order(ticker, qty, "buy", notional=notional)
                 orders.append({
                     "ticker": ticker, "side": "buy", "qty": qty,
+                    "notional": notional,
                     "status": result.status, "order_id": result.order_id,
                 })
             except Exception as exc:
-                logger.error("[C] buy %s x%s REJECTED: %s", ticker, qty, exc)
+                logger.error("[C] buy %s %s REJECTED: %s", ticker,
+                             f"${notional:,.2f}" if notional else f"x{qty}", exc)
                 orders.append({
                     "ticker": ticker, "side": "buy", "qty": qty,
+                    "notional": notional,
                     "status": "rejected", "error": str(exc)[:200],
                 })
                 continue
-        spend += qty * price
+        # Notional spends exactly target_value; share orders spend qty*price.
+        spend += target_value if (not dry_run and fractionable) else qty * price
 
     logger.info("Control strategy: %d orders, ~$%.2f notional", len(orders), spend)
     return orders
@@ -529,17 +540,35 @@ def execute_orders(snapshot, executor, dry_run: bool) -> list[dict]:
             # A rejected order is data, not a crash: it is recorded with its
             # error so the funnel in the report shows conviction that never
             # reached the broker.
+            # Size BUYs in dollars, not shares (DJ-126). Orders are sized after
+            # the close and fill at the next open; a share-count order spends
+            # whatever the overnight gap decides, which put all three pipeline
+            # arms on margin on 2026-08-18. Notional spends exactly the budget.
+            #
+            # SELLs stay share-based: a notional sell could exceed the shares
+            # held if the price gapped down, and the book is long-only.
+            notional = None
+            if side == "buy":
+                want = order.get("estimated_value")
+                if want and executor.is_fractionable(ticker):
+                    notional = float(want)
+                elif want:
+                    logger.info("[order] %s not fractionable; sizing in shares", ticker)
+
             try:
-                result = executor.place_market_order(ticker, qty, side)
+                result = executor.place_market_order(ticker, qty, side, notional=notional)
                 results.append({
                     "ticker": ticker, "side": side, "qty": qty,
+                    "notional": round(notional, 2) if notional is not None else None,
                     "status": result.status, "order_id": result.order_id,
                     "filled_price": result.filled_avg_price,
                 })
             except Exception as exc:
-                logger.error("[order] %s %s x%s REJECTED: %s", side, ticker, qty, exc)
+                logger.error("[order] %s %s %s REJECTED: %s", side, ticker,
+                             f"${notional:,.2f}" if notional else f"x{qty}", exc)
                 results.append({
                     "ticker": ticker, "side": side, "qty": qty,
+                    "notional": round(notional, 2) if notional is not None else None,
                     "status": "rejected", "error": str(exc)[:200],
                 })
 

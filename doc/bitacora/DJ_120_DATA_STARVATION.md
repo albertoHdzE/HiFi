@@ -508,3 +508,61 @@ With technical fixed, the 2026-08-17 agent profile reads:
 `fundamental` and `sentiment` are narrow — two distinct decisions each, never
 Sell — but they do vary and both run on base models with no adapter. Recorded
 as something to watch in the first clean walk-forward, not treated as a fault.
+
+---
+
+# DJ-126 — Buys are sized in dollars, not shares
+
+**Found:** 2026-08-18, verifying the Gate 1 shakedown.
+
+## The finding
+
+All three pipeline arms ended the shakedown on slight margin: cash A −$113.15,
+B −$23.03, D −$256.71, exposures 100.1% / 100.0% / 100.3%.
+
+Orders are sized after the close and fill at the next open. A share-count order
+spends whatever the overnight gap decides, so the cash actually spent differs
+from the estimate the cash guard budgeted against. Measured overshoot beyond
+the 1% buffer (decision-time cash vs post-fill cash, a common coordinate — the
+first attempt compared the pre-fill snapshot against post-fill cash and was
+discarded):
+
+| arm | cash@decision | cash after | spent | budget (99%) | overshoot | % of budget |
+|---|---|---|---|---|---|---|
+| A | 6,424.58 | −113.15 | 6,537.73 | 6,360.33 | 177.40 | **2.79%** |
+| B | 598.66 | −23.03 | 621.69 | 592.67 | 29.02 | **4.90%** |
+| D | 60,610.85 | −256.71 | 60,867.56 | 60,004.74 | 862.82 | **1.44%** |
+
+## Why a bigger buffer is the wrong fix
+
+Arm C uses the same 1% buffer and stayed positive (+$789, exposure 99.2%),
+because it bought 98 names in a single pass and the gaps averaged out. Raising
+the buffer only for the pipeline arms would leave A/B/D deploying ~95% against
+C's ~99% — a systematic exposure difference between arms, which is precisely
+the confound DJ-119 was written about. Padding also only guesses at gap size;
+4.90% is the observed maximum on n=3 arm-days, which bounds nothing.
+
+## Fix
+
+`AlpacaExecutor.place_market_order` gained a `notional` parameter. A notional
+order spends exactly the dollar amount requested whatever the open brings, so
+the budget is honoured by construction rather than by estimation.
+
+Constraints honoured:
+- **BUY only.** A notional SELL could exceed the shares actually held if the
+  price gapped down, and the book is long-only.
+- **Fractionable assets only** — Alpaca rejects notional otherwise. Verified:
+  0 of the 97 universe tickers are non-fractionable, so the share fallback
+  exists but does not trigger in production.
+- **Arm C sizes notionally too**, deliberately: if the control sized in shares
+  while A/B/D sized in dollars, C alone would absorb the gap and its deployed
+  exposure would drift from theirs for a purely mechanical reason.
+- A share order still reports the requested qty; a notional order has no share
+  count until it fills, so it reports the broker's value when present and 0.0
+  rather than inventing one.
+
+2,020 tests pass, including four new cases covering notional sizing, the
+non-fractionable fallback, and the sell exclusion.
+
+**Not yet verified in a live cycle.** This changes the order-placement path,
+the highest-risk code in the system. Gate 1 must be repeated before genesis.

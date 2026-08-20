@@ -116,27 +116,62 @@ class AlpacaExecutor:
         except Exception:
             return False
 
-    def place_market_order(self, ticker: str, qty: float, side: str) -> OrderResult:
+    def place_market_order(
+        self, ticker: str, qty: float, side: str, notional: float | None = None
+    ) -> OrderResult:
+        """Submit a market DAY order, by share count or by dollar amount.
+
+        ``notional`` sizes the order in dollars instead of shares (DJ-126).
+        This matters because orders are sized after the close and fill at the
+        next open: a share-count order spends whatever the gap decides, so on
+        2026-08-18 all three pipeline arms overshot their cash budget (by 2.79%,
+        4.90% and 1.44%) and ended on slight margin. A notional order spends
+        exactly the amount requested whatever the open brings.
+
+        Alpaca accepts notional only for fractionable assets, so callers must
+        check ``is_fractionable`` and fall back to ``qty``. Notional is used for
+        BUYs only: a notional SELL could exceed the shares actually held if the
+        price gapped down, and this is a long-only book.
+        """
         order_side = OrderSide.BUY if side.lower() == "buy" else OrderSide.SELL
-        req = MarketOrderRequest(
-            symbol=ticker,
-            qty=qty,
-            side=order_side,
-            time_in_force=TimeInForce.DAY,
-        )
+        if notional is not None:
+            if side.lower() != "buy":
+                raise ValueError("notional orders are BUY-only (long-only book)")
+            req = MarketOrderRequest(
+                symbol=ticker,
+                notional=round(float(notional), 2),
+                side=order_side,
+                time_in_force=TimeInForce.DAY,
+            )
+        else:
+            req = MarketOrderRequest(
+                symbol=ticker,
+                qty=qty,
+                side=order_side,
+                time_in_force=TimeInForce.DAY,
+            )
         order = self.client.submit_order(req)
         logger.info(
-            "Order submitted: %s %s x%.1f → %s (id=%s)",
-            side, ticker, qty, order.status, order.id,
+            "Order submitted: %s %s %s → %s (id=%s)",
+            side, ticker,
+            f"${notional:,.2f}" if notional is not None else f"x{qty:.3f}",
+            order.status, order.id,
         )
         return OrderResult(
             ticker=ticker,
             side=side.lower(),
-            qty=qty,
+            # Alpaca resolves a notional order to a share count at fill; until
+            # then qty is None. Report what we know rather than inventing it.
+            # A share order reports what was requested (the broker echoes it).
+            # A notional order has no share count until it fills, so report the
+            # broker's value when present and 0.0 rather than inventing one.
+            qty=(qty if notional is None
+                 else (float(order.qty) if order.qty else 0.0)),
             filled_avg_price=float(order.filled_avg_price) if order.filled_avg_price else None,
             status=str(order.status).split(".")[-1].lower(),
             order_id=str(order.id),
-            raw={"client_order_id": order.client_order_id},
+            raw={"client_order_id": order.client_order_id,
+                 "notional": round(float(notional), 2) if notional is not None else None},
         )
 
     def close_position(self, ticker: str) -> OrderResult:

@@ -84,8 +84,14 @@ class TestControlStrategy:
 
         orders = live.run_control_strategy(["AAPL"], ex, dry_run=False)
 
-        ex.place_market_order.assert_called_once_with("AAPL", 9.9, "buy")
+        # Notional sizing (DJ-126). The control must size the same way as the
+        # pipeline arms, or it alone absorbs the overnight gap and its deployed
+        # exposure drifts from theirs for a purely mechanical reason.
+        # equity 1000 x 0.99 / 1 ticker = $990 target; 9.9 shares at $100.
+        # The dollar figure is what gets sent, not the share count.
+        ex.place_market_order.assert_called_once_with("AAPL", 9.9, "buy", notional=990.0)
         assert orders[0]["status"] == "accepted"
+        assert orders[0]["notional"] == 990.0
 
 
 class TestExecuteOrders:
@@ -111,17 +117,56 @@ class TestExecuteOrders:
         snap = self._Snap([{"ticker": "X", "side": "BUY", "quantity": 0}])
         assert live.execute_orders(snap, MagicMock(), dry_run=True) == []
 
-    def test_places_real_orders_with_quantity(self):
-        snap = self._Snap([{"ticker": "JPM", "side": "BUY", "quantity": 14}])
+    @staticmethod
+    def _ok_executor():
         ex = MagicMock()
         res = MagicMock()
         res.status = "accepted"
         res.order_id = "o1"
         res.filled_avg_price = None
         ex.place_market_order.return_value = res
+        return ex
+
+    def test_places_share_order_when_no_estimated_value(self):
+        """Without a dollar figure there is nothing to size notionally."""
+        snap = self._Snap([{"ticker": "JPM", "side": "BUY", "quantity": 14}])
+        ex = self._ok_executor()
         out = live.execute_orders(snap, ex, dry_run=False)
-        ex.place_market_order.assert_called_once_with("JPM", 14, "buy")
+        ex.place_market_order.assert_called_once_with("JPM", 14, "buy", notional=None)
         assert out[0]["status"] == "accepted"
+
+    def test_buys_are_sized_notionally_when_fractionable(self):
+        """DJ-126: buys spend an exact dollar amount, so an overnight gap
+        cannot push the account onto margin."""
+        snap = self._Snap([
+            {"ticker": "JPM", "side": "BUY", "quantity": 14, "estimated_value": 1234.56}
+        ])
+        ex = self._ok_executor()
+        ex.is_fractionable.return_value = True
+        out = live.execute_orders(snap, ex, dry_run=False)
+        ex.place_market_order.assert_called_once_with("JPM", 14, "buy", notional=1234.56)
+        assert out[0]["notional"] == 1234.56
+
+    def test_falls_back_to_shares_when_not_fractionable(self):
+        """Alpaca rejects notional on non-fractionable assets."""
+        snap = self._Snap([
+            {"ticker": "HON", "side": "BUY", "quantity": 3, "estimated_value": 900.0}
+        ])
+        ex = self._ok_executor()
+        ex.is_fractionable.return_value = False
+        live.execute_orders(snap, ex, dry_run=False)
+        ex.place_market_order.assert_called_once_with("HON", 3, "buy", notional=None)
+
+    def test_sells_are_never_notional(self):
+        """A notional sell could exceed the shares held if the price gapped
+        down; the book is long-only."""
+        snap = self._Snap([
+            {"ticker": "JPM", "side": "SELL", "quantity": 5, "estimated_value": 700.0}
+        ])
+        ex = self._ok_executor()
+        ex.is_fractionable.return_value = True
+        live.execute_orders(snap, ex, dry_run=False)
+        ex.place_market_order.assert_called_once_with("JPM", 5, "sell", notional=None)
 
 
 class TestAccountRouting:
@@ -502,7 +547,7 @@ class TestOrderIsolation:
         placed = []
 
         class Ex:
-            def place_market_order(self, ticker, qty, side):
+            def place_market_order(self, ticker, qty, side, notional=None):
                 if ticker == "EQR":
                     raise RuntimeError('{"code":42210000,"message":"asset \\"EQR\\" not found"}')
                 placed.append(ticker)
@@ -519,7 +564,7 @@ class TestOrderIsolation:
         """A rejected order is data: the report's funnel must be able to show
         conviction that never reached the broker."""
         class Ex:
-            def place_market_order(self, ticker, qty, side):
+            def place_market_order(self, ticker, qty, side, notional=None):
                 raise RuntimeError("asset not found")
 
         results = live.execute_orders(self._snapshot(["EQR"]), Ex(), dry_run=False)
@@ -528,7 +573,7 @@ class TestOrderIsolation:
 
     def test_successful_orders_unaffected(self):
         class Ex:
-            def place_market_order(self, ticker, qty, side):
+            def place_market_order(self, ticker, qty, side, notional=None):
                 return MagicMock(status="filled", order_id="x", filled_avg_price=1.0)
 
         results = live.execute_orders(self._snapshot(["AAPL", "MSFT"]), Ex(), dry_run=False)
