@@ -182,8 +182,13 @@ def _checks(r: dict) -> list[tuple[bool, str]]:
     return [
         (r["cash_after"] >= 0,
          f"cash stays non-negative (${r['cash_after']:,.0f} after)"),
-        (r["buy_notional"] <= r["cash"],
-         f"buy demand ${r['buy_notional']:,.0f} <= cash ${r['cash']:,.0f}"),
+        # Compare against spendable cash, not raw cash. An arm can start the
+        # cycle with slightly negative cash (DJ-126); the allocator correctly
+        # scales its buys to zero, and "0 <= -113" is False, so the naive form
+        # reported a FAIL for behaviour that is exactly right.
+        (r["buy_notional"] <= max(0.0, r["cash"]) + 1e-6,
+         f"buy demand ${r['buy_notional']:,.0f} <= spendable cash "
+         f"${max(0.0, r['cash']):,.0f} (raw ${r['cash']:,.0f})"),
         (r["max_position_pct"] <= pos_limit,
          f"largest position {r['max_position_pct']:.2f}% <= "
          f"{r['policy_max_single']*100:.2f}% policy cap (+10% tol)"),

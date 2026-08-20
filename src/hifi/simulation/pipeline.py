@@ -212,6 +212,34 @@ def run_pipeline(
     approved_set = set(risk_report.get("approved_signals", []))
     approved_weights = {t: w for t, w in weights.items() if t in approved_set}
 
+    # Exits (DJ-127). compose_portfolio is long-only, so it assigns weights to
+    # Buys and says nothing about anything else; generate_orders then iterates
+    # over those weights alone. A held name the ensemble marked Sell was
+    # therefore never touched: across the whole live record, 4,206 Sell signals
+    # produced 0 sell orders on a Sell-signalled ticker. Half of each arm's
+    # conviction never reached the portfolio, while IC scored it as if it had.
+    #
+    # A Sell on a name we hold becomes an explicit target weight of 0, which
+    # generate_orders turns into a full exit. Hold means "keep what you have",
+    # so held-and-Hold is deliberately left alone rather than forced to a
+    # target. A Sell on a name we do not hold is a no-op: the book is long-only.
+    #
+    # Risk approval is not required to LEAVE a position. The risk manager gates
+    # taking on exposure; blocking an exit would trap the arm in a name it has
+    # already decided against.
+    decisions = {
+        str(s.get("ticker")): str(s.get("decision"))
+        for s in signals if s.get("ticker")
+    }
+    exits = {
+        t: 0.0 for t, qty in holdings.items()
+        if qty > 0 and decisions.get(t) == "Sell" and t not in approved_weights
+    }
+    if exits:
+        logger.info("Exiting %d position(s) on Sell signals: %s",
+                    len(exits), ",".join(sorted(exits)))
+        approved_weights = {**approved_weights, **exits}
+
     # --- Step 3: allocate_capital ---
     # Fall back to latest OHLCV close when prices not in portfolio_state
     if not prices and ohlcv:

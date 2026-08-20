@@ -111,9 +111,21 @@ class AlpacaExecutor:
 
     @with_retry()
     def is_fractionable(self, ticker: str) -> bool:
+        """Whether the broker will accept fractional/notional orders for ticker.
+
+        Returns False on error, which is the safe direction — a share order
+        always works — but the two cases are NOT equivalent and the caller
+        cannot see the difference, so log it. Since DJ-126 this answer decides
+        whether a buy is sized in dollars or shares: a transient API blip would
+        silently downgrade that ticker to share sizing and reintroduce the
+        overnight-gap margin problem for it alone.
+        """
         try:
             return bool(self.client.get_asset(ticker).fractionable)
-        except Exception:
+        except Exception as exc:
+            logger.warning(
+                "is_fractionable(%s) failed (%s); assuming NOT fractionable, so this "
+                "order will be sized in shares rather than dollars", ticker, exc)
             return False
 
     def place_market_order(

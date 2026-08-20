@@ -447,3 +447,57 @@ def test_fractional_holdings_not_truncated():
         capital=100_000.0, current_capital=780.0,
     )
     assert orders == []
+
+
+# ---------------------------------------------------------------------------
+# Exits on Sell signals (DJ-127)
+# ---------------------------------------------------------------------------
+
+
+class TestExits:
+    """A target weight of 0 on a held name is an exit, not a rebalance.
+
+    compose_portfolio is long-only, so it never mentions names outside the buy
+    list and generate_orders never touched them. Across the whole live record
+    4,206 Sell signals produced 0 sell orders on a Sell-signalled ticker: half
+    of each arm's conviction never reached the portfolio while IC scored it as
+    though it had.
+    """
+
+    def test_zero_target_exits_the_full_position(self):
+        o = generate_orders({"AAPL": 0.0}, {"AAPL": 200.0}, {"AAPL": 50.0},
+                            capital=100_000.0, current_capital=10_000.0)
+        assert len(o) == 1
+        assert o[0]["side"] == "SELL"
+        assert o[0]["quantity"] == pytest.approx(50.0)
+
+    def test_exit_bypasses_the_dust_deadband(self):
+        """A position too small to trade must not become one that can never be
+        left, or the book accumulates residue from every name it rejected."""
+        o = generate_orders({"X": 0.0}, {"X": 2.0}, {"X": 10.0},
+                            capital=100_000.0, current_capital=20.0)
+        assert len(o) == 1 and o[0]["estimated_value"] == pytest.approx(20.0)
+
+    def test_exit_ignores_the_rebalance_band(self):
+        """Drift is measured relative to the target; with a target of 0 that
+        ratio is undefined, so the band must not be consulted at all."""
+        o = generate_orders({"X": 0.0}, {"X": 100.0}, {"X": 1.0},
+                            capital=100_000.0, current_capital=100_000.0)
+        assert o and o[0]["side"] == "SELL"
+
+    def test_exit_never_oversells(self):
+        o = generate_orders({"X": 0.0}, {"X": 100.0}, {"X": 3.5},
+                            capital=100_000.0, current_capital=350.0)
+        assert o[0]["quantity"] <= 3.5
+
+    def test_zero_target_on_unheld_name_is_a_noop(self):
+        assert generate_orders({"X": 0.0}, {"X": 100.0}, {},
+                               capital=100_000.0, current_capital=1_000.0) == []
+
+    def test_exits_are_not_cash_scaled(self):
+        """Selling raises cash; scaling an exit by available cash would make
+        an arm unable to leave a position precisely when it is short of cash."""
+        o = generate_orders({"AAPL": 0.0}, {"AAPL": 200.0}, {"AAPL": 50.0},
+                            capital=100_000.0, current_capital=10_000.0,
+                            available_cash=0.0)
+        assert len(o) == 1 and o[0]["quantity"] == pytest.approx(50.0)

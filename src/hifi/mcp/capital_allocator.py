@@ -176,7 +176,12 @@ def generate_orders(
             continue
 
         delta_value = target_value - current_value
-        if abs(delta_value) < min_notional:
+        # A target of exactly 0 is an explicit exit (DJ-127), not a rebalance.
+        # It must clear the dust deadband, or a position too small to trade
+        # becomes a position that can never be left — the book would silently
+        # accumulate residue from every name it ever decided against.
+        is_exit = effective_weight == 0.0 and current_shares > 0
+        if not is_exit and abs(delta_value) < min_notional:
             logger.debug("%s delta $%.2f below $%.2f deadband; skipping",
                          ticker, abs(delta_value), min_notional)
             continue
