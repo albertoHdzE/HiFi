@@ -37,6 +37,7 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import math
 import os
 import sys
 from pathlib import Path
@@ -293,16 +294,28 @@ def _extract_regime(output: dict, ticker: str, date: str, data_dir: str) -> str:
 # ---------------------------------------------------------------------------
 
 
+def _undefined(v: float | None) -> bool:
+    """True when there is no number to report.
+
+    NaN has to be caught alongside None. The homogeneous condition drives
+    buy_strength constant within a month, so spearmanr returns NaN for that
+    month's IC and the IR aggregate inherits it — which the table then printed
+    as "+nan", a value-shaped string in a value column. An undefined statistic
+    must not be typeset like a measurement.
+    """
+    return v is None or (isinstance(v, float) and math.isnan(v))
+
+
 def _fmt_ic(v: float | None) -> str:
-    return f"{v:+.4f}" if v is not None else "  n/a "
+    return "  n/a " if _undefined(v) else f"{v:+.4f}"
 
 
 def _fmt_p(v: float | None) -> str:
-    return f"{v:.4f}" if v is not None else "  n/a "
+    return "  n/a " if _undefined(v) else f"{v:.4f}"
 
 
 def _fmt_ir(v: float | None) -> str:
-    return f"{v:+.3f}" if v is not None else " n/a"
+    return " n/a" if _undefined(v) else f"{v:+.3f}"
 
 
 def print_results_table(results: dict[str, dict]) -> None:

@@ -566,3 +566,162 @@ non-fractionable fallback, and the sell exclusion.
 
 **Not yet verified in a live cycle.** This changes the order-placement path,
 the highest-risk code in the system. Gate 1 must be repeated before genesis.
+
+---
+
+# DJ-128 — Phase 15's memory ablation measured nothing, and gives us a noise floor
+
+Audit of the two remaining adversarial findings (#2 empty episodic store,
+#4 silent forward-return loss), run 2026-08-20 on the archived Phase 15
+walk-forward output. No LLM re-run was needed: the sidecars, the LanceDB
+stores and the tool payloads are all on disk.
+
+## The finding: the ablated variable was null
+
+`hifi-eval-episodes` — the store `_build_episodic_prefixes` reads for the
+`full` condition — is empty, and has always been empty:
+
+```
+version 1, created 2026-06-19T19:00:30, total_rows 0     (only version)
+```
+
+The `full` run began 2026-06-22T13:42Z. So for every one of its 2,352
+records the retriever returned nothing, `memory_prefixes` reduced to
+`{"fundamental": edgar_ctx}`, and `_run_full` became argument-for-argument
+identical to `_run_no_memory`.
+
+That is the whole difference between the two conditions. Read them side by
+side: same `run_sequential_ensemble`, same `_EVAL_CONTEXT_NAMESPACE`, same
+EDGAR context, same models. The episodic prefix was the single manipulated
+variable, and it was absent.
+
+**The `full` vs `no-memory` contrast therefore does not measure memory.**
+
+## What it does measure — and this is the useful part
+
+Two configurationally identical conditions were run four days apart. They
+disagree on **1,015 of 2,352 collective decisions (43.2%)**:
+
+| | Sell | Hold | Buy | herding | IC |
+|---|---|---|---|---|---|
+| full      | 652 (27.7%) | 1,685 | 15 | 0.3614 | +0.0232 (p=0.26) |
+| no-memory | 1,492 (63.4%) | 823 | 37 | 0.2198 | +0.0251 (p=0.22) |
+
+A 35.7 pp swing in Sell rate and a 14.2 pp swing in herding, between two
+runs of the same configuration. **That is an empirical noise floor for the
+entire Phase 15 design.** Any condition contrast smaller than it is not
+interpretable. The reported homogeneous-vs-parallel herding gap (0.862 vs
+0.000) clears it comfortably; a memory effect of the size Phase 15 implied
+would not have.
+
+## Why the two runs diverged, when everything on disk is identical
+
+Ruled out, each by direct measurement rather than by argument:
+
+- **Different inputs.** All four MCP tool payloads are byte-identical across
+  the two conditions for all 2,352 records (`technical_indicators`,
+  `risk_metrics`, `macro_snapshot`, `financial_ratios`, …): 2352/2352 each.
+- **Different prior context.** The fundamental agent — first in the chain,
+  and the only input the technical agent has beyond its tools — produced
+  **byte-identical rationale text 2,352/2,352 times**. Sentiment: 2,286/2,352
+  (97.2%).
+- **Duplicate context rows.** `full` and `no-memory` have exactly one
+  `(run_id, agent_type)` row each, no duplicates. (`homogeneous` does not —
+  see below.)
+- **Non-deterministic decoding.** All five models were re-tested: five
+  identical `temperature=0` calls each, on the same evidence-free prompt.
+  Every model returned one distinct output out of five. Decoding is
+  reproducible within a session.
+
+What diverges is exactly the three agents whose *only* evidence source is the
+failing MCP tools:
+
+| agent | tool-error rate | byte-identical output, full vs no-memory |
+|---|---|---|
+| fundamental | 0.673 (has EDGAR text) | **1.0000** |
+| sentiment   | 0.000 (EDGAR text only) | 0.9719 |
+| technical   | 0.847 | 0.1781 |
+| risk        | 0.847 | 0.0179 |
+| macro       | **1.000** | 0.0123 |
+
+The agents holding real text are reproducible. The agents holding only error
+dicts are not. Since inputs, context and decoding are all identical, the
+residual is the serving environment: the four conditions ran in four
+**disjoint** wall-clock windows —
+
+```
+full        2026-06-22 13:42 → 06-24 13:37
+no-memory   2026-06-25 02:03 → 06-28 14:14
+parallel    2026-06-28 14:33 → 06-30 07:11
+homogeneous 2026-07-01 23:44 → 07-06 05:52
+```
+
+— across model-server reloads. **Condition is perfectly confounded with
+time.** When a prompt carries no discriminating evidence the logits are
+near-tied, and any drift in the serving stack decides the label. This is the
+same root cause as DJ-120 seen from the other end: it is not that the agents
+were bearish, it is that they were free-running.
+
+## Two smaller defects found on the way
+
+**`homogeneous` has duplicated context rows.** 7,056 of its 11,760
+`(run_id, agent_type)` pairs exist twice (60%). `read_prior` returns every
+match, so in 60% of its records the downstream agents were fed each
+predecessor's summary twice. The condition was partially re-run and the store
+was never cleared — `clear_run` exists and was not called. Its 0.8622 herding
+is measured on a partly doubled prompt.
+
+**The contrarian agent never ran.** 0 of 2,352 records in any condition carry
+a `contrarian_analysis.signal`. Phase 15 was a 5-agent ensemble, not the
+6-agent ensemble it is documented as.
+
+## Finding #4: latent, not active
+
+`forward_return_from_ohlcv` swallowed every exception into `None`, silently
+removing pairs from the IC denominator. Re-checked exhaustively against the
+repaired market store: **2,352/2,352 forward returns resolve, in all four
+conditions. Zero drops.** The IC recomputes bit-identical to the retracted
+figures (parallel +0.0642 p=0.0019; full +0.0232; no-memory +0.0251;
+homogeneous −0.0428 p=0.038), and `N_pairs` was 2,352 then too.
+
+This is worth stating precisely, because it sharpens the DJ-120 retraction:
+the *labels* were never affected. The forward returns are read by
+`compute_phase15_ic.py` through its own loader, which was never broken. Only
+the *agents'* evidence path was. Phase 15 correlated real returns against
+signals generated from nothing — which is exactly why the retraction stands
+and why re-running the agents, not the metrics, is the remedy.
+
+Hardened anyway: the bare `except` now logs the ticker-date and the exception
+type. Under DJ-120 conditions a broken data path would have shown up as log
+noise instead of an unremarked drop in `n`.
+
+## Also fixed
+
+- `_fmt_ir` printed the homogeneous IR as `+nan` — a value-shaped string in a
+  value column. NaN is now typeset `n/a`, like the undefined statistic it is.
+  (Cause: `buy_strength` is constant within a month under homogeneity, so
+  `spearmanr` is undefined for that month and the aggregate inherits it.)
+- `simulate_next_run.py` rebound `buys` from *orders* to *signals* midway
+  through, so a cycle with 6 sells and no buys printed "6 buy ($0)". Signal
+  and order counts are now separate fields. Same class as DJ-125: an
+  instrument lying about the run it inspects.
+- Its `n_positions_after >= n_positions_before` check would have scored
+  DJ-127 (acting on Sell conviction) as a regression. It now allows the book
+  to narrow by exactly the number of deliberate exits.
+
+## Consequence for the re-run
+
+The retraction already required re-running Phase 15 on repaired data. This
+adds three requirements to that re-run, none of which are optional:
+
+1. **Populate `hifi-eval-episodes` before the `full` condition, or drop the
+   memory contrast entirely.** Reporting an ablation of an absent variable is
+   worse than reporting no ablation.
+2. **Interleave the conditions** rather than running them in sequential
+   multi-day blocks, so serving drift is spread across conditions instead of
+   aliased onto them. Failing that, at minimum run one condition twice to
+   publish the noise floor alongside the effects.
+3. **Clear the context store per condition** (`clear_run`), and assert
+   one row per `(run_id, agent_type)` before computing anything.
+
+2,026 tests pass. Lint clean on all changed files.

@@ -130,12 +130,17 @@ def simulate(account: str, date: str | None, data_dir: str) -> dict | None:
 
         # Reconstruct the policy the run applied, so the checks below assert
         # against the live limits rather than a copy of them.
+        # NOTE: this used to rebind `buys`, which above holds the BUY *orders*.
+        # The report then printed the count of Buy *signals* next to the dollar
+        # value of the buy orders, so a cycle with 6 sells and no buys rendered
+        # as "6 buy ($0)". Same class of defect as DJ-125: an instrument that
+        # lies about the run it is inspecting.
         from hifi.portfolio import PortfolioPolicy
-        buys = [s for s in signals if s.get("decision") == "Buy"]
+        buy_signals = [s for s in signals if s.get("decision") == "Buy"]
         sector_counts = collections.Counter(
-            sectors.get(s["ticker"], "Unknown") for s in buys
+            sectors.get(s["ticker"], "Unknown") for s in buy_signals
         )
-        policy = PortfolioPolicy(n_candidates=len(buys))
+        policy = PortfolioPolicy(n_candidates=len(buy_signals))
         largest = max(sector_counts.values()) if sector_counts else None
 
         return {
@@ -154,6 +159,10 @@ def simulate(account: str, date: str | None, data_dir: str) -> dict | None:
             "orders": orders,
             "n_buy": len(buys),
             "n_sell": len(sells),
+            "n_buy_signals": len(buy_signals),
+            "n_exits": sum(1 for o in sells
+                           if positions.get(o["ticker"])
+                           and o["quantity"] >= positions[o["ticker"]].qty - 1e-6),
             "buy_notional": buy_notional,
             "sell_notional": sell_notional,
             "cash_after": cash - buy_notional + sell_notional,
@@ -197,8 +206,14 @@ def _checks(r: dict) -> list[tuple[bool, str]]:
          f"{r['policy_max_sector']*100:.2f}% policy cap (+10% tol)"),
         (all(o["quantity"] > 0 for o in r["orders"]),
          "all order quantities positive"),
-        (r["n_positions_after"] >= r["n_positions_before"],
-         f"book widens {r['n_positions_before']} -> {r['n_positions_after']} positions"),
+        # The book is allowed to NARROW by exactly the number of positions the
+        # ensemble decided to leave (DJ-127). Before exits existed this check
+        # was "n_after >= n_before", which now fails an arm that is correctly
+        # acting on Sell conviction — it would have scored DJ-127 as a
+        # regression. What must never happen is losing positions nobody sold.
+        (r["n_positions_after"] >= r["n_positions_before"] - r["n_exits"],
+         f"book {r['n_positions_before']} -> {r['n_positions_after']} positions, "
+         f"accounted for by {r['n_exits']} deliberate exit(s)"),
         (r["exposure_after"] >= 0.80,
          f"capital deployed {r['exposure_after']*100:.1f}% >= 80% "
          "(catches limits stranding cash)"),
@@ -234,7 +249,10 @@ def main() -> int:
         print(f"  before : equity ${r['equity']:,.0f}  cash ${r['cash']:,.0f}  "
               f"{r['n_positions_before']} positions  exposure {r['exposure_before']*100:.1f}%")
         print(f"  orders : {r['n_buy']} buy (${r['buy_notional']:,.0f}) / "
-              f"{r['n_sell']} sell (${r['sell_notional']:,.0f})")
+              f"{r['n_sell']} sell (${r['sell_notional']:,.0f}), "
+              f"of which {r['n_exits']} full exit(s)")
+        print(f"           [{r['n_buy_signals']} Buy signals -> {r['n_buy']} buy orders; "
+              "a gap here means cash or limits bound, not indecision]")
         for o in r["orders"][:args.show_orders]:
             print(f"             {o['side']:<4} {o['ticker']:<6} {o['quantity']:>10.3f} "
                   f"  ${o['estimated_value']:>10,.0f}")

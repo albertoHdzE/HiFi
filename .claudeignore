@@ -1,0 +1,82 @@
+# HiFi — paths Claude should never read directly.
+#
+# NOTE ON MECHANISM: Claude Code does not natively consume .claudeignore.
+# The rules that actually take effect are the `permissions.deny` Read()
+# entries in .claude/settings.json, which mirror this file one-for-one.
+# This file is kept as the human-readable statement of intent (and is
+# honoured by some other tools), so edit BOTH when changing the policy.
+#
+# Rationale: `data/` alone is 264 GB, of which 260 GB is a binary vector
+# store. None of it is readable as text; a single accidental Read of a
+# .lance fragment or a LoRA shard costs more tokens than a full source
+# audit. Inspecting these artifacts is legitimate — but through pyarrow /
+# lancedb / mlx in Bash, which summarises, not through the Read tool,
+# which dumps.
+
+# --- Binary data stores (260 GB) ---
+# Only the binary fragments. The *.lance directory names themselves are NOT
+# ignored: querying the store through lancedb in Bash is a core audit workflow
+# (it is how the empty hifi-eval-episodes table was found), and a blanket
+# `**/*.lance` rule blocks those Bash paths too.
+data/knowledge.lance/**/data/
+**/*.manifest
+**/_versions/
+**/_transactions/
+
+# --- Model weights: LoRA adapters, checkpoints (3.6 GB) ---
+data/adapters/
+**/*.safetensors
+**/*.gguf
+**/*.npz
+**/*.bin
+**/*.pt
+**/*.pth
+**/*.ckpt
+
+# --- Columnar / binary datasets: read via pyarrow, never as text ---
+**/*.parquet
+**/*.arrow
+**/*.feather
+**/*.db
+**/*.sqlite
+**/*.sqlite3
+**/*.pkl
+**/*.pickle
+**/*.h5
+
+# --- Environments and caches ---
+.venv/
+venvs/
+**/__pycache__/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.codebase-memory/
+node_modules/
+
+# --- Secrets ---
+.env
+.env.*
+docker/langfuse/.env
+
+# --- Rendered / generated output, not source ---
+data/tearsheets/
+**/*.html
+**/*.png
+**/*.jpg
+**/*.jpeg
+**/*.pdf
+**/*.zip
+**/*.tar.gz
+
+# --- OS noise ---
+.DS_Store
+
+# --- Deliberately NOT ignored ---
+# data/live/**, data/runs/**, data/walkforward/**  : JSON decision sidecars,
+#   the primary evidence for the Phase 16 audit trail. Must stay readable.
+# data/macro/, data/market/                        : parquet, already covered
+#   by the *.parquet rule; directory listings stay available.
+# notebooks/*.ipynb                                : large, but they are the
+#   deliverable. Prefer scripts/build_phase16_report_notebook.py over
+#   reading the rendered notebook.

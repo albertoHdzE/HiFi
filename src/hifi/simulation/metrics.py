@@ -23,9 +23,12 @@ weak Sell > strong Sell) while allowing rank correlation computation.
 
 from __future__ import annotations
 
+import logging
 import math
 from dataclasses import dataclass
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -188,9 +191,26 @@ def forward_return_from_ohlcv(
     float | None
         Realized return (price_end / price_start) - 1, or None if data
         is unavailable for either the start or end date.
+
+    Notes
+    -----
+    A ``None`` here silently removes one (ticker, date) pair from the IC
+    denominator, and IC is the headline metric of the whole project. Two very
+    different situations produce it:
+
+    * **Legitimate** — the horizon runs past the end of the series, so no
+      forward return exists yet. Expected for the last ~60 trading days.
+    * **A defect** — the OHLCV frame is malformed or the wrong shape. Under
+      DJ-120 the market path was broken for 83 of 98 tickers; a bare
+      ``except: return None`` would have quietly computed IC on the survivors
+      and reported no anomaly.
+
+    The two are therefore separated: the expected case returns ``None``
+    quietly, anything unexpected returns ``None`` *and* logs a warning naming
+    the ticker-date, so a broken data path shows up as log noise instead of a
+    smaller, unremarked ``n``.
     """
     try:
-
         df = ohlcv_df["Close"].dropna().sort_index()
         t0_str = as_of_date
 
@@ -208,7 +228,17 @@ def forward_return_from_ohlcv(
         price_end = float(df.iloc[end_iloc])
 
         if price_start == 0.0:
+            logger.warning(
+                "forward_return: zero start price for %s; dropping this pair "
+                "from the IC sample", as_of_date,
+            )
             return None
         return (price_end - price_start) / price_start
-    except Exception:
+    except Exception as exc:
+        logger.warning(
+            "forward_return failed at %s (%s: %s); this pair is dropped from "
+            "the IC sample. Expected only for malformed OHLCV — check the "
+            "market data path before trusting n.",
+            as_of_date, type(exc).__name__, exc,
+        )
         return None
