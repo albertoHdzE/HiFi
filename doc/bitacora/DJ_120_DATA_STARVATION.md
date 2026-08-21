@@ -671,9 +671,39 @@ predecessor's summary twice. The condition was partially re-run and the store
 was never cleared — `clear_run` exists and was not called. Its 0.8622 herding
 is measured on a partly doubled prompt.
 
-**The contrarian agent never ran.** 0 of 2,352 records in any condition carry
-a `contrarian_analysis.signal`. Phase 15 was a 5-agent ensemble, not the
-6-agent ensemble it is documented as.
+**The contrarian's verdict is computed and then discarded.**
+
+*Corrected 2026-08-20.* This was first written up as "the contrarian agent
+never ran", on the evidence that 0 of 2,352 records carry a
+`contrarian_analysis.signal`. That was my probe being wrong, not the agent:
+the contrarian is a **reviewer, not a voter** (`voting_agents = [a for a in
+active if a != "contrarian"]`), so it never emits `signal.decision` by design.
+Same error class as DJ-125 — an instrument asking the wrong question and
+getting a confident answer.
+
+What is actually true, measured across Phase 15 and live: `contrarian_analysis`
+is present in **9,505 of 9,505** records, with a substantive
+`alternative_thesis` / `risk_scenario` / `counterargument` and its own
+confidence (0.68 on the AAPL sample). And in all 9,505,
+`contrarian_confidence_discount = 1.0` and `review_flagged = False`.
+
+The reason is aggregator selection, not failure. `aggregation_method` is
+`confidence_weighted` in every record — Phase 15 and live, all arms. The
+contrarian-aware variant in `voting.py:272` (`discount = 1.0 - 0.5 *
+contrarian.confidence`, `review_flagged = confidence > 0.70`) is implemented
+and unit-tested but is not the selected aggregator, so the discount keeps its
+schema default of 1.0.
+
+On the AAPL sample the discount *would* have been 1 − 0.5×0.68 = **0.66**, a
+34% haircut on collective confidence — and at θ=0.70 the review flag would
+have sat just below its threshold. Since `buy_strength` (the IC signal) is
+built from collective confidence, this is not cosmetic: the whole IC series is
+computed on undiscounted confidence.
+
+Not a defect and not a genesis blocker — it is stable, identical across all
+arms, and fully recorded, so it biases no comparison. But it must be
+reconciled against the OSF pre-registration: if the registered design says the
+contrarian discounts the ensemble, the registered design is not what ran.
 
 ## Finding #4: latent, not active
 
