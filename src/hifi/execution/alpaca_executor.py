@@ -128,8 +128,33 @@ class AlpacaExecutor:
                 "order will be sized in shares rather than dollars", ticker, exc)
             return False
 
+    @with_retry()
+    def get_client_order_ids(self, limit: int = 500) -> set[str]:
+        """Client order ids visible among this account's recent orders (DJ-129a).
+
+        Scans both open and closed recent orders. The nightly cycle uses this to
+        make re-runs idempotent: a deterministic client_order_id submitted twice
+        must produce one order at the broker, never two. The installed alpaca-py
+        has no get_order_by_client_order_id, so the scan is local over recent
+        history; a night's book is ~100 orders per account, well inside limit.
+
+        Raises on API failure — callers treat "cannot verify" as "do not submit"
+        (fail-closed), which is the only safe direction for an idempotency gate.
+        """
+        from alpaca.trading.requests import GetOrdersRequest
+
+        ids: set[str] = set()
+        for status in ("open", "closed"):
+            req = GetOrdersRequest(status=status, limit=limit)
+            for order in self.client.get_orders(req):
+                cid = getattr(order, "client_order_id", None)
+                if cid:
+                    ids.add(str(cid))
+        return ids
+
     def place_market_order(
-        self, ticker: str, qty: float, side: str, notional: float | None = None
+        self, ticker: str, qty: float, side: str, notional: float | None = None,
+        client_order_id: str | None = None,
     ) -> OrderResult:
         """Submit a market DAY order, by share count or by dollar amount.
 
@@ -144,19 +169,31 @@ class AlpacaExecutor:
         check ``is_fractionable`` and fall back to ``qty``. Notional is used for
         BUYs only: a notional SELL could exceed the shares actually held if the
         price gapped down, and this is a long-only book.
+
+        ``client_order_id`` (DJ-129a) makes submission idempotent: the broker
+        rejects a duplicate id, so a crash-and-rerun of the nightly cycle can
+        never double-fill. Callers derive it deterministically from
+        (account, decision date, ticker, side) so a re-run reproduces the same
+        ids for the same intended orders.
         """
         order_side = OrderSide.BUY if side.lower() == "buy" else OrderSide.SELL
+
+        def _req(**kwargs) -> MarketOrderRequest:
+            if client_order_id:
+                kwargs["client_order_id"] = client_order_id
+            return MarketOrderRequest(**kwargs)
+
         if notional is not None:
             if side.lower() != "buy":
                 raise ValueError("notional orders are BUY-only (long-only book)")
-            req = MarketOrderRequest(
+            req = _req(
                 symbol=ticker,
                 notional=round(float(notional), 2),
                 side=order_side,
                 time_in_force=TimeInForce.DAY,
             )
         else:
-            req = MarketOrderRequest(
+            req = _req(
                 symbol=ticker,
                 qty=qty,
                 side=order_side,
@@ -164,10 +201,11 @@ class AlpacaExecutor:
             )
         order = self.client.submit_order(req)
         logger.info(
-            "Order submitted: %s %s %s → %s (id=%s)",
+            "Order submitted: %s %s %s → %s (id=%s%s)",
             side, ticker,
             f"${notional:,.2f}" if notional is not None else f"x{qty:.3f}",
             order.status, order.id,
+            f", coid={client_order_id}" if client_order_id else "",
         )
         return OrderResult(
             ticker=ticker,
@@ -182,7 +220,7 @@ class AlpacaExecutor:
             filled_avg_price=float(order.filled_avg_price) if order.filled_avg_price else None,
             status=str(order.status).split(".")[-1].lower(),
             order_id=str(order.id),
-            raw={"client_order_id": order.client_order_id,
+            raw={"client_order_id": client_order_id or order.client_order_id,
                  "notional": round(float(notional), 2) if notional is not None else None},
         )
 

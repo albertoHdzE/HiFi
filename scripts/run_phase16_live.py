@@ -145,6 +145,71 @@ def _breaker_log(account: str) -> Path:
     return _account_dir(account) / "circuit_breakers.jsonl"
 
 
+def _hwm_path(account: str) -> Path:
+    return _account_dir(account) / "hwm.json"
+
+
+def _client_order_id(account: str, date: str, ticker: str, side: str) -> str:
+    """Deterministic idempotency key for one intended order (DJ-129a).
+
+    A crash at any point of the submit loop leaves orders at the broker with
+    these ids; a same-evening re-run recomputes identical keys, and the broker
+    refuses the duplicate instead of filling it twice at the open. Charset and
+    length are within Alpaca's client_order_id rules.
+    """
+    return f"hifi{account}-{date}-{side.lower()}-{ticker}"[:48]
+
+
+def _seed_hwm_from_history(account: str) -> float:
+    """Highest equity ever recorded for this account (0.0 if no history).
+
+    Seeds the high-water mark from the existing record so activating the
+    drawdown breaker does not silently reset its baseline on the first run
+    after the fix: an account that once sat at $110k must carry that peak even
+    if tonight's equity is lower.
+    """
+    import pandas as pd
+
+    path = Path(_DATA_DIR) / "live" / account / "equity.jsonl"
+    if not path.exists():
+        return 0.0
+    try:
+        df = pd.read_json(path, lines=True)
+        if "equity" not in df.columns or df.empty:
+            return 0.0
+        return float(pd.to_numeric(df["equity"], errors="coerce").max() or 0.0)
+    except Exception as exc:
+        logger.warning("[%s] Could not seed HWM from history (%s); using 0.0",
+                       account, exc)
+        return 0.0
+
+
+def update_hwm(account: str, current_equity: float) -> float:
+    """Ratchet the account's high-water mark and persist it atomically (DJ-129b).
+
+    The drawdown breaker compares equity to this mark. Before DJ-129b the
+    caller passed today's equity as its own HWM, so (hwm - pv) / hwm was
+    identically zero and the pre-registered -15% control could never fire.
+    The mark ratchets up only; a falling market must never lower it.
+    """
+    stored = 0.0
+    path = _hwm_path(account)
+    if path.exists():
+        try:
+            stored = float(json.loads(path.read_text()).get("hwm", 0.0))
+        except (OSError, json.JSONDecodeError, ValueError, TypeError) as exc:
+            logger.warning("[%s] Could not read HWM file (%s); rebuilding from history",
+                           account, exc)
+    hwm = max(stored, _seed_hwm_from_history(account), current_equity)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(".json.tmp")
+    tmp.write_text(json.dumps(
+        {"hwm": hwm, "updated": datetime.now().isoformat(),
+         "equity_now": current_equity}) + "\n")
+    tmp.rename(path)
+    return hwm
+
+
 def already_decided(account: str, date: str) -> bool:
     """True if this account already logged an episode for `date` (DJ-119).
 
@@ -343,8 +408,15 @@ def load_ensemble_signals(
 # ---------------------------------------------------------------------------
 
 
-def run_mcp_pipeline(signals: list[dict], tickers: list[str], executor):
-    """Run compose -> risk -> allocate and return the portfolio snapshot."""
+def run_mcp_pipeline(signals: list[dict], tickers: list[str], executor,
+                     hwm_value: float | None = None):
+    """Run compose -> risk -> allocate and return the portfolio snapshot.
+
+    ``hwm_value`` is the persisted high-water mark (DJ-129b). Passing it makes
+    the -15% drawdown breaker live: with the historical bug of passing today's
+    equity, ``(hwm - pv) / hwm`` was identically zero and the control could
+    never trip. ``None`` (dry-run) preserves the old fallback behavior.
+    """
     import pandas as pd
 
     from hifi.simulation.pipeline import run_pipeline
@@ -368,7 +440,7 @@ def run_mcp_pipeline(signals: list[dict], tickers: list[str], executor):
             for sym, p in positions.items()
         },
         "portfolio_value": portfolio_value,
-        "hwm_value": portfolio_value,
+        "hwm_value": hwm_value if (hwm_value and hwm_value > 0) else portfolio_value,
         # Fractional holdings preserved (DJ-121): int() truncation made a
         # 3.9-share position read as 3 and manufactured phantom rebalances.
         "holdings": {sym: float(p.qty) for sym, p in positions.items()},
@@ -426,16 +498,28 @@ def run_mcp_pipeline(signals: list[dict], tickers: list[str], executor):
 # ---------------------------------------------------------------------------
 
 
-def run_control_strategy(tickers: list[str], executor, dry_run: bool) -> list[dict]:
+def run_control_strategy(tickers: list[str], executor, dry_run: bool,
+                         account: str = "C", date: str | None = None) -> list[dict]:
     """Null model (DJ-111): buy each ticker at 1/N equity once, then hold.
 
     Only emits Buy orders for tickers with no existing position. No
     rebalancing, no selling — pure buy-and-hold market exposure.
+
+    With ``date`` set (live path), submission is idempotent (DJ-129a): each
+    order carries a deterministic client_order_id and ids already at the broker
+    from a crashed earlier attempt are skipped, never duplicated.
     """
     positions = executor.get_positions()
     equity = executor.get_portfolio_value()
     cash = executor.get_account_cash()
     prices = _latest_prices(tickers)
+
+    # DJ-129a: ids already committed by a previous (crashed) attempt tonight.
+    # A prefetch failure aborts before any submit — "cannot verify" must not
+    # become "submit anyway".
+    existing_ids: set[str] = set()
+    if not dry_run and date:
+        existing_ids = executor.get_client_order_ids()
 
     # 1% cash buffer: prices move between close (sizing) and open (fill),
     # and rounding accumulates across ~98 orders.
@@ -469,9 +553,23 @@ def run_control_strategy(tickers: list[str], executor, dry_run: bool) -> list[di
                            ticker, spend, cash)
             break
 
+        coid = _client_order_id(account, date, ticker, "buy") if date else None
+        if coid and coid in existing_ids:
+            logger.warning("[C] %s already has an open/closed order for %s "
+                           "(crashed attempt?) — skipping duplicate", ticker, date)
+            orders.append({
+                "ticker": ticker, "side": "buy", "qty": qty,
+                "notional": round(target_value, 2) if fractionable else None,
+                "status": "skipped_duplicate", "client_order_id": coid,
+            })
+            # Do NOT add to local `spend`: the duplicate's cash was already
+            # reserved at the broker and is reflected in the cash read above.
+            continue
+
         if dry_run:
             logger.info("[DRY-RUN] Control would buy %s x%d (~$%.2f)", ticker, qty, qty * price)
-            orders.append({"ticker": ticker, "side": "buy", "qty": qty, "status": "dry_run"})
+            orders.append({"ticker": ticker, "side": "buy", "qty": qty,
+                           "client_order_id": coid, "status": "dry_run"})
         else:
             # Same per-order isolation as the pipeline arms (DJ-123): a symbol
             # delisted since the universe was fixed must not stop the control
@@ -484,10 +582,15 @@ def run_control_strategy(tickers: list[str], executor, dry_run: bool) -> list[di
             # drift from theirs for a purely mechanical reason.
             notional = round(target_value, 2) if fractionable else None
             try:
-                result = executor.place_market_order(ticker, qty, "buy", notional=notional)
+                result = executor.place_market_order(
+                    ticker, qty, "buy", notional=notional,
+                    **({"client_order_id": coid} if coid else {}))
+                if coid:
+                    existing_ids.add(coid)
                 orders.append({
                     "ticker": ticker, "side": "buy", "qty": qty,
                     "notional": notional,
+                    "client_order_id": coid,
                     "status": result.status, "order_id": result.order_id,
                 })
             except Exception as exc:
@@ -496,6 +599,7 @@ def run_control_strategy(tickers: list[str], executor, dry_run: bool) -> list[di
                 orders.append({
                     "ticker": ticker, "side": "buy", "qty": qty,
                     "notional": notional,
+                    "client_order_id": coid,
                     "status": "rejected", "error": str(exc)[:200],
                 })
                 continue
@@ -511,11 +615,19 @@ def run_control_strategy(tickers: list[str], executor, dry_run: bool) -> list[di
 # ---------------------------------------------------------------------------
 
 
-def execute_orders(snapshot, executor, dry_run: bool) -> list[dict]:
+def execute_orders(snapshot, executor, dry_run: bool,
+                   account: str = "A", date: str | None = None) -> list[dict]:
     orders_src = getattr(snapshot, "orders", None) or []
     if not orders_src:
         logger.info("No orders to execute")
         return []
+
+    # DJ-129a: ids already committed by a previous (crashed) attempt tonight.
+    # Prefetch failure aborts the arm BEFORE any submit: an idempotency gate
+    # that cannot verify must not wave orders through.
+    existing_ids: set[str] = set()
+    if not dry_run and date:
+        existing_ids = executor.get_client_order_ids()
 
     results = []
     for order in orders_src:
@@ -524,6 +636,18 @@ def execute_orders(snapshot, executor, dry_run: bool) -> list[dict]:
         # allocate_capital emits "quantity"; accept "shares"/"qty" too (HiFi issue #1).
         qty = order.get("quantity", order.get("shares", order.get("qty", 0)))
         if qty <= 0:
+            continue
+
+        coid = _client_order_id(account, date, ticker, side) if date else None
+        if coid and coid in existing_ids:
+            logger.warning("[%s] %s %s already has an order for %s (crashed "
+                           "attempt?) — skipping duplicate", account, side, ticker, date)
+            results.append({
+                "ticker": ticker, "side": side, "qty": qty,
+                "notional": None,
+                "client_order_id": coid,
+                "status": "skipped_duplicate",
+            })
             continue
 
         if dry_run:
@@ -556,10 +680,15 @@ def execute_orders(snapshot, executor, dry_run: bool) -> list[dict]:
                     logger.info("[order] %s not fractionable; sizing in shares", ticker)
 
             try:
-                result = executor.place_market_order(ticker, qty, side, notional=notional)
+                result = executor.place_market_order(
+                    ticker, qty, side, notional=notional,
+                    **({"client_order_id": coid} if coid else {}))
+                if coid:
+                    existing_ids.add(coid)
                 results.append({
                     "ticker": ticker, "side": side, "qty": qty,
                     "notional": round(notional, 2) if notional is not None else None,
+                    "client_order_id": coid,
                     "status": result.status, "order_id": result.order_id,
                     "filled_price": result.filled_avg_price,
                 })
@@ -569,6 +698,7 @@ def execute_orders(snapshot, executor, dry_run: bool) -> list[dict]:
                 results.append({
                     "ticker": ticker, "side": side, "qty": qty,
                     "notional": round(notional, 2) if notional is not None else None,
+                    "client_order_id": coid,
                     "status": "rejected", "error": str(exc)[:200],
                 })
 
@@ -713,6 +843,29 @@ def effective_halt_threshold(n_positions: int, exposure: float = 1.0) -> float:
         return float("inf")
     weight = exposure / n_positions
     return max(_POSITION_LOSS_LIMIT, _POSITION_IMPACT_LIMIT / weight)
+
+
+def _halt_before_submit(account: str, executor, is_dry: bool,
+                        date: str | None) -> bool:
+    """Re-run the breakers immediately before order submission (DJ-129c).
+
+    The main check runs hours earlier, before the LLM passes; between that
+    check and the first submit lies the entire cycle. A book can cross a limit
+    in that window only through external marks — but the broker/API itself can
+    also have degraded, which is exactly when the old single-check design
+    submitted blind. Returns True if the arm must stop; records and disconnects
+    on trip so a halted arm still lands in the equity curve (DJ-119).
+    """
+    if is_dry:
+        return False
+    if not check_circuit_breakers(account, executor):
+        return False
+    logger.error("[%s] PRE-SUBMIT HALT: breakers tripped after signal "
+                 "generation — no orders submitted", account)
+    from hifi.execution.portfolio_recorder import record_account
+    record_account(executor, account, _DATA_DIR, decision_date=date)
+    executor.disconnect()
+    return True
 
 
 def check_data_coverage(tickers: list[str], min_fraction: float = 0.99) -> bool:
@@ -1023,8 +1176,21 @@ def run_account_cycle(account: str, tickers: list[str], date: str,
     orders: list[dict] = []
     signals: list[dict] = []
 
+    # DJ-129b: ratchet and persist the high-water mark BEFORE anything trades,
+    # so every pipeline decision tonight sees a real HWM instead of today's
+    # equity (which made the -15% drawdown breaker unfireable). Persistence
+    # failure raises: an unverifiable risk control must fail the arm, not
+    # silently revert it to the dead-breaker state.
+    hwm_value: float | None = None
+    if not is_dry:
+        hwm_value = update_hwm(account, executor.get_portfolio_value())
+        logger.info("[%s] High-water mark: $%.2f", account, hwm_value)
+
     if condition == "control":
-        orders = run_control_strategy(tickers, executor, dry_run=is_dry)
+        if _halt_before_submit(account, executor, is_dry, date):
+            return
+        orders = run_control_strategy(tickers, executor, dry_run=is_dry,
+                                      account=account, date=None if is_dry else date)
         signals = []
     elif condition == "riskbudget":
         # External deterministic quant provider (DJ-113). as_of_date is the
@@ -1048,8 +1214,11 @@ def run_account_cycle(account: str, tickers: list[str], date: str,
             logger.info("[%s] Dry-run: riskbudget %s -> %s, %d skipped",
                         account, dict(c), payload.get("call_id"), len(strategy_meta["skipped"]))
             return
-        snapshot = run_mcp_pipeline(signals, tickers, executor)
-        orders = execute_orders(snapshot, executor, dry_run=is_dry)
+        if _halt_before_submit(account, executor, is_dry, date):
+            return
+        snapshot = run_mcp_pipeline(signals, tickers, executor, hwm_value=hwm_value)
+        orders = execute_orders(snapshot, executor, dry_run=is_dry,
+                                account=account, date=date)
     else:
         run_ensemble(tickers, date, condition, account, dry_run=dry_run)
         if dry_run:
@@ -1059,8 +1228,11 @@ def run_account_cycle(account: str, tickers: list[str], date: str,
         if not signals:
             logger.warning("[%s] No ensemble signals for %s — skipping pipeline", account, date)
             return
-        snapshot = run_mcp_pipeline(signals, tickers, executor)
-        orders = execute_orders(snapshot, executor, dry_run=is_dry)
+        if _halt_before_submit(account, executor, is_dry, date):
+            return
+        snapshot = run_mcp_pipeline(signals, tickers, executor, hwm_value=hwm_value)
+        orders = execute_orders(snapshot, executor, dry_run=is_dry,
+                                account=account, date=date)
 
     # The broker and the experimental record must not diverge (DJ-123). On
     # 2026-08-17 arm A filled 37 orders and then raised, so log_episode never
