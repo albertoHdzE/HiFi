@@ -95,17 +95,13 @@ def _stub_llm(model_name: str = "test-model"):
 # ---------------------------------------------------------------------------
 
 
-def test_verify_agent_fundamental_returns_report(
-    monkeypatch, fixtures_data_dir, aapl_snapshot_json
-):
-    import hifi.agents.fundamental_agent as fa
-    monkeypatch.setattr(fa, "make_llm", lambda *a, **kw: _stub_llm("fund-model"))
-
+def test_verify_agent_fundamental_returns_report(fixtures_data_dir, aapl_snapshot_json):
     analysis = run_analysis(
         ticker="AAPL",
         as_of_date="2023-03-31",
         snapshot_json=aapl_snapshot_json,
         data_dir=fixtures_data_dir,
+        _test_llm=_stub_llm("fund-model"),
     )
 
     assert isinstance(analysis, FundamentalAnalysis)
@@ -118,17 +114,13 @@ def test_verify_agent_fundamental_returns_report(
     assert report.prompt_version == "fundamental_v1"
 
 
-def test_verify_agent_fundamental_metrics_in_range(
-    monkeypatch, fixtures_data_dir, aapl_snapshot_json
-):
-    import hifi.agents.fundamental_agent as fa
-    monkeypatch.setattr(fa, "make_llm", lambda *a, **kw: _stub_llm("fund-model"))
-
+def test_verify_agent_fundamental_metrics_in_range(fixtures_data_dir, aapl_snapshot_json):
     analysis = run_analysis(
         ticker="AAPL",
         as_of_date="2023-03-31",
         snapshot_json=aapl_snapshot_json,
         data_dir=fixtures_data_dir,
+        _test_llm=_stub_llm("fund-model"),
     )
 
     report = verify_agent(analysis)
@@ -146,14 +138,12 @@ def test_verify_agent_fundamental_metrics_in_range(
 # ---------------------------------------------------------------------------
 
 
-def test_verify_agent_technical_returns_report(monkeypatch, fixtures_data_dir):
-    import hifi.agents.technical_agent as ta
-    monkeypatch.setattr(ta, "make_llm", lambda *a, **kw: _stub_llm("tech-model"))
-
+def test_verify_agent_technical_returns_report(fixtures_data_dir):
     analysis = run_technical_analysis(
         ticker="AAPL",
         as_of_date="2023-03-31",
         data_dir=fixtures_data_dir,
+        _test_llm=_stub_llm("tech-model"),
     )
 
     assert isinstance(analysis, TechnicalAnalysis)
@@ -190,15 +180,13 @@ def test_verify_agent_none_signal_empty_report():
 # ---------------------------------------------------------------------------
 
 
-def test_verify_agent_report_json_safe(monkeypatch, fixtures_data_dir, aapl_snapshot_json):
-    import hifi.agents.fundamental_agent as fa
-    monkeypatch.setattr(fa, "make_llm", lambda *a, **kw: _stub_llm("fund-model"))
-
+def test_verify_agent_report_json_safe(fixtures_data_dir, aapl_snapshot_json):
     analysis = run_analysis(
         ticker="AAPL",
         as_of_date="2023-03-31",
         snapshot_json=aapl_snapshot_json,
         data_dir=fixtures_data_dir,
+        _test_llm=_stub_llm("fund-model"),
     )
 
     report = verify_agent(analysis)

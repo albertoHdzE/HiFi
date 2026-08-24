@@ -19,7 +19,7 @@ def _sig(agent: str, decision: str, conf: float = 0.7) -> AgentSignal:
     )
 
 
-class _StubLLM:
+class _ResponseLLM:
     """Deterministic LLM: always returns a valid revision JSON."""
 
     model_name = "stub-model"
@@ -60,7 +60,7 @@ def test_multi_round_max_rounds_1_same_as_single_round():
         _sig("fundamental", "Buy"),
         _sig("technical", "Sell"),
     ]
-    stub = _StubLLM("Buy")
+    stub = _ResponseLLM("Buy")
     transcripts = run_debate_multi_round(
         initial_signals=signals,
         ticker="AAPL",
@@ -77,7 +77,7 @@ def test_multi_round_returns_list_of_transcripts():
         _sig("technical", "Sell"),
         _sig("risk", "Buy"),
     ]
-    stub = _StubLLM("Buy")
+    stub = _ResponseLLM("Buy")
     transcripts = run_debate_multi_round(
         initial_signals=signals,
         ticker="AAPL",
@@ -91,7 +91,7 @@ def test_multi_round_returns_list_of_transcripts():
 
 def test_multi_round_all_transcripts_same_ticker_date():
     signals = [_sig("fundamental", "Buy"), _sig("technical", "Sell")]
-    stub = _StubLLM("Sell")
+    stub = _ResponseLLM("Sell")
     transcripts = run_debate_multi_round(
         initial_signals=signals,
         ticker="AAPL",
@@ -111,7 +111,7 @@ def test_multi_round_convergence_stops_early():
         _sig("technical", "Sell", 0.5),
     ]
     # Stub always revises to Buy → majority Buy in every round → convergence round 2
-    stub = _StubLLM("Buy")
+    stub = _ResponseLLM("Buy")
     transcripts = run_debate_multi_round(
         initial_signals=signals,
         ticker="AAPL",
@@ -126,7 +126,7 @@ def test_multi_round_convergence_stops_early():
 def test_multi_round_max_rounds_enforced():
     signals = [_sig("fundamental", "Buy"), _sig("technical", "Sell")]
     # Stub alternates to prevent convergence (always Sell to fight Buy majority)
-    stub = _StubLLM("Sell")
+    stub = _ResponseLLM("Sell")
     transcripts = run_debate_multi_round(
         initial_signals=signals,
         ticker="AAPL",

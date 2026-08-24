@@ -1,7 +1,13 @@
 # HiFi Project Status
 
-**Last Updated:** 2026-06-15 (Wave 2 session 2)
-**Current Phase:** Phase 13 (IN PROGRESS — Wave 2 partial; E2-T4/E4-T4/E6-T2 LLM evals running)
+**Last Updated:** 2026-07-13 (Phase 16 IN PROGRESS — Alpaca 3-account live ablation, DJ-111)
+**Current Phase:** Phase 16 (live paper trading — Alpaca active, IBKR pending, Binance future)
+
+**DJ-111 (2026-07-13):** Three-account live ablation on Alpaca paper trading.
+A=parallel ensemble (champion), B=full sequential (herding contrast),
+C=equal-weight control (null model). Same 98-ticker universe, $1M each,
+one decision cycle/day. Live out-of-time replication of Page's theorem.
+See plans/PHASE_16_PLAN.md.
 
 ---
 
@@ -35,12 +41,34 @@ HiFi is a fully local multi-agent financial intelligence platform. Read these in
 | 11 | Fine-Tuning | COMPLETE | plans/PHASE_11_PLAN.md | doc/bitacora/PHASE_11_FINE_TUNING.md |
 | 12 | GraphRAG + Structured Debate | COMPLETE | plans/PHASE_12_PLAN.md | doc/bitacora/PHASE_12_GRAPHRAG_DEBATE.md |
 | 12.1 | Completion and Correction | COMPLETE | plans/PHASE_12.1_PLAN.md | doc/bitacora/PHASE_12.1_COMPLETION.md |
-| 13 | Verification Completeness, Sentiment Intelligence, System Resilience | IN PROGRESS (Wave 2: code complete; E2-T4/E4-T4/E6-T2 evals pending) | plans/PHASE_13_PLAN.md | doc/bitacora/PHASE_13_ADVANCED_FEATURES.md |
-| 14 | Paper Trading | NOT STARTED | -- | -- |
-| 15 | Containerization | NOT STARTED | -- | -- |
-| 16 | Open Source Release | NOT STARTED | -- | -- |
-| 17 | Capstone Deliverable | NOT STARTED | -- | -- |
-| 18 | Publication | NOT STARTED | -- | -- |
+| 13 | Verification Completeness, Sentiment Intelligence, System Resilience | COMPLETE | plans/PHASE_13_PLAN.md | doc/bitacora/PHASE_13_ADVANCED_FEATURES.md |
+| 14 | Infrastructure: Model Diversity, Scale Expansion, MCP Tools (DJ-088) | COMPLETE | plans/PHASE_14_PLAN.md | *(no bitacora — see Phase 14.1)* |
+| 14.1 | Pipeline Integration and Memory-Safe Orchestration (DJ-106) | COMPLETE | plans/PHASE_14.1_PLAN.md | doc/bitacora/PHASE_14.1_PIPELINE_INTEGRATION.md |
+| 15 | Historical Walk-Forward Simulation (DJ-095) | COMPLETE | plans/PHASE_15_PLAN.md | doc/bitacora/PHASE_15_WALK_FORWARD_SIMULATION.md |
+| 16 | Live Paper Trading — IBKR (DJ-098) | NEXT | plans/PHASE_16_PLAN.md | -- |
+| 17 | Ablation Studies + Capstone Deliverable | NOT STARTED | -- | -- |
+| 18 | Publication + Open Source Release | NOT STARTED | -- | -- |
+
+---
+
+## Phase 15 Results (COMPLETE 2026-07-06)
+
+**Run:** 98 tickers x 24 dates x 6 agents x 4 conditions = 56,448 LLM calls, ~10 days
+**Period:** held-out test 2022-2023 (rate-shock regime: Fed +500bps, SPY -20%)
+
+| Condition | IC | p-value | IR | Herding | Result |
+|---|---|---|---|---|---|
+| parallel | +0.0642 | 0.0019 | +0.316 | 0.000 | ** SIGNIFICANT |
+| full | +0.0232 | 0.2603 | +0.567 | 0.361 | not significant |
+| no-memory | +0.0251 | 0.2236 | +0.262 | 0.220 | not significant |
+| homogeneous | -0.0428 | 0.0380 | nan | 0.862 | * SIGNIFICANT (negative) |
+
+**Primary finding:** Page diversity theorem confirmed. Homogeneous ensemble (qwen-dominant)
+collapses to herding=86% and generates anti-signal. Parallel (no inter-agent sharing)
+achieves best IC — removing sequential sharing eliminates herding (36%->0%) in this regime.
+**Secondary finding:** Episodic RAG neutral in rate-shock regime (full ≈ no-memory).
+**Replication:** `notebooks/phase15_walkforward_replication.ipynb`
+**Bitacora:** `doc/bitacora/PHASE_15_WALK_FORWARD_SIMULATION.md`
 
 ---
 
@@ -141,6 +169,98 @@ HiFi is a fully local multi-agent financial intelligence platform. Read these in
 | DJ-085 | Sentiment model → gemma-4-e4b (SUPERSEDED by DJ-087) |
 | DJ-086 | E4B diagnosis: chat-template failure in LM Studio |
 | DJ-087 | Revert Sentiment to qwen2.5-coder + verbatim Rule 5 |
+
+---
+
+## Phase 14 Status (COMPLETE — 2026-06-19)
+
+**Tests:** 1756 passed, 0 lint errors
+**Branch:** phase14/heterogeneous-ensemble
+
+### Wave 1 — COMPLETE
+- E2-T1: PHASE14_UNIVERSE (98 tickers, 11 GICS sectors) ✓
+- E4-T1: hifi-portfolio-composer MCP server (deterministic) ✓
+- E6-T1: NamespacedLanceDB + KnowledgeStore namespace param ✓
+
+### Wave 2 — COMPLETE (E0 + E1)
+- E0: diversity baseline OQ-P14-05 PASS (mean_entropy=0.7449) ✓
+- E1: OQ-S01 NEGATIVE → permanently closed; FT deferred to Phase 16 ✓
+
+### Wave 3 — COMPLETE (E3 sequential ensemble)
+- E3-T1: AgentContextStore (LanceDB) + format_prior_context ✓
+- E3-T2: run_sequential_ensemble() — causal context accumulation ✓
+- E3-T3: graph.py — LangGraph StateGraph 6-node topology ✓
+- E3-T4: run_ensemble(sequential=True) ✓
+
+### Wave 4 — COMPLETE
+- E2-T3: edgar_mda.py helpers + ingest_edgar_mda.py script ✓
+- E2-T4: acquire_macro_phase14.py (FRED GS10/GS2 + spread) ✓
+- E4-T2: risk_manager MCP server (VaR, drawdown, sector cap, corr) ✓
+- E4-T3: capital_allocator MCP server (Kelly cap, IBKR commissions) ✓
+- E4-T4: test_portfolio_pipeline.py (3-MCP integration) ✓
+- E5-T1: regime.py (classify_regime, VIX fallback) ✓
+- E5-T2: episodic_store.py (EpisodicStore + EpisodeRecord, LanceDB) ✓
+- E5-T3: episodic_retriever.py (temporal-disciplined RAG) ✓
+- E5-T4: label_outcomes.py (60-day forward return, yfinance) ✓
+- E5-T5: episode creation in run_sequential_ensemble() ✓
+- E6-T2: manage_namespaces.py + Makefile targets ✓
+- E6-T3: ingest_episodes.py stub + temporal filter tests ✓
+
+### Remaining (internet-dependent, non-blocking)
+- E2-T2: acquire_phase14_data.py — bulk OHLCV 100 stocks × 21y (run separately)
+- E2-T3 ingest: ingest_edgar_mda.py — EDGAR API calls (run separately, 4-8h)
+
+### Phase 14 Wave 5 — Documentation (E7)
+Deferred to run alongside Phase 14.1/15 (non-blocking).
+
+---
+
+## Phase 14.1 Status (COMPLETE — 2026-06-21)
+
+**Tests:** 1809 passed, 3 skipped, 0 lint errors
+**Branch:** phase14/heterogeneous-ensemble
+**Decisions:** DJ-106 through DJ-110 (see plans/PHASE_14.1_CONTEXT.md)
+**Bitacora:** doc/bitacora/PHASE_14.1_PIPELINE_INTEGRATION.md
+
+Phase 14.1 integrates the six infrastructure components built in Phase 14
+into an orchestrated end-to-end pipeline:
+
+- **DJ-106:** Agent-first sequential sweep (one model in VRAM at a time; 35 GB peak vs 95 GB simultaneous) ✓
+- **DJ-107:** Stratified 22-ticker smoke universe (2 per GICS sector, all 11 sectors) ✓
+- **DJ-108:** End-to-end pipeline: ensemble → compose → risk → allocate → PortfolioSnapshot ✓
+- **DJ-109:** Two-layer execution: smoke (22-ticker validation) + orchestrator (98-ticker production) ✓
+- **DJ-110:** One replication notebook: notebooks/phase15_walkforward_replication.ipynb ✓
+
+### Code artifacts
+- `src/hifi/simulation/agent_executor.py` — run_agent_pass() + aggregate_agent_outputs()
+- `src/hifi/simulation/model_manager.py` — load_model/unload_model/model_is_loaded via lms CLI
+- `src/hifi/simulation/pipeline.py` — PortfolioSnapshot + run_pipeline() MCP chain
+- `src/hifi/data/smoke_universe.py` — 22-ticker stratified universe (SMOKE_UNIVERSE)
+- `src/hifi/agents/ensemble_runner.py` — run_id: str | None = None param added
+- `scripts/run_phase15_smoke.py` — complete rewrite (agent-first + full pipeline)
+- `scripts/run_phase15_orchestrator.py` — production orchestrator (--agent/--aggregate/--pipeline/--status)
+- `notebooks/phase15_walkforward_replication.ipynb` — 10-section replication notebook
+
+### Bug fix
+- DJ-109: old smoke script set `HIFI_FUNDAMENTAL_FINETUNE_URL` but not `HIFI_FUNDAMENTAL_FINETUNE_MODEL`
+  for the fine-tuned fallback. fundamental_agent.py checks both. Both now set correctly.
+
+### Smoke Test Result (2026-06-21, commit 95c3f6a) — PASS
+
+Three infrastructure bugs fixed during the live run:
+1. **Technical model ID**: mlx_lm server v0.31 registers full local path; query /v1/models at
+   startup to get the actual model ID instead of hardcoding the short LM Studio name.
+2. **OHLCV column case**: parquet stores 'Close' (capital C); `df.columns.str.lower()` fixes it.
+3. **Gemma context overflow**: AAPL sentiment prompt (~3,333 tokens) + max_tokens=1024 exceeds
+   Gemma 12B's default context. Fix: `lms load -c 8192` for sentiment model.
+
+**Results (condition=full, date=2022-01-31, $500K capital):**
+- Passes: 132/132 agent passes, 22/22 aggregated
+- Distribution: Buy=2 (9.1%), Hold=11 (50.0%), Sell=9 (40.9%), H=1.34 bits
+- Pipeline: 2 orders, $49,705 notional, Health Care 5% + CommSvc 5% sector exposure
+- Scientific check: rate-shock sector rotation correct (REITs/Utilities Sell, HC Buy, Tech mixed)
+
+### NEXT: `make walkforward-orchestrate` (full 98-ticker × 24-date × 4-condition run)
 
 ---
 
@@ -296,8 +416,8 @@ Phase 11 creates venvs/finetune/ to pin these versions.
 
 | Metric | Value |
 |---|---|
-| Tests passing | 1197 (0 skipped, 0 lint errors) |
-| DJ decisions | DJ-000 through DJ-084 (DJ-081: Phase 12.1 sub-phase; DJ-082: technical_v2 params; DJ-083: full factorial re-run; DJ-084: Gemma 4 12B variant) |
+| Tests passing | 1809 (3 skipped, 0 lint errors) |
+| DJ decisions | DJ-000 through DJ-111 |
 | Technical Agent GR (Phase 5) | 0.667 (improvement target Phase 11) |
 | Fundamental Agent GR (Phase 5) | 1.000 |
 | Bootstrap accuracy: risk | 0.349 |

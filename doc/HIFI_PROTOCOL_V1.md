@@ -53,11 +53,12 @@ Phase 10: Evaluation Framework & Backtesting
 Phase 11: Fine-Tuning
 Phase 12: Knowledge Systems — GraphRAG
 Phase 13: Advanced Features (Agent Memory, Synthetic Scenarios, Drift)
-Phase 14: Paper Trading
-Phase 15: Containerization & Deployment
-Phase 16: Open Source Release
-Phase 17: Capstone Deliverable
-Phase 18: Publication Preparation (Post-Graduation)
+Phase 14: Infrastructure — Model Diversity, Scale Expansion, MCP Tools (DJ-088)
+Phase 14.1: Pipeline Integration and Memory-Safe Orchestration (DJ-106)
+Phase 15: Historical Walk-Forward Simulation (DJ-088)
+Phase 16: Live Paper Trading — IBKR (DJ-088)
+Phase 17: Ablation Studies + Capstone Deliverable (DJ-088)
+Phase 18: Publication + Open Source Release (DJ-088)
 ```
 
 **Critical path for capstone:** Phases 0–10 + 14 + 17 form the minimum viable thesis. Everything else strengthens the David but can be deferred if time requires it.
@@ -883,253 +884,330 @@ Implement the remaining David features that strengthen the system but are not on
 
 ---
 
-## Phase 14: Paper Trading
+## Phase 14: Infrastructure — Model Diversity, Scale Expansion, MCP Tools
+
+**Restructured from original "Paper Trading" (DJ-088, 2026-06-16)**
 
 ### Objective
 
-Deploy HiFi in live paper trading on Alpaca. The system makes real decisions on real market data in real time. Results are recorded and analyzed.
+Build the infrastructure that makes genuine paper trading scientifically meaningful.
+Phase 13 established empirically that a Qwen-dominant ensemble collapses to entropy=0.000
+under fine-tuning (OQ-M02), and that more debate rounds cannot fix architectural homogeneity
+(OQ-D04). Phase 14 corrects these before committing to live evaluation.
+
+Three gaps must be filled:
+1. **Model diversity:** 5 agents from 5 different organizations. Genuine diversity, not fine-tuning variation on one base.
+2. **Scale:** ~100 stocks across all 11 GICS sectors. IC/IR metrics require a statistically meaningful universe.
+3. **Deterministic portfolio management:** Portfolio composition, risk, and capital allocation as MCP tools. Per David §4.1: deterministic engines size positions; agents inform them.
 
 ### David Sections
 
-- §7.9 Execution Layer
-- §7.9 Safety Layer
+- §4.1 Deterministic-First Principle (MCP portfolio/risk/capital tools)
+- §6.2 MCP as the Nervous System (three new MCP servers)
+- §10.3 Diversity Requirements (5-organization ensemble)
+- §10.4 Agent Memory (episodic RAG pipeline)
+- §8.2 Dataset Family A extension (100-stock universe)
 
-### Learning Guide Topics
+### Architecture Decisions (full rationale: plans/PHASE_14_CONTEXT.md)
 
-- 7.1 Quantitative Analysis (live application)
-- 6.3 Deployment (operational)
+- DJ-089: 5-org ensemble (Meta/Alibaba/Mistral/DeepSeek/Google) + sequential RAG debate
+- DJ-090: ~100 stocks; yfinance 2004-2025; EDGAR MD&A targeted section ingestion
+- DJ-091: 3 deterministic MCP tools: portfolio composer, risk manager, capital allocator
+- DJ-092: Episodic RAG: LangFuse traces → outcome labels → LanceDB → agent retrieval
+- DJ-093: Namespace partitioning (dev/eval/live) for clean-room evaluation
+- DJ-094: Custom async loop + ib_insync for IBKR (not Backtrader)
 
-### Prerequisites
+### Success Criteria
 
-- Phases 0-10 complete (minimum viable system evaluated)
-- Safety layer implemented (position limits, circuit breakers)
-- Observability fully operational (every decision traced)
+- [ ] 5-org ensemble confirmed; entropy > 0.3 on Phase 12 baseline dates (OQ-P14-05)
+- [ ] 100-stock data pipeline: >99% OHLCV completeness, 2004-2025, Parquet storage
+- [ ] EDGAR MD&A ingestion: AAPL SGR > 0.3 (vs. 0.000 boilerplate failure in Phase 13)
+- [ ] run_sequential_ensemble() operational with LanceDB inter-agent context
+- [ ] 3 MCP tools: deterministic, tested, integrated
+- [ ] Episodic RAG: EpisodicStore + EpisodicRetriever + automated label-outcomes
+- [ ] Namespace partitioning: dev/eval/live isolation confirmed
+- [ ] 1500+ tests, 0 lint errors
 
-### Deliverables
+---
 
-- `src/execution/paper_trader.py` — Alpaca paper trading integration
-- `src/execution/risk_manager.py` — Safety limits enforcement
-- Paper trading log: every decision, execution, and outcome recorded
-- Daily performance dashboard
+## Phase 14.1: Pipeline Integration and Memory-Safe Orchestration
 
-### Operational Parameters
+**New sub-phase (DJ-106, 2026-06-20)**
 
-| Parameter | Value | David Reference |
+### Objective
+
+Integrate Phase 14's six infrastructure components (sequential ensemble, portfolio
+composer, risk manager, capital allocator, EDGAR RAG, episodic store) into an
+orchestrated end-to-end pipeline that runs safely within 98 GB unified memory.
+
+### Key Decisions (full rationale: plans/PHASE_14.1_CONTEXT.md)
+
+- DJ-106: Agent-first sequential sweep — one model in VRAM at a time (35 GB peak)
+- DJ-107: Stratified 22-ticker smoke universe (2 per GICS sector, 11 sectors)
+- DJ-108: End-to-end pipeline: ensemble -> compose -> risk -> allocate
+- DJ-109: Two-layer execution: smoke (validation) + orchestrator (production)
+- DJ-110: One replication notebook (not auto-generated per run)
+
+### Success Criteria
+
+- [ ] Agent-first orchestrator operational, deterministic run_id, 6 sequential passes
+- [ ] Full pipeline producing PortfolioSnapshot per evaluation date
+- [ ] 22-ticker smoke test passing with all MCP tools exercised
+- [ ] Master orchestrator ready for 98-ticker production runs
+- [ ] Replication notebook generating all visualizations
+- [ ] OQ-P14-07 answered: agent-first produces identical results to monolithic
+
+---
+
+## Phase 15: Historical Walk-Forward Simulation
+
+**New phase (DJ-088, 2026-06-16) — replaces original "Containerization & Deployment"**
+
+### Objective
+
+Test the central scientific claim: **Does a heterogeneous LLM ensemble (5 organizations)
+produce positive Information Coefficient, stable across market regimes, and superior to
+a homogeneous ensemble baseline?**
+
+This is the primary scientific measurement of the entire project. It tests Page's
+diversity theorem empirically: diverse problem-solvers outperform homogeneous ones.
+HiFi provides 21 years of data, 100 stocks, 5 market regimes, and two ensemble conditions
+(heterogeneous vs. homogeneous ablation) to answer this question rigorously.
+
+### David Sections
+
+- §5 Scientific Foundations (full rigor — this IS the primary measurement)
+- §5.6 Formalization of Complexity Concepts (entropy over time, herding by regime)
+- §8.5 Evaluation Datasets (Dataset Family G primary population)
+- §10.2 Ensemble Performance (IC, IR, Sharpe, hit rate)
+- §14.4 Drift Detection (regime-conditional performance analysis)
+- §15 Ablation Studies (parallel vs. sequential ensemble, OQ-P14-03)
+
+### Walk-Forward Methodology
+
+| Period | Dates | Role |
 |---|---|---|
-| Initial capital | $100,000 (paper) | — |
-| Max position | 5% | §7.9 |
-| Max daily loss | 2% | §7.9 |
-| Max sector exposure | 25% | §7.9 |
-| Decision frequency | Weekly | — |
-| Universe | 10-50 stocks (expanded from initial 10) | — |
-| Duration | Minimum 4 weeks, target 8-12 weeks | — |
+| Training baseline | 2004-2019 | Agent calibration, EDGAR corpus, label history |
+| Validation | 2020-2021 | COVID regime; parameter selection |
+| Held-out test | 2022-2023 | Rate-shock regime; primary scientific result (no re-training) |
+| Walk-forward live-sim | 2024-2025 | Sequential monthly; causal order enforced |
+
+Temporal discipline via make eval-ingest-through DATE=D: the hifi-eval namespace
+contains only data with publication/decision date <= D. Clean-room reset before
+each simulation run (make eval-reset). No look-ahead possible.
+
+### Metrics
+
+| Metric | Target | Benchmark |
+|---|---|---|
+| IC (Information Coefficient) | > 0.05 | Spearman rank correlation with 60-day returns |
+| IR (Information Ratio) | > 0.3 | IC / IC_std across evaluation dates |
+| Sharpe Ratio | > 0.5 | vs. risk-free rate |
+| vs. SPY buy-and-hold | Primary benchmark | Cumulative return comparison |
+| Herding by regime | Not 0.000 in any regime | Entropy per market regime |
+
+### Ablation: Sequential vs. Parallel (OQ-P14-03)
+
+Run the same walk-forward under both:
+- Condition A: run_ensemble() — parallel, no inter-agent context sharing
+- Condition B: run_sequential_ensemble() — causal context cascade via LanceDB
+
+IC/IR/Sharpe comparison answers OQ-P14-03: does information sharing between
+agents improve collective performance?
 
 ### Success Criteria
 
-- [ ] Paper trading operational on Alpaca
-- [ ] Safety limits enforced and tested
-- [ ] All decisions logged with full traceability
-- [ ] No circuit breaker violations (or documented and analyzed if they occur)
-- [ ] Performance report generated (return, Sharpe, max drawdown)
-- [ ] Comparison against buy-and-hold over same period
+- [ ] Walk-forward complete on all 100 stocks, 2004-2025, causal order
+- [ ] IC > 0.0 on held-out 2022-2023 test (minimum predictive signal bar)
+- [ ] OQ-P14-03 answered: sequential vs. parallel IC comparison documented
+- [ ] OQ-P14-06 answered: Sharpe vs. SPY documented
+- [ ] Regime-conditional table: performance by bull/bear/rate_shock/recovery
+- [ ] Clean-room confirmed: identical results when re-run from scratch
 
 ---
 
-## Phase 15: Containerization & Deployment
+## Phase 16: Live Paper Trading — IBKR
+
+**New phase (DJ-088, 2026-06-16) — replaces original "Open Source Release"**
 
 ### Objective
 
-Package HiFi as a containerized system that any user can deploy.
+Run HiFi in live paper trading through Interactive Brokers (paper account).
+Every decision logged, traced, and fed back into growing episodic memory.
+
+Phase 15 showed what the system WOULD have done historically. Phase 16 shows what
+it DOES — in real time, with real uncertainty, zero look-ahead.
 
 ### David Sections
 
-- §16 Deployment Strategy (full section)
+- §7.9 Execution Layer (live execution, safety limits)
+- §10.4 Agent Memory (episodic store growth during live trading)
+- §14.4 Drift Detection (live monitoring, real-time alerts)
 
-### Learning Guide Topics
+### Architecture (DJ-094)
 
-- 6.3 Deployment & Containerization
+Custom async event loop + ib_insync. NOT Backtrader — LLM ensemble latency (2-10 min
+per ticker) is incompatible with Backtrader's millisecond event model. Custom loop:
+"every night → generate signals → compose portfolio → check risk → place orders."
 
-### Deliverables
-
-- `docker/` — Dockerfiles for each component
-- `docker-compose.yml` — Full system orchestration
-- Deployment documentation: step-by-step from zero to running system
-- Hardware requirements documentation
+| Parameter | Value |
+|---|---|
+| Initial capital | $100,000 (paper) |
+| Max single-stock | 5% (DJ-091) |
+| Max sector | 20% (DJ-091) |
+| Circuit breaker | 2% daily portfolio loss |
+| Decision frequency | Daily batch (overnight) |
+| Universe | ~100 stocks (Phase 14) |
+| Min duration | 8 weeks; target 12-16 weeks |
 
 ### Success Criteria
 
-- [ ] `docker compose up` starts the complete system
-- [ ] System passes smoke test after fresh deployment
-- [ ] Documentation sufficient for someone who is NOT you to deploy
-- [ ] Resource usage documented (RAM, disk, CPU per container)
+- [ ] IB Gateway + ib_insync + custom loop operational
+- [ ] All decisions logged (LangFuse + local files)
+- [ ] Circuit breakers tested
+- [ ] make label-outcomes running nightly; episodic memory growing
+- [ ] 8+ weeks accumulated
+- [ ] OQ-P14-04 answered: does episodic RAG improve calibration over Phase 16 duration?
 
 ---
 
-## Phase 16: Open Source Release
+## Phase 17: Ablation Studies + Capstone Deliverable
+
+**Updated scope (DJ-088, 2026-06-16) — was "Capstone Deliverable" only**
 
 ### Objective
 
-Prepare and release HiFi as an open-source project.
+Stream 1 — Ablation: Measure each component's contribution. Required by David §15
+before publication. All ablation prerequisites exist: Phase 15 walk-forward, Phase 16
+live decisions, Phase 14 infrastructure (5-org ensemble, sequential debate, episodic RAG).
+
+Stream 2 — WQU MScFE Capstone: Package the work for academic submission.
+
+### David Sections
+
+- §15 Ablation Studies
+- §5.6 Complexity metrics
+- §4.4 Honest Evaluation
+
+### Ablation Design
+
+| Ablation | Component removed | Metric |
+|---|---|---|
+| Remove Technical FT | technical_v2 → base qwen2.5 | IC, entropy |
+| Remove sequential debate | parallel ensemble | IC, herding |
+| Remove episodic RAG | no episodic prefix | IC, calibration |
+| Remove verification | no HR/GR/SGR checks | False claims per analysis |
+| Remove Contrarian | 5-agent vs. 6-agent | entropy, IC |
+
+Each ablation re-runs the held-out 2022-2023 walk-forward with the component removed.
+
+### Capstone Content
+
+Introduction/Problem (David §2-3) → Architecture (§6-7 + DJ index) → Data (Phase 1/14) →
+Agents (Phases 3-8/14) → Collective Intelligence (Phases 9/12/15) → Evaluation (Phase 10/15) →
+Paper Trading (Phase 16) → Ablation (Phase 17) → Conclusions.
+
+### Success Criteria
+
+- [ ] All ablation conditions run on held-out 2022-2023
+- [ ] Each ablation: quantified IC/IR/Sharpe delta vs. full pipeline
+- [ ] Capstone document complete per WQU requirements
+- [ ] Page's diversity theorem interpretation documented with empirical evidence
+
+---
+
+## Phase 18: Publication + Open Source Release
+
+**Updated scope (DJ-088, 2026-06-16) — merges original "Containerization", "Open Source", "Publication"**
+
+### Objective
+
+Make the work accessible and reproducible: containerization, dataset release, and
+one or more academic publications. The primary contribution is empirical evidence
+for Page's diversity theorem applied to LLM ensembles across 21 years of market data.
 
 ### David Sections
 
 - §4.8 Open Research
+- §5 Scientific Foundations (publication rigor)
+- §5.6 Formalization of Complexity Concepts (key paper claim)
 - §8.9 Dataset Release
+- §16 Deployment Strategy
+
+### Publication Targets
+
+| Paper | Target Venue | Core Contribution |
+|---|---|---|
+| "Collective intelligence in heterogeneous LLM ensembles: evidence from financial markets" | ICAIF 2027, ACM Collective Intelligence | Page diversity theorem: 5-org IC > 1-org IC across regimes |
+| "Deterministic verification for LLM financial systems: the HR/GR/SGR framework" | FinNLP at EMNLP | Verification architecture; hallucination reduction via MCP grounding |
+| "Sequential context accumulation in LLM agent pipelines" | (secondary, if OQ-P14-03 strong) | Sequential > parallel ensemble: empirical evidence |
 
 ### Deliverables
 
-- Clean repository with documentation
-- Dataset release on Hugging Face with dataset cards
-- README with architecture overview, setup, and usage
-- LICENSE (MIT or Apache 2.0)
-- Contributing guidelines
+- Docker stack: docker compose up starts all MCP servers + LanceDB
+- Dataset Families A-G with dataset cards on Hugging Face
+- fundamental_v1 and technical_v2 adapters published with model cards
+- At least one paper submitted to peer-reviewed venue
+- Apache 2.0 license; clean public repository
 
 ### Success Criteria
 
-- [ ] Repository is clean and navigable
-- [ ] README is sufficient for a new user to understand and deploy
-- [ ] Datasets released with documentation
-- [ ] License applied
-- [ ] At least one external person has deployed successfully (if possible)
+- [ ] docker compose up runs complete system
+- [ ] All 7 dataset families released with dataset cards
+- [ ] At least one paper submitted
+- [ ] README sufficient for external researcher to reproduce Phase 15 results
 
 ---
 
-## Phase 17: Capstone Deliverable
+## Critical Path Summary (Updated 2026-06-16)
 
-### Objective
+Minimum viable capstone:
 
-Package the work into a WQU MScFE capstone submission.
+```
+Phases 0-13 → COMPLETE (verified, evaluated, full system)
+Phase 14    → Infrastructure (5-org ensemble, 100-stock, MCP tools)
+Phase 15    → Historical walk-forward (IC/IR/Sharpe, 21 years)
+Phase 17    → Ablation + capstone submission
+```
 
-### Deliverables
+Phase 16 (live trading) strengthens but can defer if submission deadline arrives.
+Phase 18 (publication) is post-graduation.
 
-- Capstone document (Jupyter notebook or report format, per WQU requirements)
-- Demonstration of working system
-- Evaluation results with visualizations
-- Key architectural decisions documented
-
-### Content Focus
-
-| Section | Source |
-|---|---|
-| Introduction / Problem | David §2, §3 |
-| Architecture | David §6, §7 |
-| Data | Phase 1 results |
-| Agents | Phases 3-8 results |
-| Evaluation | Phase 10 results |
-| Paper Trading | Phase 14 results |
-| Conclusions | Honest assessment of what worked and what didn't |
-
-### Notes
-
-The capstone is a SUBSET of the David. It shows the functional system, its evaluation, and its results. The complexity science analysis, publication-quality statistical rigor, and full ablation studies are available but may be de-emphasized depending on WQU format requirements.
+**The scientific claim:**
+Page's diversity theorem states diverse problem-solvers outperform homogeneous ones.
+HiFi tests this with 5-organization LLM agents, 100 stocks, 21 years, and IC as
+the performance metric. The heterogeneous vs. homogeneous ablation (Phase 15/17)
+is a direct, falsifiable, empirically grounded test.
 
 ---
 
-## Phase 18: Publication Preparation (Post-Graduation)
-
-### Objective
-
-Extract scientific insights from HiFi for publication in complexity science / computational finance venues.
-
-### David Sections
-
-- §5 Scientific Foundations (full rigor)
-- §5.6 Formalization of Complexity Concepts
-
-### Potential Publications
-
-| Paper | Venue | Core Contribution |
-|---|---|---|
-| Collective intelligence in LLM agent ensembles | ICAIF, ACM Collective Intelligence | Empirical study of emergence in heterogeneous LLM populations |
-| Deterministic verification for financial LLM systems | FinNLP workshop, EMNLP | Verification architecture and hallucination reduction results |
-| Diversity vs. scale in local AI agent populations | Computational Economics | Evidence on Page diversity theorem applied to LLM agents |
-
-### Notes
-
-This phase uses the Agent Interaction Datasets (Family E) and complexity metrics collected throughout the project. The data is collected during normal operation — the publication requires analysis and writing, not new engineering.
-
----
-
-## Critical Path Summary
-
-If time forces prioritization, the minimum viable path is:
+## Phase Dependency Graph (Updated 2026-06-16)
 
 ```
-Phase 0  → Infrastructure
-Phase 1  → Data (10 stocks, basic)
-Phase 2  → First MCP server
-Phase 3  → First agent (baseline)
-Phase 4  → Second agent (first ensemble)
-Phase 5  → Verification
-Phase 6  → Observability
-Phase 10 → Evaluation (can run on 2-agent system)
-Phase 14 → Paper trading (minimum duration)
-Phase 17 → Capstone
+Phases 0-13 (Complete)
+    │
+    ▼
+Phase 14: Infrastructure
+    │
+    ├──────────────────┐
+    ▼                  ▼
+Phase 15:          Phase 16:
+Historical         Live Paper Trading
+Walk-Forward       (requires IBKR credentials)
+Simulation
+    │                  │
+    └────────┬──────────┘
+             ▼
+         Phase 17:
+         Ablation + Capstone
+             │
+             ▼
+         Phase 18:
+         Publication + Open Source
 ```
 
-This produces a functional 2-agent system with verification, observability, evaluation, and paper trading. It is sufficient for the capstone. Every additional phase (RAG, full agents, fine-tuning, GraphRAG) strengthens the David proximity but is not strictly required for graduation.
-
-The ambitious path includes all 18 phases. The realistic path includes at least the critical path. The learning path — which is the actual purpose — includes as many phases as dedication and time allow.
-
----
-
-## Phase Dependency Graph
-
-```
-Phase 0 ─────────────────────────────────────────────────┐
-    │                                                     │
-    ▼                                                     │
-Phase 1 (Data)                                            │
-    │                                                     │
-    ▼                                                     │
-Phase 2 (MCP Engine)                                      │
-    │                                                     │
-    ▼                                                     │
-Phase 3 (First Agent) ──────────────┐                     │
-    │                               │                     │
-    ▼                               │                     │
-Phase 4 (Second Agent)              │                     │
-    │                               │                     │
-    ├──────────┐                    │                     │
-    │          ▼                    ▼                     │
-    │    Phase 5 (Verification)   Phase 6 (Observability)│
-    │          │                    │                     │
-    │          └────────┬───────────┘                     │
-    │                   │                                 │
-    ▼                   ▼                                 │
-Phase 7 (RAG) ──► Phase 8 (Full Agents)                  │
-                       │                                  │
-                       ▼                                  │
-                 Phase 9 (Collective Engine)               │
-                       │                                  │
-                       ▼                                  │
-                 Phase 10 (Evaluation) ◄──────────────────┘
-                       │
-           ┌───────────┼───────────┐
-           │           │           │
-           ▼           ▼           ▼
-     Phase 11    Phase 12    Phase 13
-    (Fine-Tune)  (GraphRAG)  (Advanced)
-           │           │           │
-           └───────────┼───────────┘
-                       │
-                       ▼
-                 Phase 14 (Paper Trading)
-                       │
-                       ▼
-                 Phase 15 (Containers)
-                       │
-                       ▼
-                 Phase 16 (Open Source)
-                       │
-                       ▼
-                 Phase 17 (Capstone)
-                       │
-                       ▼
-                 Phase 18 (Publication)
-```
-
-Note: Phases 5 and 6 can run in parallel. Phases 11, 12, and 13 can run in parallel. Phase 10 can begin as soon as Phase 4 is complete (with a 2-agent system) and be re-run as more agents are added.
+Note: Phase 15 and Phase 16 can run in parallel once Phase 14 is complete.
+Phase 16 requires IBKR paper account credentials (user-provided, not in repo).
 
 ---
 

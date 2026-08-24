@@ -37,10 +37,8 @@ Design notes:
 
 from __future__ import annotations
 
-import glob as _glob
 import logging
 from datetime import UTC, date, datetime
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 from hifi.collective.schemas import (
@@ -74,13 +72,15 @@ def _load_prices(ticker: str, data_dir: str) -> dict[date, float]:
     """
     import pandas as pd
 
-    pattern = str(Path(data_dir) / "market" / f"{ticker}_*.parquet")
-    files = sorted(_glob.glob(pattern))
-    if not files:
+    from hifi.data.market_store import resolve_ohlcv_path
+
+    try:
+        path = resolve_ohlcv_path(ticker, data_dir)
+    except FileNotFoundError:
         logger.warning("No OHLCV Parquet for %s in %s", ticker, data_dir)
         return {}
 
-    df = pd.read_parquet(files[-1])
+    df = pd.read_parquet(path)
 
     # Normalise index to DatetimeIndex
     if "date" in df.columns:
@@ -95,7 +95,7 @@ def _load_prices(ticker: str, data_dir: str) -> dict[date, float]:
         None,
     )
     if col is None:
-        logger.warning("No close price column found for %s in %s", ticker, files[-1])
+        logger.warning("No close price column found for %s in %s", ticker, path)
         return {}
 
     prices = df[col].dropna()

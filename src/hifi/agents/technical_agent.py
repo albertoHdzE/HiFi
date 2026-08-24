@@ -64,6 +64,8 @@ class TechnicalAnalystState(TypedDict, total=False):
     tool_results: dict         # populated by call_mcp_tools_node
     retrieved_context: str     # SEC filing passages (empty if use_rag=False)
     llm_response: str          # raw LLM output (last attempt)
+    model_id: str              # set by generate_analysis_node; read by parse_output_node
+    _test_llm: object | None   # DI: injected by tests only; bypasses make_llm()
     signal: AgentSignal | None
     time_horizon: str | None   # "short-term" | "medium-term" | "long-term"
     error: str | None
@@ -273,12 +275,16 @@ def generate_analysis_node(state: TechnicalAnalystState) -> dict:
     if memory_prefix:
         user_text = memory_prefix + "\n\n" + user_text
 
-    _url = _technical_url()
-    llm = make_llm(_technical_model(), max_tokens=4096, base_url=_url) if _url \
-        else make_llm(_technical_model(), max_tokens=4096)
+    _test_llm = state.get("_test_llm")
+    if _test_llm is not None:
+        llm = _test_llm
+    else:
+        _url = _technical_url()
+        llm = make_llm(_technical_model(), max_tokens=4096, base_url=_url) if _url \
+            else make_llm(_technical_model(), max_tokens=4096)
     messages = [SystemMessage(content=system_text), HumanMessage(content=user_text)]
     response = llm.invoke(messages)
-    return {"llm_response": response.content}
+    return {"llm_response": response.content, "model_id": llm.model_name}
 
 
 def parse_output_node(state: TechnicalAnalystState) -> dict:
@@ -306,10 +312,8 @@ def parse_output_node(state: TechnicalAnalystState) -> dict:
             if v is None and k not in ("call_id", "error", "detail"):
                 data_gaps.append(k)
 
-    _url = _technical_url()
-    llm = make_llm(_technical_model(), max_tokens=4096, base_url=_url) if _url \
-        else make_llm(_technical_model(), max_tokens=4096)
-    model_id = llm.model_name
+    model_id = state.get("model_id", "")
+    _test_llm = state.get("_test_llm")
 
     def _try_parse(text: str) -> tuple[AgentSignal | None, str | None]:
         parsed = _extract_json(text)
@@ -326,7 +330,13 @@ def parse_output_node(state: TechnicalAnalystState) -> dict:
         return {"signal": signal, "time_horizon": time_horizon}
 
     logger.warning("First parse attempt failed for %s. Retrying.", ticker)
-    retry_response = llm.invoke([
+    if _test_llm is not None:
+        retry_llm = _test_llm
+    else:
+        _url = _technical_url()
+        retry_llm = make_llm(_technical_model(), max_tokens=4096, base_url=_url) if _url \
+            else make_llm(_technical_model(), max_tokens=4096)
+    retry_response = retry_llm.invoke([
         HumanMessage(content=llm_response),
         HumanMessage(content=_RETRY_MSG),
     ])
@@ -403,6 +413,7 @@ def run_technical_analysis(
     use_rag: bool = False,
     retrieved_context: str = "",
     memory_prefix: str = "",
+    _test_llm: object | None = None,
 ) -> TechnicalAnalysis:
     """
     Run the Technical Analyst Agent for one ticker on one date.
@@ -450,6 +461,7 @@ def run_technical_analysis(
         "error": None,
         "start_time": start,
         "memory_prefix": memory_prefix,
+        "_test_llm": _test_llm,
     }
 
     with trace_context(trace_id):

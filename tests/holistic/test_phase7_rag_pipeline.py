@@ -1,7 +1,7 @@
 """
 Holistic test for the Phase 7 RAG pipeline (P7-E7-T1 to T5).
 
-Uses DeterministicEmbeddingModel and stub LLMs — no LM Studio or LanceDB
+Uses DeterministicEmbeddingModel and DI LLMs — no LM Studio or LanceDB
 live server required.
 
 What this test validates:
@@ -225,7 +225,7 @@ def test_rag_full_pipeline_produces_ensemble_output(
     monkeypatch, knowledge_store_and_retriever
 ):
     """
-    P7-E7-T1: Full pipeline with real KnowledgeStore and stub LLM.
+    P7-E7-T1: Full pipeline with real KnowledgeStore and DI LLMs.
 
     Both agents retrieve AAPL passages → use v2 prompts → produce EnsembleOutput.
     """
@@ -236,8 +236,6 @@ def test_rag_full_pipeline_produces_ensemble_output(
     retriever = knowledge_store_and_retriever
     ct = _make_call_tool(retriever)
 
-    monkeypatch.setattr(fa, "make_llm", lambda *a, **kw: _stub_fundamental_llm())
-    monkeypatch.setattr(ta, "make_llm", lambda *a, **kw: _stub_technical_llm())
     monkeypatch.setattr(fa, "call_tool", ct)
     monkeypatch.setattr(ta, "call_tool", ct)
 
@@ -248,6 +246,10 @@ def test_rag_full_pipeline_produces_ensemble_output(
         snapshot_json=snap.model_dump_json(),
         use_rag=True,
         agents=["fundamental", "technical"],
+        _test_llms={
+            "fundamental": _stub_fundamental_llm(),
+            "technical": _stub_technical_llm(),
+        },
     )
 
     assert isinstance(output, EnsembleOutput)
@@ -277,8 +279,6 @@ def test_phase6_regression_rag_false_identical_structure(
     retriever = knowledge_store_and_retriever
     ct = _make_call_tool(retriever)
 
-    monkeypatch.setattr(fa, "make_llm", lambda *a, **kw: _stub_fundamental_llm())
-    monkeypatch.setattr(ta, "make_llm", lambda *a, **kw: _stub_technical_llm())
     monkeypatch.setattr(fa, "call_tool", ct)
     monkeypatch.setattr(ta, "call_tool", ct)
 
@@ -289,6 +289,10 @@ def test_phase6_regression_rag_false_identical_structure(
         snapshot_json=snap.model_dump_json(),
         use_rag=False,
         agents=["fundamental", "technical"],
+        _test_llms={
+            "fundamental": _stub_fundamental_llm(),
+            "technical": _stub_technical_llm(),
+        },
     )
 
     assert isinstance(output, EnsembleOutput)
@@ -320,8 +324,6 @@ def test_phase5_regression_verify_ensemble_on_rag_output(
     retriever = knowledge_store_and_retriever
     ct = _make_call_tool(retriever)
 
-    monkeypatch.setattr(fa, "make_llm", lambda *a, **kw: _stub_fundamental_llm())
-    monkeypatch.setattr(ta, "make_llm", lambda *a, **kw: _stub_technical_llm())
     monkeypatch.setattr(fa, "call_tool", ct)
     monkeypatch.setattr(ta, "call_tool", ct)
 
@@ -332,6 +334,10 @@ def test_phase5_regression_verify_ensemble_on_rag_output(
         snapshot_json=snap.model_dump_json(),
         use_rag=True,
         agents=["fundamental", "technical"],
+        _test_llms={
+            "fundamental": _stub_fundamental_llm(),
+            "technical": _stub_technical_llm(),
+        },
     )
 
     report = verify_ensemble(output, always_verify=True)
@@ -359,8 +365,6 @@ def test_rag_server_failure_fail_open(monkeypatch, knowledge_store_and_retriever
     retriever = knowledge_store_and_retriever
     ct_fail = _make_call_tool(retriever, fail_rag=True)
 
-    monkeypatch.setattr(fa, "make_llm", lambda *a, **kw: _stub_fundamental_llm())
-    monkeypatch.setattr(ta, "make_llm", lambda *a, **kw: _stub_technical_llm())
     monkeypatch.setattr(fa, "call_tool", ct_fail)
     monkeypatch.setattr(ta, "call_tool", ct_fail)
 
@@ -371,6 +375,10 @@ def test_rag_server_failure_fail_open(monkeypatch, knowledge_store_and_retriever
         snapshot_json=snap.model_dump_json(),
         use_rag=True,
         agents=["fundamental", "technical"],
+        _test_llms={
+            "fundamental": _stub_fundamental_llm(),
+            "technical": _stub_technical_llm(),
+        },
     )
 
     assert isinstance(output, EnsembleOutput)
@@ -396,8 +404,6 @@ def test_rag_output_is_json_safe(monkeypatch, knowledge_store_and_retriever):
     retriever = knowledge_store_and_retriever
     ct = _make_call_tool(retriever)
 
-    monkeypatch.setattr(fa, "make_llm", lambda *a, **kw: _stub_fundamental_llm())
-    monkeypatch.setattr(ta, "make_llm", lambda *a, **kw: _stub_technical_llm())
     monkeypatch.setattr(fa, "call_tool", ct)
     monkeypatch.setattr(ta, "call_tool", ct)
 
@@ -408,6 +414,10 @@ def test_rag_output_is_json_safe(monkeypatch, knowledge_store_and_retriever):
         snapshot_json=snap.model_dump_json(),
         use_rag=True,
         agents=["fundamental", "technical"],
+        _test_llms={
+            "fundamental": _stub_fundamental_llm(),
+            "technical": _stub_technical_llm(),
+        },
     )
 
     serialised = json.dumps(output.model_dump())

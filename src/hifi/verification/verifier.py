@@ -43,6 +43,9 @@ agents for citing fields that were unavailable would be a measurement error.
 
 from __future__ import annotations
 
+import difflib
+import re
+
 from hifi.agents.schemas import (
     FundamentalAnalysis,
     MacroAnalysis,
@@ -282,6 +285,55 @@ def verify_agent(
 
 
 # ---------------------------------------------------------------------------
+# P13-E0-T4 / Phase-14 calibration (DJ-072): verify_sentiment_agent helpers
+# ---------------------------------------------------------------------------
+
+_OUTER_QUOTE_RE = re.compile(r'^["\u201c\u201d\']+|["\u201c\u201d\']+$')
+_NBSP_RE = re.compile(r'[\xa0\u2009\u202f\u200b]')
+_SGR_LCS_THRESHOLD = 0.85  # LCS must cover ≥ 85% of signal (Phase 14 calibration)
+
+
+def _normalise_sgr(text: str) -> str:
+    """
+    Normalise a signal or context string for SGR matching.
+
+    Phase 14 calibration (DJ-072): exact-substring matching was too strict for
+    models that (a) use non-breaking spaces, (b) wrap verbatim quotes in outer
+    quotation marks, or (c) add a short prefix word ("RSU"). This normaliser
+    handles cases (a) and (b); the LCS fallback in _is_sgr_grounded handles (c).
+    """
+    text = _NBSP_RE.sub(" ", text)   # collapse non-breaking / narrow spaces
+    text = " ".join(text.split())    # normalise multiple spaces
+    text = text.lower().strip()
+    text = _OUTER_QUOTE_RE.sub("", text).strip()  # strip outer quote chars
+    return text
+
+
+def _is_sgr_grounded(signal: str, context: str) -> bool:
+    """
+    Two-stage grounding check for one notable_signal (Phase 14 calibration, DJ-072).
+
+    Stage 1 — exact normalised substring: handles non-breaking spaces and outer
+    quote characters added by models when citing verbatim.
+
+    Stage 2 — LCS fallback: if Stage 1 fails, compute the longest common
+    substring (character-level, via SequenceMatcher) between normalised signal
+    and normalised context. A ratio ≥ _SGR_LCS_THRESHOLD (0.85) of the signal
+    length counts as grounded, catching short model-added prefixes such as
+    "RSU awards..." where the context has "Awards...".
+    """
+    sig = _normalise_sgr(signal)
+    ctx = _normalise_sgr(context)
+    if not sig:
+        return False
+    if sig in ctx:
+        return True
+    matcher = difflib.SequenceMatcher(None, sig, ctx, autojunk=False)
+    match = matcher.find_longest_match(0, len(sig), 0, len(ctx))
+    return (match.size / len(sig)) >= _SGR_LCS_THRESHOLD
+
+
+# ---------------------------------------------------------------------------
 # P13-E0-T4: verify_sentiment_agent
 # ---------------------------------------------------------------------------
 
@@ -332,16 +384,14 @@ def verify_sentiment_agent(
             results=[],
         )
 
-    normalised_context = retrieved_context.lower().strip()
     results: list[SentimentGroundingResult] = []
     for signal_text in analysis.notable_signals:
-        normalised_signal = signal_text.lower().strip()
-        grounded = bool(normalised_signal) and (normalised_signal in normalised_context)
+        grounded = _is_sgr_grounded(signal_text, retrieved_context)
         results.append(
             SentimentGroundingResult(
                 signal_text=signal_text,
                 grounded=grounded,
-                matched_chunk=normalised_signal if grounded else None,
+                matched_chunk=_normalise_sgr(signal_text) if grounded else None,
             )
         )
 

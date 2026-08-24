@@ -1,0 +1,39 @@
+{
+  "$comment": "Project-level Claude Code settings. The deny list mirrors .claudeignore, which is the human-readable statement of the same policy; edit both together. Rationale: data/ is 264 GB (260 GB of it a binary vector store), so an accidental Read of a fragment or a LoRA shard is the single largest token risk in this repo. These artifacts are still inspectable through pyarrow/lancedb/mlx in Bash, which summarise rather than dump.",
+  "permissions": {
+    "deny": [
+      "Read(//Users/alberto/Documents/projects/HiFi/data/knowledge.lance/**/*.manifest)",
+      "Read(//Users/alberto/Documents/projects/HiFi/data/knowledge.lance/**/data/**)",
+      "Read(//Users/alberto/Documents/projects/HiFi/data/adapters/**)",
+      "Read(//Users/alberto/Documents/projects/HiFi/data/tearsheets/**)",
+      "Read(//Users/alberto/Documents/projects/HiFi/.venv/**)",
+      "Read(//Users/alberto/Documents/projects/HiFi/venvs/**)",
+      "Read(//Users/alberto/Documents/projects/HiFi/.codebase-memory/**)",
+      "Read(//Users/alberto/Documents/projects/HiFi/.pytest_cache/**)",
+      "Read(//Users/alberto/Documents/projects/HiFi/.ruff_cache/**)",
+      "Read(**/.env)",
+      "Read(**/.env.*)",
+      "Read(**/__pycache__/**)",
+      "Read(**/node_modules/**)",
+      "Read(**/*.parquet)",
+      "Read(**/*.arrow)",
+      "Read(**/*.feather)",
+      "Read(**/*.safetensors)",
+      "Read(**/*.gguf)",
+      "Read(**/*.npz)",
+      "Read(**/*.bin)",
+      "Read(**/*.pt)",
+      "Read(**/*.pth)",
+      "Read(**/*.ckpt)",
+      "Read(**/*.pkl)",
+      "Read(**/*.pickle)",
+      "Read(**/*.h5)",
+      "Read(**/*.db)",
+      "Read(**/*.sqlite)",
+      "Read(**/*.sqlite3)",
+      "Read(**/*.zip)",
+      "Read(**/*.tar.gz)",
+      "Read(**/.DS_Store)"
+    ]
+  }
+}

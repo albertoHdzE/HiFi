@@ -1,0 +1,23 @@
+{
+  "metadata": {
+    "generated_at": "2026-06-19T14:31:02.032707+00:00",
+    "phase": 14,
+    "ticket": "E1-T1",
+    "description": "Sentiment corpus validation gate (Phase 14)",
+    "source_dir": "/Users/alberto/Documents/projects/HiFi/tests/fixtures/sec",
+    "n_fixture_files": 9
+  },
+  "class_distribution": {
+    "Buy": 0,
+    "Hold": 263,
+    "Sell": 0
+  },
+  "n_total_examples": 263,
+  "n_sell_examples": 0,
+  "gate_min_total": 200,
+  "gate_min_sell": 30,
+  "gate_passed": false,
+  "decision": "ABORT",
+  "abort_reason": "Phase 14 re-check: 263 examples (need 200), 0 Sell (need 30). MD&A management tone is systematically optimistic. Sell signal source must be event-driven. Sentiment FT permanently deferred to Phase 16.",
+  "oq_s01": "NEGATIVE (Phase 14 re-check) \u2014 Sell class < 30 even after corpus expansion. MD&A tone is systematically optimistic; Sell signals require event-driven triggers (earnings miss, restatement, guidance cut). PERMANENTLY CLOSED: deferred to Phase 16 live paper trading data."
+}

@@ -124,18 +124,16 @@ def fixtures_data_dir(tmp_path):
 # ---------------------------------------------------------------------------
 
 
-def test_run_analysis_with_noop_tracer(monkeypatch, fixtures_data_dir):
-    import hifi.agents.fundamental_agent as fa
+def test_run_analysis_with_noop_tracer(fixtures_data_dir):
     from hifi.agents.fundamental_agent import run_analysis
     from hifi.agents.schemas import FundamentalAnalysis
-
-    monkeypatch.setattr(fa, "make_llm", lambda *a, **kw: _stub_llm("fund-model"))
 
     snap = _make_snapshot()
     result = run_analysis(
         "AAPL", "2023-03-31", snap.model_dump_json(),
         data_dir=fixtures_data_dir,
         tracer=NoOpTracer(),
+        _test_llm=_stub_llm("fund-model"),
     )
 
     assert isinstance(result, FundamentalAnalysis)
@@ -148,17 +146,15 @@ def test_run_analysis_with_noop_tracer(monkeypatch, fixtures_data_dir):
 # ---------------------------------------------------------------------------
 
 
-def test_run_technical_analysis_with_noop_tracer(monkeypatch, fixtures_data_dir):
-    import hifi.agents.technical_agent as ta
+def test_run_technical_analysis_with_noop_tracer(fixtures_data_dir):
     from hifi.agents.schemas import TechnicalAnalysis
     from hifi.agents.technical_agent import run_technical_analysis
-
-    monkeypatch.setattr(ta, "make_llm", lambda *a, **kw: _stub_llm("tech-model"))
 
     result = run_technical_analysis(
         "AAPL", "2023-03-31",
         data_dir=fixtures_data_dir,
         tracer=NoOpTracer(),
+        _test_llm=_stub_llm("tech-model"),
     )
 
     assert isinstance(result, TechnicalAnalysis)
@@ -171,11 +167,8 @@ def test_run_technical_analysis_with_noop_tracer(monkeypatch, fixtures_data_dir)
 # ---------------------------------------------------------------------------
 
 
-def test_run_analysis_recording_tracer_start_and_flush(monkeypatch, fixtures_data_dir):
-    import hifi.agents.fundamental_agent as fa
+def test_run_analysis_recording_tracer_start_and_flush(fixtures_data_dir):
     from hifi.agents.fundamental_agent import run_analysis
-
-    monkeypatch.setattr(fa, "make_llm", lambda *a, **kw: _stub_llm("fund-model"))
 
     tracer = RecordingTracer()
     snap = _make_snapshot()
@@ -183,6 +176,7 @@ def test_run_analysis_recording_tracer_start_and_flush(monkeypatch, fixtures_dat
         "AAPL", "2023-03-31", snap.model_dump_json(),
         data_dir=fixtures_data_dir,
         tracer=tracer,
+        _test_llm=_stub_llm("fund-model"),
     )
 
     assert len(tracer.start_trace_calls) == 1
@@ -196,17 +190,15 @@ def test_run_analysis_recording_tracer_start_and_flush(monkeypatch, fixtures_dat
 # ---------------------------------------------------------------------------
 
 
-def test_run_technical_analysis_recording_tracer_start_and_flush(monkeypatch, fixtures_data_dir):
-    import hifi.agents.technical_agent as ta
+def test_run_technical_analysis_recording_tracer_start_and_flush(fixtures_data_dir):
     from hifi.agents.technical_agent import run_technical_analysis
-
-    monkeypatch.setattr(ta, "make_llm", lambda *a, **kw: _stub_llm("tech-model"))
 
     tracer = RecordingTracer()
     run_technical_analysis(
         "AAPL", "2023-03-31",
         data_dir=fixtures_data_dir,
         tracer=tracer,
+        _test_llm=_stub_llm("tech-model"),
     )
 
     assert len(tracer.start_trace_calls) == 1
@@ -313,19 +305,15 @@ def test_call_tool_span_captures_call_id_in_metadata(monkeypatch, fixtures_data_
 # ---------------------------------------------------------------------------
 
 
-def test_run_ensemble_passes_tracer_to_agents(monkeypatch, fixtures_data_dir):
-    import hifi.agents.fundamental_agent as fa
-    import hifi.agents.technical_agent as ta
+def test_run_ensemble_passes_tracer_to_agents(fixtures_data_dir):
     from hifi.agents.ensemble_runner import run_ensemble
-
-    monkeypatch.setattr(fa, "make_llm", lambda *a, **kw: _stub_llm("fund-model"))
-    monkeypatch.setattr(ta, "make_llm", lambda *a, **kw: _stub_llm("tech-model"))
 
     tracer = RecordingTracer()
     snap = _make_snapshot()
     run_ensemble(
         "AAPL", "2023-03-31", snap.model_dump_json(), fixtures_data_dir,
         tracer=tracer, agents=["fundamental", "technical"],
+        _test_llms={"fundamental": _stub_llm("fund-model"), "technical": _stub_llm("tech-model")},
     )
 
     # run_ensemble starts one trace, each agent also starts one trace via tracer
@@ -342,19 +330,15 @@ def test_run_ensemble_passes_tracer_to_agents(monkeypatch, fixtures_data_dir):
 # ---------------------------------------------------------------------------
 
 
-def test_run_ensemble_logs_verification_scores(monkeypatch, fixtures_data_dir):
-    import hifi.agents.fundamental_agent as fa
-    import hifi.agents.technical_agent as ta
+def test_run_ensemble_logs_verification_scores(fixtures_data_dir):
     from hifi.agents.ensemble_runner import run_ensemble
-
-    monkeypatch.setattr(fa, "make_llm", lambda *a, **kw: _stub_llm("fund-model"))
-    monkeypatch.setattr(ta, "make_llm", lambda *a, **kw: _stub_llm("tech-model"))
 
     tracer = RecordingTracer()
     snap = _make_snapshot()
     run_ensemble(
         "AAPL", "2023-03-31", snap.model_dump_json(), fixtures_data_dir,
         tracer=tracer, agents=["fundamental", "technical"],
+        _test_llms={"fundamental": _stub_llm("fund-model"), "technical": _stub_llm("tech-model")},
     )
 
     # Six verification scores must be logged

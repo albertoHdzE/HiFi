@@ -21,7 +21,7 @@ from hifi.collective.schemas import EnsembleDecision, EnsembleOutput
 # ---------------------------------------------------------------------------
 
 
-class _StubLLM:
+class _ResponseLLM:
     """Returns a fixed string from invoke(). Used to test debate nodes."""
 
     model_name = "stub-model"
@@ -114,7 +114,7 @@ def test_run_debate_round_unanimous_skips_debate():
         signals=signals,
         ticker="AAPL",
         as_of_date="2023-03-31",
-        llm=_StubLLM(),
+        llm=_ResponseLLM(),
     )
     assert transcript.debate_skipped is True
 
@@ -122,7 +122,7 @@ def test_run_debate_round_unanimous_skips_debate():
 def test_run_debate_round_unanimous_no_challenge_turns():
     signals = [_make_signal("fundamental", "Hold"), _make_signal("technical", "Hold")]
     transcript = run_debate_round(
-        signals=signals, ticker="JPM", as_of_date="2022-12-31", llm=_StubLLM()
+        signals=signals, ticker="JPM", as_of_date="2022-12-31", llm=_ResponseLLM()
     )
     assert transcript.challenge_turns == []
 
@@ -130,7 +130,7 @@ def test_run_debate_round_unanimous_no_challenge_turns():
 def test_run_debate_round_unanimous_no_response_turns():
     signals = [_make_signal("fundamental", "Sell"), _make_signal("technical", "Sell")]
     transcript = run_debate_round(
-        signals=signals, ticker="XOM", as_of_date="2022-09-30", llm=_StubLLM()
+        signals=signals, ticker="XOM", as_of_date="2022-09-30", llm=_ResponseLLM()
     )
     assert transcript.response_turns == []
 
@@ -142,7 +142,7 @@ def test_run_debate_round_unanimous_revised_equals_initial():
         _make_signal("risk", "Hold"),
     ]
     transcript = run_debate_round(
-        signals=signals, ticker="AAPL", as_of_date="2023-03-31", llm=_StubLLM()
+        signals=signals, ticker="AAPL", as_of_date="2023-03-31", llm=_ResponseLLM()
     )
     assert transcript.revised_signals == signals
 
@@ -150,7 +150,7 @@ def test_run_debate_round_unanimous_revised_equals_initial():
 def test_run_debate_round_unanimous_vote_delta_unchanged():
     signals = [_make_signal("fundamental", "Buy"), _make_signal("technical", "Buy")]
     transcript = run_debate_round(
-        signals=signals, ticker="AAPL", as_of_date="2023-03-31", llm=_StubLLM()
+        signals=signals, ticker="AAPL", as_of_date="2023-03-31", llm=_ResponseLLM()
     )
     assert transcript.vote_delta == "unchanged"
     assert transcript.n_agents_changed_vote == 0
@@ -174,7 +174,7 @@ def test_run_debate_round_split_not_skipped():
         _make_signal("risk", "Sell"),  # minority
     ]
     transcript = run_debate_round(
-        signals=signals, ticker="AAPL", as_of_date="2023-03-31", llm=_StubLLM(_HOLD_REVISION)
+        signals=signals, ticker="AAPL", as_of_date="2023-03-31", llm=_ResponseLLM(_HOLD_REVISION)
     )
     assert transcript.debate_skipped is False
 
@@ -186,7 +186,7 @@ def test_run_debate_round_minority_generates_challenge():
         _make_signal("risk", "Sell"),
     ]
     transcript = run_debate_round(
-        signals=signals, ticker="AAPL", as_of_date="2023-03-31", llm=_StubLLM(_HOLD_REVISION)
+        signals=signals, ticker="AAPL", as_of_date="2023-03-31", llm=_ResponseLLM(_HOLD_REVISION)
     )
     # Only "risk" is minority
     assert len(transcript.challenge_turns) == 1
@@ -201,7 +201,7 @@ def test_run_debate_round_majority_generates_responses():
         _make_signal("risk", "Sell"),
     ]
     transcript = run_debate_round(
-        signals=signals, ticker="AAPL", as_of_date="2023-03-31", llm=_StubLLM(_HOLD_REVISION)
+        signals=signals, ticker="AAPL", as_of_date="2023-03-31", llm=_ResponseLLM(_HOLD_REVISION)
     )
     response_agents = {t.agent_type for t in transcript.response_turns}
     assert response_agents == {"fundamental", "technical"}
@@ -216,7 +216,7 @@ def test_run_debate_round_all_agents_get_revised_signals():
         _make_signal("risk", "Sell"),
     ]
     transcript = run_debate_round(
-        signals=signals, ticker="AAPL", as_of_date="2023-03-31", llm=_StubLLM(_HOLD_REVISION)
+        signals=signals, ticker="AAPL", as_of_date="2023-03-31", llm=_ResponseLLM(_HOLD_REVISION)
     )
     assert len(transcript.revised_signals) == 3
     for sig in transcript.revised_signals:
@@ -230,7 +230,7 @@ def test_run_debate_round_revised_signals_have_correct_agent_types():
         _make_signal("risk", "Sell"),
     ]
     transcript = run_debate_round(
-        signals=signals, ticker="AAPL", as_of_date="2023-03-31", llm=_StubLLM(_HOLD_REVISION)
+        signals=signals, ticker="AAPL", as_of_date="2023-03-31", llm=_ResponseLLM(_HOLD_REVISION)
     )
     agent_types = {s.agent_type for s in transcript.revised_signals}
     assert agent_types == {"fundamental", "technical", "risk"}
@@ -242,7 +242,7 @@ def test_run_debate_round_returns_valid_transcript():
         _make_signal("technical", "Buy"),
     ]
     transcript = run_debate_round(
-        signals=signals, ticker="XOM", as_of_date="2022-09-30", llm=_StubLLM(_HOLD_REVISION)
+        signals=signals, ticker="XOM", as_of_date="2022-09-30", llm=_ResponseLLM(_HOLD_REVISION)
     )
     assert isinstance(transcript, DebateTranscript)
     assert transcript.ticker == "XOM"
@@ -258,7 +258,7 @@ def test_run_debate_round_majority_decision_set():
         _make_signal("risk", "Sell"),
     ]
     transcript = run_debate_round(
-        signals=signals, ticker="AAPL", as_of_date="2023-03-31", llm=_StubLLM(_HOLD_REVISION)
+        signals=signals, ticker="AAPL", as_of_date="2023-03-31", llm=_ResponseLLM(_HOLD_REVISION)
     )
     assert transcript.majority_decision == "Buy"
     assert transcript.minority_agents == ["risk"]
@@ -273,7 +273,7 @@ def test_run_debate_round_two_minority_agents():
         _make_signal("sentiment", "Buy"),
     ]
     transcript = run_debate_round(
-        signals=signals, ticker="AAPL", as_of_date="2023-03-31", llm=_StubLLM(_HOLD_REVISION)
+        signals=signals, ticker="AAPL", as_of_date="2023-03-31", llm=_ResponseLLM(_HOLD_REVISION)
     )
     assert len(transcript.challenge_turns) == 2
     challenge_agents = {t.agent_type for t in transcript.challenge_turns}
@@ -306,7 +306,7 @@ def test_run_debate_ensemble_returns_ensemble_output(monkeypatch):
         snapshot_json="{}",
         agents=["fundamental", "technical"],
         tracer=NoOpTracer(),
-        _debate_llm=_StubLLM(_HOLD_REVISION),
+        _debate_llm=_ResponseLLM(_HOLD_REVISION),
     )
 
     assert isinstance(output, EnsembleOutput)
@@ -334,7 +334,7 @@ def test_run_debate_ensemble_debate_transcript_type(monkeypatch):
         snapshot_json="{}",
         agents=["fundamental", "technical"],
         tracer=NoOpTracer(),
-        _debate_llm=_StubLLM(_HOLD_REVISION),
+        _debate_llm=_ResponseLLM(_HOLD_REVISION),
     )
 
     assert isinstance(output.debate_transcript, DebateTranscript)
@@ -361,7 +361,7 @@ def test_run_debate_ensemble_unanimous_produces_skipped_transcript(monkeypatch):
         snapshot_json="{}",
         agents=["fundamental", "technical"],
         tracer=NoOpTracer(),
-        _debate_llm=_StubLLM(),
+        _debate_llm=_ResponseLLM(),
     )
 
     assert output.debate_transcript is not None
@@ -404,7 +404,7 @@ def test_run_debate_ensemble_signals_are_final_signals(monkeypatch):
         snapshot_json="{}",
         agents=["fundamental", "technical"],
         tracer=NoOpTracer(),
-        _debate_llm=_StubLLM(_HOLD_REVISION),
+        _debate_llm=_ResponseLLM(_HOLD_REVISION),
     )
 
     # Signals in output should be the revised (post-debate) signals

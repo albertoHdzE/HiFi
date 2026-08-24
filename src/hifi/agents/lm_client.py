@@ -27,6 +27,15 @@ from langchain_openai import ChatOpenAI
 _DEFAULT_URL = "http://localhost:1234/v1"
 _DEFAULT_MODEL = "qwen2.5-coder-32b-instruct-mlx"
 
+# ---------------------------------------------------------------------------
+# Phase 14 target model identifiers (DJ-089, E0-T1)
+# Load ONE at a time in LM Studio; run E0-T2 diagnostic per model.
+# ---------------------------------------------------------------------------
+LLAMA_33_70B = "llama-3.3-70b-instruct"                              # Fundamental
+MISTRAL_SMALL_32 = "mistral-small-3.2-24b-instruct-2506-mlx"         # Risk
+DEEPSEEK_R1_DISTILL_32B = "deepseek-r1-distill-qwen-32b"             # Macro
+GEMMA3_12B = "gemma-3-12b-it"                                        # Sentiment
+
 
 def lm_studio_url() -> str:
     """Return the LM Studio base URL from environment (default: localhost:1234)."""

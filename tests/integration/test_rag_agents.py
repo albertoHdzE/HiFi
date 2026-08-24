@@ -136,7 +136,6 @@ def _stub_rag_failure(tool_name, params, *, data_dir=None, server_module=None):
 
 def test_fundamental_use_rag_false_uses_v1_prompt(monkeypatch, snapshot_json):
     """use_rag=False: prompt_version is fundamental_v1 and graph has no retrieve_context node."""
-    monkeypatch.setattr(fa, "make_llm", lambda *a, **kw: _FundamentalStub())
     monkeypatch.setattr(fa, "call_tool", _stub_no_rag_tool_results)
 
     result = fa.run_analysis(
@@ -144,6 +143,7 @@ def test_fundamental_use_rag_false_uses_v1_prompt(monkeypatch, snapshot_json):
         as_of_date=_DATE,
         snapshot_json=snapshot_json,
         use_rag=False,
+        _test_llm=_FundamentalStub(),
     )
 
     assert isinstance(result, FundamentalAnalysis)
@@ -154,7 +154,6 @@ def test_fundamental_use_rag_false_uses_v1_prompt(monkeypatch, snapshot_json):
 
 def test_fundamental_use_rag_true_with_passages_uses_v2_prompt(monkeypatch, snapshot_json):
     """use_rag=True with non-empty passages: prompt_version is fundamental_v2."""
-    monkeypatch.setattr(fa, "make_llm", lambda *a, **kw: _FundamentalStub())
     monkeypatch.setattr(fa, "call_tool", _stub_tool_results)
 
     result = fa.run_analysis(
@@ -162,6 +161,7 @@ def test_fundamental_use_rag_true_with_passages_uses_v2_prompt(monkeypatch, snap
         as_of_date=_DATE,
         snapshot_json=snapshot_json,
         use_rag=True,
+        _test_llm=_FundamentalStub(),
     )
 
     assert isinstance(result, FundamentalAnalysis)
@@ -171,7 +171,6 @@ def test_fundamental_use_rag_true_with_passages_uses_v2_prompt(monkeypatch, snap
 
 def test_fundamental_use_rag_true_retrieval_failure_falls_back_to_v1(monkeypatch, snapshot_json):
     """use_rag=True but retrieval fails: fail-open to v1 prompt, signal still produced."""
-    monkeypatch.setattr(fa, "make_llm", lambda *a, **kw: _FundamentalStub())
     monkeypatch.setattr(fa, "call_tool", _stub_rag_failure)
 
     result = fa.run_analysis(
@@ -179,6 +178,7 @@ def test_fundamental_use_rag_true_retrieval_failure_falls_back_to_v1(monkeypatch
         as_of_date=_DATE,
         snapshot_json=snapshot_json,
         use_rag=True,
+        _test_llm=_FundamentalStub(),
     )
 
     assert isinstance(result, FundamentalAnalysis)
@@ -188,7 +188,6 @@ def test_fundamental_use_rag_true_retrieval_failure_falls_back_to_v1(monkeypatch
 
 def test_fundamental_use_rag_true_empty_passages_falls_back_to_v1(monkeypatch, snapshot_json):
     """use_rag=True but empty passages list: fall back to v1 prompt."""
-    monkeypatch.setattr(fa, "make_llm", lambda *a, **kw: _FundamentalStub())
     monkeypatch.setattr(fa, "call_tool", _stub_no_rag_tool_results)
 
     result = fa.run_analysis(
@@ -196,6 +195,7 @@ def test_fundamental_use_rag_true_empty_passages_falls_back_to_v1(monkeypatch, s
         as_of_date=_DATE,
         snapshot_json=snapshot_json,
         use_rag=True,
+        _test_llm=_FundamentalStub(),
     )
 
     assert isinstance(result, FundamentalAnalysis)
@@ -227,13 +227,13 @@ class _TechnicalStub:
 
 def test_technical_use_rag_false_uses_v1_prompt(monkeypatch):
     """use_rag=False: prompt_version is technical_v1."""
-    monkeypatch.setattr(ta, "make_llm", lambda *a, **kw: _TechnicalStub())
     monkeypatch.setattr(ta, "call_tool", _stub_no_rag_tool_results)
 
     result = ta.run_technical_analysis(
         ticker=_TICKER,
         as_of_date=_DATE,
         use_rag=False,
+        _test_llm=_TechnicalStub(),
     )
 
     assert isinstance(result, TechnicalAnalysis)
@@ -244,13 +244,13 @@ def test_technical_use_rag_false_uses_v1_prompt(monkeypatch):
 
 def test_technical_use_rag_true_with_passages_uses_v2_prompt(monkeypatch):
     """use_rag=True with non-empty passages: prompt_version is technical_v2."""
-    monkeypatch.setattr(ta, "make_llm", lambda *a, **kw: _TechnicalStub())
     monkeypatch.setattr(ta, "call_tool", _stub_tool_results)
 
     result = ta.run_technical_analysis(
         ticker=_TICKER,
         as_of_date=_DATE,
         use_rag=True,
+        _test_llm=_TechnicalStub(),
     )
 
     assert isinstance(result, TechnicalAnalysis)
@@ -260,13 +260,13 @@ def test_technical_use_rag_true_with_passages_uses_v2_prompt(monkeypatch):
 
 def test_technical_use_rag_true_retrieval_failure_falls_back_to_v1(monkeypatch):
     """use_rag=True but retrieval fails: fail-open, v1 prompt used."""
-    monkeypatch.setattr(ta, "make_llm", lambda *a, **kw: _TechnicalStub())
     monkeypatch.setattr(ta, "call_tool", _stub_rag_failure)
 
     result = ta.run_technical_analysis(
         ticker=_TICKER,
         as_of_date=_DATE,
         use_rag=True,
+        _test_llm=_TechnicalStub(),
     )
 
     assert isinstance(result, TechnicalAnalysis)
@@ -281,8 +281,6 @@ def test_technical_use_rag_true_retrieval_failure_falls_back_to_v1(monkeypatch):
 
 def test_ensemble_use_rag_false_default(monkeypatch, snapshot_json):
     """run_ensemble default (use_rag=False): both agents produce v1 prompts."""
-    monkeypatch.setattr(fa, "make_llm", lambda *a, **kw: _FundamentalStub())
-    monkeypatch.setattr(ta, "make_llm", lambda *a, **kw: _TechnicalStub())
     monkeypatch.setattr(fa, "call_tool", _stub_no_rag_tool_results)
     monkeypatch.setattr(ta, "call_tool", _stub_no_rag_tool_results)
 
@@ -293,7 +291,8 @@ def test_ensemble_use_rag_false_default(monkeypatch, snapshot_json):
         as_of_date=_DATE,
         snapshot_json=snapshot_json,
         use_rag=False,
-    agents=["fundamental", "technical"],
+        agents=["fundamental", "technical"],
+        _test_llms={"fundamental": _FundamentalStub(), "technical": _TechnicalStub()},
     )
 
     assert isinstance(output, EnsembleOutput)
@@ -304,8 +303,6 @@ def test_ensemble_use_rag_false_default(monkeypatch, snapshot_json):
 def test_ensemble_use_rag_true_forwards_to_both_agents(monkeypatch, snapshot_json):
     """run_ensemble(use_rag=True, agents=["fundamental", "technical"]):
     both agents see passages and use v2 prompts."""
-    monkeypatch.setattr(fa, "make_llm", lambda *a, **kw: _FundamentalStub())
-    monkeypatch.setattr(ta, "make_llm", lambda *a, **kw: _TechnicalStub())
     monkeypatch.setattr(fa, "call_tool", _stub_tool_results)
     monkeypatch.setattr(ta, "call_tool", _stub_tool_results)
 
@@ -316,7 +313,8 @@ def test_ensemble_use_rag_true_forwards_to_both_agents(monkeypatch, snapshot_jso
         as_of_date=_DATE,
         snapshot_json=snapshot_json,
         use_rag=True,
-    agents=["fundamental", "technical"],
+        agents=["fundamental", "technical"],
+        _test_llms={"fundamental": _FundamentalStub(), "technical": _TechnicalStub()},
     )
 
     assert isinstance(output, EnsembleOutput)

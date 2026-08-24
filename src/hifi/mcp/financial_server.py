@@ -97,33 +97,37 @@ def _call_id(**kwargs: Any) -> str:
 
 def _load_ohlcv(ticker: str):
     """
-    Load the most recent OHLCV parquet for a ticker.
+    Load OHLCV bars for a ticker from the canonical market store.
 
-    Searches HIFI_DATA_DIR/market/{ticker}_*.parquet and loads the
-    lexicographically last file. Tries read_ohlcv (HiFi metadata format)
-    first; falls back to raw yfinance parquet format for test fixtures.
+    Path resolution is delegated to hifi.data.market_store, which prefers the
+    nested data/market/{ticker}/ohlcv.parquet layout and falls back to the
+    legacy flat fixtures. Tries read_ohlcv (HiFi metadata format) first; falls
+    back to the raw frame reader for both the nested store and test fixtures,
+    neither of which carries the HiFi metadata block.
 
     Raises
     ------
     FileNotFoundError
-        When no matching parquet file is found.
+        When no layout has data for the ticker.
     """
+    from hifi.data.market_store import resolve_ohlcv_path
     from hifi.data.storage import read_ohlcv
 
-    pattern = str(_data_dir() / "market" / f"{ticker}_*.parquet")
-    files = sorted(glob.glob(pattern))
-    if not files:
-        raise FileNotFoundError(f"No OHLCV data found for ticker '{ticker}'")
-    path = Path(files[-1])
+    path = resolve_ohlcv_path(ticker, _data_dir())
     try:
         return read_ohlcv(path)
     except ValueError:
-        # Raw yfinance fixture (no HiFi metadata block) — used in tests
+        # No HiFi metadata block: nested store parquet or raw yfinance fixture
         return _load_raw_ohlcv(path, ticker)
 
 
 def _load_raw_ohlcv(path: Path, ticker: str):
-    """Load a raw yfinance-format parquet (Date/Open/High/Low/Close/Adj Close/Volume)."""
+    """Load an OHLCV parquet that carries no HiFi metadata block.
+
+    Handles both shapes in the store: the nested canonical layout (DatetimeIndex
+    named Date, no "Adj Close") and the legacy flat yfinance fixtures (Date
+    column, "Adj Close" present).
+    """
     import math
     from datetime import datetime as _dt
 
@@ -133,7 +137,17 @@ def _load_raw_ohlcv(path: Path, ticker: str):
 
     table = pq.read_table(path)
     df = table.to_pandas()
-    prov = ProvenanceRecord(source="fixture", fetched_at=_dt(2023, 4, 1))
+    # Nested store keeps the date in the index; flat fixtures keep it in a column.
+    if "Date" not in df.columns:
+        df = df.reset_index()
+        for cand in ("Date", "date", "index"):
+            if cand in df.columns:
+                df = df.rename(columns={cand: "Date"})
+                break
+    # Label provenance honestly: the nested store is real market data, the flat
+    # files are test fixtures. Downstream provenance panels rely on this.
+    src = "market_store" if path.name == "ohlcv.parquet" else "fixture"
+    prov = ProvenanceRecord(source=src, fetched_at=_dt(2023, 4, 1))
     bars = []
     for _, row in df.iterrows():
         dt = row["Date"].date() if hasattr(row["Date"], "date") else row["Date"]
@@ -152,12 +166,12 @@ def _load_raw_ohlcv(path: Path, ticker: str):
             adj = None
         try:
             bars.append(OHLCVBar(ticker=ticker, date=dt, open=o, high=h, low=lv,
-                                 close=c, volume=vol, adjusted_close=adj, source="fixture"))
+                                 close=c, volume=vol, adjusted_close=adj, source=src))
         except Exception:
             continue
     dates = [b.date for b in bars]
     from datetime import date as _date
-    return OHLCVDataset(ticker=ticker, bars=bars, source="fixture",
+    return OHLCVDataset(ticker=ticker, bars=bars, source=src,
                         fetched_at=_dt(2023, 4, 1),
                         date_from=min(dates) if dates else _date(2023, 1, 3),
                         date_to=max(dates) if dates else _date(2023, 4, 1),

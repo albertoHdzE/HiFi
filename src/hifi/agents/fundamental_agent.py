@@ -44,13 +44,21 @@ from pathlib import Path
 from langchain_core.messages import HumanMessage, SystemMessage
 from typing_extensions import TypedDict
 
-from hifi.agents.lm_client import make_llm
+from hifi.agents.lm_client import LLAMA_33_70B, make_llm
 from hifi.agents.mcp_client import call_tool
 from hifi.agents.schemas import AgentSignal, FundamentalAnalysis
 from hifi.data.schemas import FundamentalsSnapshot
 from hifi.observability.tracing import AbstractTracer, get_tracer, trace_context
 
 logger = logging.getLogger(__name__)
+
+# Phase 13 default (qwen2.5-coder-32b); updated to Llama 3.3 in E0-T3.
+# Control via HIFI_FUNDAMENTAL_MODEL env var (same pattern as HIFI_RISK_MODEL).
+_DEFAULT_FUNDAMENTAL_MODEL = LLAMA_33_70B
+
+
+def _fundamental_model() -> str:
+    return os.environ.get("HIFI_FUNDAMENTAL_MODEL", _DEFAULT_FUNDAMENTAL_MODEL)
 
 _PROMPT_VERSION = "fundamental_v1"
 _PROMPT_V2_VERSION = "fundamental_v2"
@@ -77,6 +85,8 @@ class FundamentalistState(TypedDict, total=False):
     tool_results: dict            # populated by call_mcp_tools_node
     retrieved_context: str        # SEC filing passages (empty if use_rag=False)
     llm_response: str             # raw LLM output (last attempt)
+    model_id: str                 # set by generate_analysis_node; read by parse_output_node
+    _test_llm: object | None      # DI: injected by tests only; bypasses make_llm()
     signal: AgentSignal | None
     error: str | None
     start_time: float             # wall-clock start for latency measurement
@@ -308,15 +318,18 @@ def generate_analysis_node(state: FundamentalistState) -> dict:
 
     _ft_url   = os.environ.get("HIFI_FUNDAMENTAL_FINETUNE_URL")
     _ft_model = os.environ.get("HIFI_FUNDAMENTAL_FINETUNE_MODEL")
-    if _ft_url and _ft_model:
+    _test_llm = state.get("_test_llm")
+    if _test_llm is not None:
+        llm = _test_llm
+    elif _ft_url and _ft_model:
         llm = make_llm(model=_ft_model, base_url=_ft_url)
     elif _ft_url:
         llm = make_llm(base_url=_ft_url)
     else:
-        llm = make_llm()
+        llm = make_llm(_fundamental_model())
     messages = [SystemMessage(content=system_text), HumanMessage(content=user_text)]
     response = llm.invoke(messages)
-    return {"llm_response": response.content}
+    return {"llm_response": response.content, "model_id": llm.model_name}
 
 
 def parse_output_node(state: FundamentalistState) -> dict:
@@ -346,15 +359,8 @@ def parse_output_node(state: FundamentalistState) -> dict:
             if v is None and k not in ("call_id", "error", "detail"):
                 data_gaps.append(k)
 
-    _ft_url   = os.environ.get("HIFI_FUNDAMENTAL_FINETUNE_URL")
-    _ft_model = os.environ.get("HIFI_FUNDAMENTAL_FINETUNE_MODEL")
-    if _ft_url and _ft_model:
-        llm = make_llm(model=_ft_model, base_url=_ft_url)
-    elif _ft_url:
-        llm = make_llm(base_url=_ft_url)
-    else:
-        llm = make_llm()
-    model_id = llm.model_name
+    model_id = state.get("model_id", "")
+    _test_llm = state.get("_test_llm")
 
     def _try_parse(text: str) -> AgentSignal | None:
         parsed = _extract_json(text)
@@ -368,7 +374,17 @@ def parse_output_node(state: FundamentalistState) -> dict:
 
     # First parse failed -- send a correction request
     logger.warning("First parse attempt failed for %s. Retrying.", ticker)
-    retry_response = llm.invoke([
+    _ft_url   = os.environ.get("HIFI_FUNDAMENTAL_FINETUNE_URL")
+    _ft_model = os.environ.get("HIFI_FUNDAMENTAL_FINETUNE_MODEL")
+    if _test_llm is not None:
+        retry_llm = _test_llm
+    elif _ft_url and _ft_model:
+        retry_llm = make_llm(model=_ft_model, base_url=_ft_url)
+    elif _ft_url:
+        retry_llm = make_llm(base_url=_ft_url)
+    else:
+        retry_llm = make_llm(_fundamental_model())
+    retry_response = retry_llm.invoke([
         HumanMessage(content=llm_response),
         HumanMessage(content=_RETRY_MSG),
     ])
@@ -377,8 +393,10 @@ def parse_output_node(state: FundamentalistState) -> dict:
         return {"signal": signal, "llm_response": retry_response.content}
 
     return {
-        "error": f"Failed to parse AgentSignal after retry. "
-                 f"Last response: {retry_response.content[:200]}"
+        "error": (
+            f"Failed to parse AgentSignal after retry. "
+            f"Last response: {retry_response.content[:200]}"
+        )
     }
 
 
@@ -446,6 +464,7 @@ def run_analysis(
     use_rag: bool = False,
     retrieved_context: str = "",
     memory_prefix: str = "",
+    _test_llm: object | None = None,
 ) -> FundamentalAnalysis:
     """
     Run the Fundamental Analyst Agent for one ticker on one date.
@@ -495,6 +514,7 @@ def run_analysis(
         "error": None,
         "start_time": start,
         "memory_prefix": memory_prefix,
+        "_test_llm": _test_llm,
     }
 
     with trace_context(trace_id):

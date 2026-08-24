@@ -22,12 +22,13 @@ dependencies = [
     "langchain>=0.3",
     "langchain-openai>=0.2",
     "langgraph>=0.2",
-    "langfuse>=3.0",
+    "langfuse>=2.60,<3",
     "lancedb>=0.8",
     "pylance>=7.0.0",
     "filelock>=3.12",
     "networkx>=3.6.1",
     "scipy>=1.17.1",
+    "alpaca-py>=0.43.5",
 ]
 
 [project.optional-dependencies]

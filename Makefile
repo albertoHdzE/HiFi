@@ -12,7 +12,13 @@ DOCKER_ENV_FILE     := docker/langfuse/.env
 	generate-reference-strategies label-outcomes baseline-phase11 \
 	test-live \
 	calibrate-drift verification-baseline-p13 diagnose-sentiment-sgr \
-	eval-debate-multiround eval-memory run-scenarios validate-sentiment-corpus
+	eval-debate-multiround eval-memory run-scenarios validate-sentiment-corpus \
+	acquire-data-phase14 ingest-edgar-mda acquire-macro-phase14 \
+	validate-sentiment-corpus-v2 eval-reset eval-ingest-through live-reset \
+	walkforward-smoke walkforward-full walkforward-parallel walkforward-homogeneous \
+	walkforward-no-memory walkforward-held-out walkforward-status walkforward-ic \
+	walkforward-smoke-full walkforward-orchestrate walkforward-pipeline walkforward-report \
+	live-status live-update-data live-dry-run live-execute live-nightly live-snapshot
 
 FINETUNE_VENV := venvs/finetune/bin/python
 
@@ -224,8 +230,9 @@ generate-reference-strategies: ## Generate Dataset Family C Parquets (no LM Stud
 	uv run python scripts/generate_reference_strategies.py
 	uv run python scripts/check_env.py --check phase11-data
 
-label-outcomes: ## Label unlabeled performance records where 60d has elapsed (no LM Studio)
+label-outcomes: ## Label unlabeled performance + episodic records where 60d has elapsed (no LM Studio)
 	uv run python scripts/run_label_outcomes.py
+	uv run python scripts/label_outcomes.py
 
 baseline-phase11: ## Phase 11 fine-tuning eval: generate + validate (requires LM Studio + finetune servers)
 	uv run python scripts/check_env.py --check lm-studio
@@ -298,3 +305,121 @@ eval-memory: ## E4-T4: Agent memory influence eval → OQ-M03 (requires LM Studi
 run-scenarios: ## E6-T2: Run F-001/F-002/F-003 synthetic scenarios (requires LM Studio)
 	uv run python scripts/check_env.py --check lm-studio
 	uv run python scripts/run_phase13_scenarios.py
+
+# ---------------------------------------------------------------------------
+# Phase 14: Data acquisition, namespace management, episodic labeling (DJ-090–DJ-093)
+# ---------------------------------------------------------------------------
+
+acquire-data-phase14: ## Bulk OHLCV + fundamentals for 100-stock universe 2004-2025 (internet, ~45min)
+	uv run python scripts/acquire_phase14_data.py
+
+ingest-edgar-mda: ## EDGAR MD&A Item 7/Item 2 targeted ingestion → LanceDB (internet, 4-8h)
+	uv run python scripts/ingest_edgar_mda.py
+
+acquire-macro-phase14: ## Extend FRED macro indicators 2004-2025 (internet, ~5min)
+	uv run python scripts/acquire_macro_phase14.py
+
+validate-sentiment-corpus-v2: ## Re-run OQ-S01 corpus gate on expanded EDGAR corpus (E1-T1)
+	uv run python scripts/validate_sentiment_corpus.py
+
+eval-reset: ## Drop all hifi-eval-* namespace tables in LanceDB
+	uv run python scripts/manage_namespaces.py --action reset --namespace hifi-eval
+
+eval-ingest-through: ## Ingest data through DATE= into hifi-eval namespace (requires DATE=)
+	@if [ -z "$(DATE)" ]; then \
+		echo "ERROR: DATE= required (e.g. make eval-ingest-through DATE=2020-12-31)"; exit 1; \
+	fi
+	uv run python scripts/ingest_edgar_mda.py --namespace hifi-eval --through-date $(DATE)
+	uv run python scripts/ingest_episodes.py --namespace hifi-eval --through-date $(DATE)
+
+live-reset: ## Drop all hifi-live-* namespace tables in LanceDB
+	uv run python scripts/manage_namespaces.py --action reset --namespace hifi-live
+
+# ---------------------------------------------------------------------------
+# Phase 15: Walk-Forward Simulation (DJ-097, DJ-096)
+# ---------------------------------------------------------------------------
+
+walkforward-smoke: ## Phase 15 smoke: agent-first sweep, 22 tickers × 1 date, full pipeline (alias for smoke-full)
+	uv run python scripts/run_phase15_smoke.py
+
+walkforward-smoke-full: ## Phase 15 smoke: agent-first sweep, 22 tickers × 1 date, full pipeline (requires LM Studio)
+	uv run python scripts/run_phase15_smoke.py
+
+walkforward-full: ## Phase 15 Full: sequential 5-org + episodic RAG (requires LM Studio)
+	uv run python scripts/run_phase15_walkforward.py \
+		--condition full --period held-out-test
+
+walkforward-parallel: ## Phase 15 Parallel: independent 5-org, no inter-agent sharing (requires LM Studio)
+	uv run python scripts/run_phase15_walkforward.py \
+		--condition parallel --period held-out-test
+
+walkforward-homogeneous: ## Phase 15 Homogeneous: Phase 13 qwen-dominant config (requires LM Studio)
+	uv run python scripts/run_phase15_walkforward.py \
+		--condition homogeneous --period held-out-test
+
+walkforward-no-memory: ## Phase 15 No-memory: sequential 5-org, no episodic prefix (requires LM Studio)
+	uv run python scripts/run_phase15_walkforward.py \
+		--condition no-memory --period held-out-test
+
+walkforward-held-out: ## Phase 15 all four conditions on held-out 2022-2023 (requires LM Studio)
+	$(MAKE) walkforward-full
+	$(MAKE) walkforward-parallel
+	$(MAKE) walkforward-homogeneous
+	$(MAKE) walkforward-no-memory
+
+walkforward-status: ## Show checkpoint progress for all conditions (no LM Studio needed)
+	@for cond in full parallel homogeneous no-memory; do \
+		uv run python scripts/run_phase15_walkforward.py \
+			--status --condition $$cond --period held-out-test; \
+	done
+
+walkforward-ic: ## Compute IC/IR metrics from completed walkforward JSONs (no LM Studio needed)
+	uv run python scripts/compute_phase15_ic.py \
+		--period held-out-test --regime-breakdown
+
+walkforward-orchestrate: ## Phase 15 full orchestrated run: agent-first sweep + aggregate + pipeline (requires LM Studio)
+	uv run python scripts/run_phase15_orchestrator.py \
+		--agent all --aggregate --pipeline \
+		--condition full --period held-out-test
+
+walkforward-pipeline: ## Run MCP pipeline on existing ensemble JSONs (no LM Studio needed)
+	uv run python scripts/run_phase15_orchestrator.py \
+		--pipeline --condition full --period held-out-test
+
+walkforward-report: ## Show status + IC/IR summary for all conditions (no LM Studio needed)
+	uv run python scripts/run_phase15_orchestrator.py --status --period held-out-test
+	$(MAKE) walkforward-ic
+
+# ---------------------------------------------------------------------------
+# Phase 16: Live Paper Trading — 3-account Alpaca ablation (DJ-111)
+# ---------------------------------------------------------------------------
+
+live-status: ## Show portfolio status for all provisioned Alpaca accounts
+	uv run python scripts/run_phase16_live.py --status
+
+live-snapshot: ## Capture equity + positions + Alpaca equity curve for all accounts (no trading)
+	uv run python scripts/run_phase16_live.py --snapshot
+
+live-update-data: ## Refresh OHLCV parquets through today via Alpaca (98 tickers)
+	uv run python scripts/run_phase16_live.py --update-data
+
+live-dry-run: ## Nightly cycle for all accounts, no orders placed (requires LM Studio)
+	uv run python scripts/run_phase16_live.py --account all --dry-run
+
+live-execute: ## Full nightly batch: all accounts, real paper orders (requires LM Studio)
+	uv run python scripts/run_phase16_live.py --account all --execute
+
+live-nightly: ## Manual nightly run (daily ~19:00): pre-flight + weekend/market-hours guard + log, survives terminal close
+	@out=$$(bash scripts/nightly_live_execute.sh --check-window); rc=$$?; \
+	 if [ -n "$$out" ]; then echo "$$out"; fi; \
+	 if [ $$rc -ne 0 ]; then \
+	     if [ "$(ALLOW_MARKET_HOURS)" = "1" ]; then \
+	         echo "ALLOW_MARKET_HOURS=1 — overriding guard."; \
+	     else \
+	         echo "Not started."; exit 1; \
+	     fi; \
+	 fi; \
+	 nohup bash scripts/nightly_live_execute.sh > /dev/null 2>&1 & \
+	 echo "Nightly cycle started in background."; \
+	 echo "Follow progress:  tail -f data/live/logs/nightly_$$(date +%Y%m%d).log"
+

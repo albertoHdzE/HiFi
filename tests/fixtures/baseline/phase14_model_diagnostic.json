@@ -1,0 +1,151 @@
+{
+  "metadata": {
+    "phase": "14",
+    "epic": "E0",
+    "ticket": "T2",
+    "tickers": [
+      "AAPL",
+      "JPM",
+      "XOM"
+    ],
+    "as_of_date": "2023-03-31",
+    "hifi_commit": "c103365"
+  },
+  "agents": {
+    "fundamental": {
+      "run_date": "2026-06-18",
+      "agent": "fundamental",
+      "model_id": "llama-3.3-70b-instruct",
+      "tickers": {
+        "AAPL": {
+          "json_valid": true,
+          "decision": "Buy",
+          "confidence": 0.8,
+          "latency_ms": 9561
+        },
+        "JPM": {
+          "json_valid": true,
+          "decision": "Buy",
+          "confidence": 0.8,
+          "latency_ms": 7874
+        },
+        "XOM": {
+          "json_valid": true,
+          "decision": "Hold",
+          "confidence": 0.7,
+          "latency_ms": 7629
+        }
+      },
+      "summary": {
+        "json_valid_rate": 1.0,
+        "mean_latency_ms": 8354.7,
+        "passed": true
+      }
+    },
+    "risk": {
+      "run_date": "2026-06-18",
+      "agent": "risk",
+      "model_id": "mistral-small-3.2-24b-instruct-2506-mlx",
+      "tickers": {
+        "AAPL": {
+          "json_valid": true,
+          "n_claims": 3,
+          "gr": 1.0,
+          "hr": 0.0,
+          "decision": "Sell",
+          "latency_ms": 12548
+        },
+        "JPM": {
+          "json_valid": true,
+          "n_claims": 3,
+          "gr": 1.0,
+          "hr": 0.0,
+          "decision": "Sell",
+          "latency_ms": 9186
+        },
+        "XOM": {
+          "json_valid": true,
+          "n_claims": 4,
+          "gr": 1.0,
+          "hr": 0.0,
+          "decision": "Hold",
+          "latency_ms": 10236
+        }
+      },
+      "summary": {
+        "mean_gr": 1.0,
+        "mean_latency_ms": 10656.7,
+        "passed": true
+      }
+    },
+    "macro": {
+      "run_date": "2026-06-18",
+      "agent": "macro",
+      "model_id": "deepseek-r1-distill-qwen-32b",
+      "tickers": {
+        "AAPL": {
+          "json_valid": true,
+          "n_claims": 0,
+          "gr": 0.0,
+          "hr": 0.0,
+          "decision": "Hold",
+          "latency_ms": 27826
+        },
+        "JPM": {
+          "json_valid": true,
+          "n_claims": 0,
+          "gr": 0.0,
+          "hr": 0.0,
+          "decision": "Hold",
+          "latency_ms": 21510
+        },
+        "XOM": {
+          "json_valid": true,
+          "n_claims": 0,
+          "gr": 0.0,
+          "hr": 0.0,
+          "decision": "Hold",
+          "latency_ms": 21291
+        }
+      },
+      "summary": {
+        "mean_gr": 0.0,
+        "mean_latency_ms": 23542.3,
+        "passed": true
+      }
+    },
+    "sentiment": {
+      "run_date": "2026-06-18",
+      "agent": "sentiment",
+      "model_id": "gemma-3-12b-it",
+      "tickers": {
+        "AAPL": {
+          "json_valid": true,
+          "n_signals": 2,
+          "sgr": 1.0,
+          "decision": "Hold",
+          "latency_ms": 10920
+        },
+        "JPM": {
+          "json_valid": true,
+          "n_signals": 2,
+          "sgr": 1.0,
+          "decision": "Hold",
+          "latency_ms": 9237
+        },
+        "XOM": {
+          "json_valid": true,
+          "n_signals": 2,
+          "sgr": 1.0,
+          "decision": "Hold",
+          "latency_ms": 8926
+        }
+      },
+      "summary": {
+        "mean_sgr": 1.0,
+        "mean_latency_ms": 9694.3,
+        "passed": true
+      }
+    }
+  }
+}

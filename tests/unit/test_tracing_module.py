@@ -157,6 +157,44 @@ def test_get_tracer_returns_noop_when_keys_missing():
 
 
 # ---------------------------------------------------------------------------
+# DJ-112: get_tracer() is memoised per process (thread-leak regression guard)
+# ---------------------------------------------------------------------------
+
+
+def test_get_tracer_is_cached_for_same_config():
+    """Repeated calls with identical env must return the SAME object.
+
+    A fresh LangFuse client per call leaked ~3 background threads each and
+    panicked the macOS kernel over a full nightly run (DJ-112). Guard it.
+    """
+    import hifi.observability.tracing as tracing_mod
+
+    tracing_mod._TRACER = None
+    tracing_mod._TRACER_KEY = None
+    with patch.dict(os.environ, {"LANGFUSE_ENABLED": "false"}):
+        first = get_tracer()
+        objects = {id(get_tracer()) for _ in range(50)}
+    assert objects == {id(first)}, "get_tracer() must return a cached singleton"
+
+
+def test_get_tracer_rebuilds_when_config_changes():
+    import hifi.observability.tracing as tracing_mod
+
+    tracing_mod._TRACER = None
+    tracing_mod._TRACER_KEY = None
+    with patch.dict(os.environ, {"LANGFUSE_ENABLED": "false"}):
+        disabled = get_tracer()
+    with patch.dict(os.environ, {"LANGFUSE_ENABLED": "true",
+                                 "LANGFUSE_PUBLIC_KEY": "", "LANGFUSE_SECRET_KEY": ""}):
+        env = {k: v for k, v in os.environ.items()
+               if k not in ("LANGFUSE_PUBLIC_KEY", "LANGFUSE_SECRET_KEY")}
+        with patch.dict(os.environ, env, clear=True):
+            rebuilt = get_tracer()
+    # Different config -> not the same cached object (both NoOp, distinct instances)
+    assert disabled is not rebuilt
+
+
+# ---------------------------------------------------------------------------
 # E2-T7: NoOpTracer.start_trace() returns non-empty string trace ID
 # ---------------------------------------------------------------------------
 

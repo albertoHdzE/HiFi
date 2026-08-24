@@ -2,8 +2,8 @@
 Unit tests for MarketDataFetcher and FundamentalsFetcher (P1-E2).
 
 Tests use synthetic DataFrames that match the yfinance output format.
-No live API calls are made: _download and _get_info are patched to return
-pre-constructed pandas DataFrames.
+No live API calls are made: real data is injected via the _test_download DI
+parameter on fetch_ohlcv (same pattern as _test_llm on agents).
 
 Tickets covered:
 - P1-E2-T5: Fetcher normalises yfinance output to OHLCVDataset schema
@@ -14,7 +14,6 @@ Tickets covered:
 from __future__ import annotations
 
 from datetime import date
-from unittest.mock import patch
 
 import pandas as pd
 
@@ -79,24 +78,21 @@ class TestMarketDataFetcherNormalisation:
         """T5: fetch_ohlcv returns an OHLCVDataset instance."""
         df = _make_yfinance_df(_clean_rows())
         fetcher = MarketDataFetcher()
-        with patch.object(fetcher, "_download", return_value=df):
-            result = fetcher.fetch_ohlcv("AAPL", date(2023, 1, 3), date(2023, 1, 6))
+        result = fetcher.fetch_ohlcv("AAPL", date(2023, 1, 3), date(2023, 1, 6), _test_download=df)
         assert isinstance(result, OHLCVDataset)
 
     def test_correct_ticker(self) -> None:
         """T5: ticker in the returned dataset matches the requested ticker."""
         df = _make_yfinance_df(_clean_rows())
         fetcher = MarketDataFetcher()
-        with patch.object(fetcher, "_download", return_value=df):
-            result = fetcher.fetch_ohlcv("AAPL", date(2023, 1, 3), date(2023, 1, 6))
+        result = fetcher.fetch_ohlcv("AAPL", date(2023, 1, 3), date(2023, 1, 6), _test_download=df)
         assert result.ticker == "AAPL"
 
     def test_correct_bar_count(self) -> None:
         """T5: number of bars equals the number of rows in the yfinance DataFrame."""
         df = _make_yfinance_df(_clean_rows())
         fetcher = MarketDataFetcher()
-        with patch.object(fetcher, "_download", return_value=df):
-            result = fetcher.fetch_ohlcv("AAPL", date(2023, 1, 3), date(2023, 1, 6))
+        result = fetcher.fetch_ohlcv("AAPL", date(2023, 1, 3), date(2023, 1, 6), _test_download=df)
         assert len(result.bars) == 3
 
     def test_prices_normalised_correctly(self) -> None:
@@ -104,8 +100,7 @@ class TestMarketDataFetcherNormalisation:
         rows = _clean_rows()
         df = _make_yfinance_df(rows)
         fetcher = MarketDataFetcher()
-        with patch.object(fetcher, "_download", return_value=df):
-            result = fetcher.fetch_ohlcv("AAPL", date(2023, 1, 3), date(2023, 1, 6))
+        result = fetcher.fetch_ohlcv("AAPL", date(2023, 1, 3), date(2023, 1, 6), _test_download=df)
         bar = result.bars[0]
         assert abs(bar.open - 130.28) < 1e-4
         assert abs(bar.high - 130.90) < 1e-4
@@ -118,16 +113,14 @@ class TestMarketDataFetcherNormalisation:
         """T5: bar.date is a datetime.date, not a Timestamp or string."""
         df = _make_yfinance_df(_clean_rows())
         fetcher = MarketDataFetcher()
-        with patch.object(fetcher, "_download", return_value=df):
-            result = fetcher.fetch_ohlcv("AAPL", date(2023, 1, 3), date(2023, 1, 6))
+        result = fetcher.fetch_ohlcv("AAPL", date(2023, 1, 3), date(2023, 1, 6), _test_download=df)
         assert all(isinstance(b.date, date) for b in result.bars)
 
     def test_dates_stripped_of_timezone(self) -> None:
         """T5: bar dates are date-only, not timezone-aware datetimes."""
         df = _make_yfinance_df(_clean_rows())
         fetcher = MarketDataFetcher()
-        with patch.object(fetcher, "_download", return_value=df):
-            result = fetcher.fetch_ohlcv("AAPL", date(2023, 1, 3), date(2023, 1, 6))
+        result = fetcher.fetch_ohlcv("AAPL", date(2023, 1, 3), date(2023, 1, 6), _test_download=df)
         assert result.bars[0].date == date(2023, 1, 3)
 
     def test_empty_dataframe_produces_empty_dataset(self) -> None:
@@ -137,16 +130,14 @@ class TestMarketDataFetcherNormalisation:
             index=pd.DatetimeIndex([], name="Date"),
         )
         fetcher = MarketDataFetcher()
-        with patch.object(fetcher, "_download", return_value=df):
-            result = fetcher.fetch_ohlcv("AAPL", date(2023, 1, 3), date(2023, 1, 6))
+        result = fetcher.fetch_ohlcv("AAPL", date(2023, 1, 3), date(2023, 1, 6), _test_download=df)
         assert result.bars == []
 
     def test_ohlcv_invariants_hold_for_all_bars(self) -> None:
         """T5: all returned bars satisfy OHLCV schema constraints (high >= low, etc.)."""
         df = _make_yfinance_df(_clean_rows())
         fetcher = MarketDataFetcher()
-        with patch.object(fetcher, "_download", return_value=df):
-            result = fetcher.fetch_ohlcv("AAPL", date(2023, 1, 3), date(2023, 1, 6))
+        result = fetcher.fetch_ohlcv("AAPL", date(2023, 1, 3), date(2023, 1, 6), _test_download=df)
         for bar in result.bars:
             assert bar.high >= bar.open
             assert bar.high >= bar.close
@@ -170,8 +161,7 @@ class TestMarketDataFetcherMissingData:
         ]
         df = _make_yfinance_df(rows)
         fetcher = MarketDataFetcher()
-        with patch.object(fetcher, "_download", return_value=df):
-            result = fetcher.fetch_ohlcv("AAPL", date(2023, 1, 3), date(2023, 1, 5))
+        result = fetcher.fetch_ohlcv("AAPL", date(2023, 1, 3), date(2023, 1, 5), _test_download=df)
         assert len(result.bars) == 1
         assert result.bars[0].date == date(2023, 1, 4)
 
@@ -183,8 +173,7 @@ class TestMarketDataFetcherMissingData:
         ]
         df = _make_yfinance_df(rows)
         fetcher = MarketDataFetcher()
-        with patch.object(fetcher, "_download", return_value=df):
-            result = fetcher.fetch_ohlcv("AAPL", date(2023, 1, 3), date(2023, 1, 5))
+        result = fetcher.fetch_ohlcv("AAPL", date(2023, 1, 3), date(2023, 1, 5), _test_download=df)
         assert len(result.bars) == 1
 
     def test_nan_adjusted_close_is_kept_as_none(self) -> None:
@@ -194,8 +183,7 @@ class TestMarketDataFetcherMissingData:
         ]
         df = _make_yfinance_df(rows)
         fetcher = MarketDataFetcher()
-        with patch.object(fetcher, "_download", return_value=df):
-            result = fetcher.fetch_ohlcv("AAPL", date(2023, 1, 3), date(2023, 1, 4))
+        result = fetcher.fetch_ohlcv("AAPL", date(2023, 1, 3), date(2023, 1, 4), _test_download=df)
         assert len(result.bars) == 1
         assert result.bars[0].adjusted_close is None
 
@@ -207,8 +195,7 @@ class TestMarketDataFetcherMissingData:
         ]
         df = _make_yfinance_df(rows)
         fetcher = MarketDataFetcher()
-        with patch.object(fetcher, "_download", return_value=df):
-            result = fetcher.fetch_ohlcv("AAPL", date(2023, 1, 3), date(2023, 1, 4))
+        result = fetcher.fetch_ohlcv("AAPL", date(2023, 1, 3), date(2023, 1, 4), _test_download=df)
         assert result.bars == []
 
 
@@ -224,24 +211,21 @@ class TestMarketDataFetcherProvenance:
         """T7: provenance.source matches the fetcher's source label."""
         df = _make_yfinance_df(_clean_rows())
         fetcher = MarketDataFetcher(source="yfinance")
-        with patch.object(fetcher, "_download", return_value=df):
-            result = fetcher.fetch_ohlcv("AAPL", date(2023, 1, 3), date(2023, 1, 6))
+        result = fetcher.fetch_ohlcv("AAPL", date(2023, 1, 3), date(2023, 1, 6), _test_download=df)
         assert result.provenance.source == "yfinance"
 
     def test_provenance_parameters_contain_ticker(self) -> None:
         """T7: provenance.parameters records the ticker that was requested."""
         df = _make_yfinance_df(_clean_rows())
         fetcher = MarketDataFetcher()
-        with patch.object(fetcher, "_download", return_value=df):
-            result = fetcher.fetch_ohlcv("AAPL", date(2023, 1, 3), date(2023, 1, 6))
+        result = fetcher.fetch_ohlcv("AAPL", date(2023, 1, 3), date(2023, 1, 6), _test_download=df)
         assert result.provenance.parameters["ticker"] == "AAPL"
 
     def test_provenance_parameters_contain_date_range(self) -> None:
         """T7: provenance.parameters records start and end dates."""
         df = _make_yfinance_df(_clean_rows())
         fetcher = MarketDataFetcher()
-        with patch.object(fetcher, "_download", return_value=df):
-            result = fetcher.fetch_ohlcv("AAPL", date(2023, 1, 3), date(2023, 1, 6))
+        result = fetcher.fetch_ohlcv("AAPL", date(2023, 1, 3), date(2023, 1, 6), _test_download=df)
         assert result.provenance.parameters["start"] == "2023-01-03"
         assert result.provenance.parameters["end"] == "2023-01-06"
 
@@ -249,6 +233,5 @@ class TestMarketDataFetcherProvenance:
         """T7: provenance.fetched_at is timezone-aware (UTC)."""
         df = _make_yfinance_df(_clean_rows())
         fetcher = MarketDataFetcher()
-        with patch.object(fetcher, "_download", return_value=df):
-            result = fetcher.fetch_ohlcv("AAPL", date(2023, 1, 3), date(2023, 1, 6))
+        result = fetcher.fetch_ohlcv("AAPL", date(2023, 1, 3), date(2023, 1, 6), _test_download=df)
         assert result.provenance.fetched_at.tzinfo is not None

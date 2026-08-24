@@ -66,75 +66,59 @@ _STUB_RESPONSE = json.dumps({
 })
 
 
-def test_run_contrarian_returns_contrarian_analysis(monkeypatch):
-    import hifi.agents.contrarian_agent as ca
-
-    class _StubLLM:
+def test_run_contrarian_returns_contrarian_analysis():
+    class _ResponseLLM:
         model_name = "mlx-qwen35b"
         def invoke(self, _):
             class _R:
                 content = _STUB_RESPONSE
             return _R()
 
-    monkeypatch.setattr(ca, "make_llm", lambda *a, **kw: _StubLLM())
-
     ctx = _build_ensemble_context("AAPL", "2023-03-31", _agent_summaries(), "Buy", 0.72)
-    result = run_contrarian_analysis("AAPL", "2023-03-31", ctx)
+    result = run_contrarian_analysis("AAPL", "2023-03-31", ctx, _test_llm=_ResponseLLM())
     assert isinstance(result, ContrarianAnalysis)
     assert result.confidence == pytest.approx(0.40)
     assert "deceleration" in result.alternative_thesis.lower()
     assert result.prompt_version == "contrarian_v1"
 
 
-def test_run_contrarian_has_no_signal_field(monkeypatch):
-    import hifi.agents.contrarian_agent as ca
-
-    class _StubLLM:
+def test_run_contrarian_has_no_signal_field():
+    class _ResponseLLM:
         model_name = "m"
         def invoke(self, _):
             class _R:
                 content = _STUB_RESPONSE
             return _R()
 
-    monkeypatch.setattr(ca, "make_llm", lambda *a, **kw: _StubLLM())
-
     ctx = _build_ensemble_context("AAPL", "2023-03-31", _agent_summaries(), "Buy", 0.72)
-    result = run_contrarian_analysis("AAPL", "2023-03-31", ctx)
+    result = run_contrarian_analysis("AAPL", "2023-03-31", ctx, _test_llm=_ResponseLLM())
     assert not hasattr(result, "signal")
     assert not hasattr(result, "decision")
 
 
-def test_run_contrarian_fallback_on_parse_failure(monkeypatch):
+def test_run_contrarian_fallback_on_parse_failure():
     """When LLM produces bad JSON, fallback ContrarianAnalysis is returned."""
-    import hifi.agents.contrarian_agent as ca
-
-    class _BadLLM:
+    class _AlwaysInvalidLLM:
         model_name = "m"
         def invoke(self, _):
             class _R:
                 content = "I cannot provide that information."
             return _R()
 
-    monkeypatch.setattr(ca, "make_llm", lambda *a, **kw: _BadLLM())
-
     ctx = _build_ensemble_context("AAPL", "2023-03-31", [], "Hold", 0.5)
-    result = run_contrarian_analysis("AAPL", "2023-03-31", ctx)
+    result = run_contrarian_analysis("AAPL", "2023-03-31", ctx, _test_llm=_AlwaysInvalidLLM())
     assert isinstance(result, ContrarianAnalysis)
     assert result.confidence == 0.0
 
 
-def test_run_contrarian_json_safe(monkeypatch):
-    import hifi.agents.contrarian_agent as ca
-
-    class _StubLLM:
+def test_run_contrarian_json_safe():
+    class _ResponseLLM:
         model_name = "m"
         def invoke(self, _):
             class _R:
                 content = _STUB_RESPONSE
             return _R()
 
-    monkeypatch.setattr(ca, "make_llm", lambda *a, **kw: _StubLLM())
-
     ctx = _build_ensemble_context("AAPL", "2023-03-31", _agent_summaries(), "Buy", 0.72)
-    result = run_contrarian_analysis("AAPL", "2023-03-31", ctx)
+    result = run_contrarian_analysis("AAPL", "2023-03-31", ctx, _test_llm=_ResponseLLM())
     json.dumps(result.model_dump())

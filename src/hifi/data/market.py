@@ -68,6 +68,7 @@ class MarketDataFetcher:
         ticker: str,
         start: date,
         end: date,
+        _test_download: pd.DataFrame | None = None,
     ) -> OHLCVDataset:
         """
         Download OHLCV data for a single ticker over [start, end).
@@ -95,7 +96,10 @@ class MarketDataFetcher:
         start_str = start.isoformat()
         end_str = end.isoformat()
 
-        raw_df = self._download(ticker, start_str, end_str)
+        raw_df = (
+            _test_download if _test_download is not None
+            else self._download(ticker, start_str, end_str)
+        )
         bars = self._normalise(ticker, raw_df)
 
         provenance = ProvenanceRecord(

@@ -220,17 +220,18 @@ class LangFuseTracer(AbstractTracer):
         return trace.id
 
     def get_callback_handler(self, trace_id: str) -> Any | None:
+        # Custom handler: langfuse v2's bundled CallbackHandler imports legacy
+        # langchain.schema paths that were removed in langchain 1.x.
         try:
-            from langfuse.callback import CallbackHandler  # noqa: PLC0415
-
-            return CallbackHandler(
-                public_key=self._public_key,
-                secret_key=self._secret_key,
-                host=self._host,
-                trace_id=trace_id,
+            from hifi.observability.langchain_callback import (  # noqa: PLC0415
+                HiFiLangfuseCallbackHandler,
             )
+
+            return HiFiLangfuseCallbackHandler(self._client, trace_id)
         except Exception as exc:
-            logger.warning("Failed to create LangFuse CallbackHandler: %s", exc)
+            if not _WARNED.get("callback_handler"):
+                _WARNED["callback_handler"] = True
+                logger.warning("Failed to create LangFuse CallbackHandler: %s", exc)
             return None
 
     @contextmanager
@@ -267,8 +268,21 @@ class LangFuseTracer(AbstractTracer):
 # ---------------------------------------------------------------------------
 
 
+# Warn-once flags: avoid repeating the same fallback warning on every agent call.
+# Each key maps to True once the warning has been emitted for this process.
+_WARNED: dict[str, bool] = {}
+
+# Process-level tracer singleton (DJ-112). The LangFuse SDK client spawns
+# background consumer/flush threads on construction; building a fresh client
+# per agent call leaked ~3 threads each and, over ~1764 passes/night, blew
+# past the OS pthread limit and panicked the macOS kernel. Reusing one
+# thread-safe client for the whole process fixes this at the source.
+_TRACER: AbstractTracer | None = None
+_TRACER_KEY: tuple[str, str, str, str] | None = None
+
+
 def get_tracer() -> AbstractTracer:
-    """Return LangFuseTracer when enabled, NoOpTracer otherwise.
+    """Return a cached LangFuseTracer when enabled, NoOpTracer otherwise.
 
     Controlled by LANGFUSE_ENABLED env var (default: true when unset).
     NoOpTracer is returned when:
@@ -277,36 +291,73 @@ def get_tracer() -> AbstractTracer:
       - langfuse package is not installed
       - any other initialisation error (fail-open design)
 
+    The tracer is memoised per process, keyed on (enabled, host, public,
+    secret). A new client is built only when that configuration changes
+    (e.g. tests flipping LANGFUSE_ENABLED), never once per agent call —
+    this is what prevents the background-thread leak (DJ-112).
+
     Fail-open means a misconfigured LangFuse instance never prevents an
     agent from running. The agent's functional behaviour is identical whether
     get_tracer() returns a NoOpTracer or a LangFuseTracer.
-    """
-    enabled_raw = os.environ.get("LANGFUSE_ENABLED", "true").lower().strip()
-    if enabled_raw in ("false", "0", "no", "off"):
-        return NoOpTracer()
 
+    Warnings are emitted at most once per process per failure mode to avoid
+    log noise during batch evaluation runs (e.g. E0-T5 with 120+ agent calls).
+    """
+    global _TRACER, _TRACER_KEY
+
+    enabled_raw = os.environ.get("LANGFUSE_ENABLED", "true").lower().strip()
     host = os.environ.get("LANGFUSE_HOST", "http://localhost:3000")
     public_key = os.environ.get("LANGFUSE_PUBLIC_KEY", "")
     secret_key = os.environ.get("LANGFUSE_SECRET_KEY", "")
+    key = (enabled_raw, host, public_key, secret_key)
+
+    if _TRACER is not None and key == _TRACER_KEY:
+        return _TRACER
+
+    # Configuration changed (or first call): shut down any prior client so its
+    # background threads are released before a new one is built.
+    if _TRACER is not None:
+        try:
+            _TRACER.flush()
+            shutdown = getattr(getattr(_TRACER, "_client", None), "shutdown", None)
+            if callable(shutdown):
+                shutdown()
+        except Exception:
+            pass
+
+    _TRACER = _build_tracer(enabled_raw, host, public_key, secret_key)
+    _TRACER_KEY = key
+    return _TRACER
+
+
+def _build_tracer(
+    enabled_raw: str, host: str, public_key: str, secret_key: str
+) -> AbstractTracer:
+    if enabled_raw in ("false", "0", "no", "off"):
+        return NoOpTracer()
 
     if not public_key or not secret_key:
-        logger.warning(
-            "LANGFUSE_PUBLIC_KEY or LANGFUSE_SECRET_KEY not set; "
-            "falling back to NoOpTracer."
-        )
+        if not _WARNED.get("no_keys"):
+            logger.warning(
+                "LANGFUSE_PUBLIC_KEY or LANGFUSE_SECRET_KEY not set; "
+                "falling back to NoOpTracer."
+            )
+            _WARNED["no_keys"] = True
         return NoOpTracer()
 
     try:
         return LangFuseTracer(host=host, public_key=public_key, secret_key=secret_key)
     except ImportError:
-        logger.warning(
-            "langfuse package not installed; falling back to NoOpTracer."
-        )
+        if not _WARNED.get("no_pkg"):
+            logger.warning("langfuse package not installed; falling back to NoOpTracer.")
+            _WARNED["no_pkg"] = True
         return NoOpTracer()
     except Exception as exc:
-        logger.warning(
-            "LangFuse initialisation failed (%s); falling back to NoOpTracer.", exc
-        )
+        if not _WARNED.get("init_fail"):
+            logger.warning(
+                "LangFuse initialisation failed (%s); falling back to NoOpTracer.", exc
+            )
+            _WARNED["init_fail"] = True
         return NoOpTracer()
 
 

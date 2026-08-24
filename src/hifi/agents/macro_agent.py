@@ -30,7 +30,7 @@ from pathlib import Path
 from langchain_core.messages import HumanMessage, SystemMessage
 from typing_extensions import TypedDict
 
-from hifi.agents.lm_client import make_llm
+from hifi.agents.lm_client import DEEPSEEK_R1_DISTILL_32B, make_llm
 from hifi.agents.mcp_client import call_tool
 from hifi.agents.schemas import AgentSignal, MacroAnalysis
 from hifi.observability.tracing import AbstractTracer, get_tracer, trace_context
@@ -39,7 +39,7 @@ logger = logging.getLogger(__name__)
 
 _PROMPT_VERSION = "macro_v1"
 _PROMPT_PATH = Path(__file__).parent / "prompts" / f"{_PROMPT_VERSION}.md"
-_DEFAULT_MACRO_MODEL = "qwen3.5-27b-claude-4.6-opus-reasoning-distilled-qx64-hi-mlx"
+_DEFAULT_MACRO_MODEL = DEEPSEEK_R1_DISTILL_32B
 _RETRY_MSG = (
     "Your previous response was not valid JSON or was missing required fields. "
     "Produce ONLY the JSON object with the fields: "
@@ -60,6 +60,8 @@ class MacroAnalystState(TypedDict, total=False):
     data_dir: str
     tool_results: dict
     llm_response: str
+    model_id: str                 # set by generate_analysis_node; read by parse_output_node
+    _test_llm: object | None      # DI: injected by tests only; bypasses make_llm()
     signal: AgentSignal | None
     regime_assessment: str | None
     macro_rationale: str | None
@@ -189,11 +191,11 @@ def generate_analysis_node(state: MacroAnalystState) -> dict:
     if memory_prefix:
         user_text = memory_prefix + "\n\n" + user_text
 
-    # Reasoning-distilled model: use max_tokens=4096 to avoid truncation (DJ-032)
-    llm = make_llm(_macro_model(), max_tokens=4096)
+    _test_llm = state.get("_test_llm")
+    llm = _test_llm if _test_llm is not None else make_llm(_macro_model(), max_tokens=4096)
     messages = [SystemMessage(content=system_text), HumanMessage(content=user_text)]
     response = llm.invoke(messages)
-    return {"llm_response": response.content}
+    return {"llm_response": response.content, "model_id": llm.model_name}
 
 
 def parse_output_node(state: MacroAnalystState) -> dict:
@@ -215,8 +217,8 @@ def parse_output_node(state: MacroAnalystState) -> dict:
         if v is None and k not in ("call_id", "error", "detail")
     ]
 
-    llm = make_llm(_macro_model(), max_tokens=4096)
-    model_id = llm.model_name
+    model_id = state.get("model_id", "")
+    _test_llm = state.get("_test_llm")
 
     def _try_parse(text: str):
         parsed = _extract_json(text)
@@ -233,7 +235,8 @@ def parse_output_node(state: MacroAnalystState) -> dict:
         }
 
     logger.warning("First parse attempt failed for %s macro. Retrying.", ticker)
-    retry_response = llm.invoke([
+    retry_llm = _test_llm if _test_llm is not None else make_llm(_macro_model(), max_tokens=4096)
+    retry_response = retry_llm.invoke([
         HumanMessage(content=llm_response),
         HumanMessage(content=_RETRY_MSG),
     ])
@@ -295,6 +298,7 @@ def run_macro_analysis(
     data_dir: str | None = None,
     tracer: AbstractTracer | None = None,
     memory_prefix: str = "",
+    _test_llm: object | None = None,
 ) -> MacroAnalysis:
     """
     Run the Macro Analyst Agent for one ticker on one date.
@@ -342,6 +346,7 @@ def run_macro_analysis(
         "error": None,
         "start_time": start,
         "memory_prefix": memory_prefix,
+        "_test_llm": _test_llm,
     }
 
     with trace_context(trace_id):

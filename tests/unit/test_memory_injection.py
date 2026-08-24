@@ -64,8 +64,8 @@ _MINIMAL_SENT_RESPONSE = json.dumps({
 
 
 def _capturing_llm(captured: list, response_text: str):
-    """Return a stub LLM that captures all messages it receives."""
-    class _StubLLM:
+    """Return a DI LLM that captures all messages it receives."""
+    class _CapturingLLM:
         model_name = "test-model"
 
         def invoke(self, messages):
@@ -75,21 +75,17 @@ def _capturing_llm(captured: list, response_text: str):
                 content = response_text
             return _R()
 
-    return _StubLLM()
+    return _CapturingLLM()
 
 
 # ---------------------------------------------------------------------------
 # Risk agent — generate_analysis_node memory injection
 # ---------------------------------------------------------------------------
 
-def test_risk_generate_analysis_node_injects_memory_prefix(monkeypatch):
-    import hifi.agents.risk_agent as ra
+def test_risk_generate_analysis_node_injects_memory_prefix():
     from hifi.agents.risk_agent import RiskAnalystState, generate_analysis_node
 
     captured: list = []
-    stub = lambda *a, **kw: _capturing_llm(captured, _MINIMAL_RISK_RESPONSE)  # noqa: E731
-    monkeypatch.setattr(ra, "make_llm", stub)
-
     state: RiskAnalystState = {
         "ticker": "AAPL",
         "as_of_date": "2023-03-31",
@@ -102,6 +98,7 @@ def test_risk_generate_analysis_node_injects_memory_prefix(monkeypatch):
         "error": None,
         "start_time": 0.0,
         "memory_prefix": _MEMORY_PREFIX,
+        "_test_llm": _capturing_llm(captured, _MINIMAL_RISK_RESPONSE),
     }
     generate_analysis_node(state)
 
@@ -109,14 +106,10 @@ def test_risk_generate_analysis_node_injects_memory_prefix(monkeypatch):
     assert human_msgs, "memory_prefix not found in any message sent to the LLM"
 
 
-def test_risk_generate_analysis_node_no_prefix_unchanged(monkeypatch):
-    import hifi.agents.risk_agent as ra
+def test_risk_generate_analysis_node_no_prefix_unchanged():
     from hifi.agents.risk_agent import RiskAnalystState, generate_analysis_node
 
     captured: list = []
-    stub = lambda *a, **kw: _capturing_llm(captured, _MINIMAL_RISK_RESPONSE)  # noqa: E731
-    monkeypatch.setattr(ra, "make_llm", stub)
-
     state: RiskAnalystState = {
         "ticker": "AAPL",
         "as_of_date": "2023-03-31",
@@ -129,6 +122,7 @@ def test_risk_generate_analysis_node_no_prefix_unchanged(monkeypatch):
         "error": None,
         "start_time": 0.0,
         "memory_prefix": "",
+        "_test_llm": _capturing_llm(captured, _MINIMAL_RISK_RESPONSE),
     }
     generate_analysis_node(state)
 
@@ -144,11 +138,8 @@ def test_risk_run_function_accepts_memory_prefix(monkeypatch):
     """run_risk_analysis() signature accepts memory_prefix without error."""
     import hifi.agents.risk_agent as ra
 
-    captured: list = []
-    stub = lambda *a, **kw: _capturing_llm(captured, _MINIMAL_RISK_RESPONSE)  # noqa: E731
-    monkeypatch.setattr(ra, "make_llm", stub)
     # Patch graph to avoid MCP calls
-    monkeypatch.setattr(ra, "build_risk_graph", lambda: _stub_graph_for(ra, captured, _MINIMAL_RISK_RESPONSE))  # noqa: E501
+    monkeypatch.setattr(ra, "build_risk_graph", lambda: _stub_graph_for(ra, [], _MINIMAL_RISK_RESPONSE))  # noqa: E501
 
     from hifi.agents.risk_agent import run_risk_analysis
     result = run_risk_analysis("AAPL", "2023-03-31", memory_prefix=_MEMORY_PREFIX)
@@ -160,13 +151,10 @@ def test_risk_run_function_accepts_memory_prefix(monkeypatch):
 # Macro agent — generate_analysis_node memory injection
 # ---------------------------------------------------------------------------
 
-def test_macro_generate_analysis_node_injects_memory_prefix(monkeypatch):
-    import hifi.agents.macro_agent as ma
+def test_macro_generate_analysis_node_injects_memory_prefix():
     from hifi.agents.macro_agent import MacroAnalystState, generate_analysis_node
 
     captured: list = []
-    monkeypatch.setattr(ma, "make_llm", lambda *a, **kw: _capturing_llm(captured, _MINIMAL_MACRO_RESPONSE))  # noqa: E501
-
     state: MacroAnalystState = {
         "ticker": "AAPL",
         "as_of_date": "2023-03-31",
@@ -179,6 +167,7 @@ def test_macro_generate_analysis_node_injects_memory_prefix(monkeypatch):
         "error": None,
         "start_time": 0.0,
         "memory_prefix": _MEMORY_PREFIX,
+        "_test_llm": _capturing_llm(captured, _MINIMAL_MACRO_RESPONSE),
     }
     generate_analysis_node(state)
 
@@ -186,13 +175,10 @@ def test_macro_generate_analysis_node_injects_memory_prefix(monkeypatch):
     assert human_msgs, "memory_prefix not found in macro generate_analysis_node messages"
 
 
-def test_macro_generate_analysis_node_empty_prefix_ok(monkeypatch):
-    import hifi.agents.macro_agent as ma
+def test_macro_generate_analysis_node_empty_prefix_ok():
     from hifi.agents.macro_agent import MacroAnalystState, generate_analysis_node
 
     captured: list = []
-    monkeypatch.setattr(ma, "make_llm", lambda *a, **kw: _capturing_llm(captured, _MINIMAL_MACRO_RESPONSE))  # noqa: E501
-
     state: MacroAnalystState = {
         "ticker": "AAPL",
         "as_of_date": "2023-03-31",
@@ -205,6 +191,7 @@ def test_macro_generate_analysis_node_empty_prefix_ok(monkeypatch):
         "error": None,
         "start_time": 0.0,
         # memory_prefix intentionally omitted — should default to ""
+        "_test_llm": _capturing_llm(captured, _MINIMAL_MACRO_RESPONSE),
     }
     generate_analysis_node(state)
 
@@ -225,13 +212,10 @@ def _make_fund_tool_results():
     }
 
 
-def test_fundamental_generate_analysis_node_injects_memory_prefix(monkeypatch):
-    import hifi.agents.fundamental_agent as fa
+def test_fundamental_generate_analysis_node_injects_memory_prefix():
     from hifi.agents.fundamental_agent import FundamentalistState, generate_analysis_node
 
     captured: list = []
-    monkeypatch.setattr(fa, "make_llm", lambda *a, **kw: _capturing_llm(captured, _MINIMAL_FUND_RESPONSE))  # noqa: E501
-
     state: FundamentalistState = {
         "ticker": "AAPL",
         "as_of_date": "2023-03-31",
@@ -244,6 +228,7 @@ def test_fundamental_generate_analysis_node_injects_memory_prefix(monkeypatch):
         "error": None,
         "start_time": 0.0,
         "memory_prefix": _MEMORY_PREFIX,
+        "_test_llm": _capturing_llm(captured, _MINIMAL_FUND_RESPONSE),
     }
     generate_analysis_node(state)
 
@@ -251,13 +236,10 @@ def test_fundamental_generate_analysis_node_injects_memory_prefix(monkeypatch):
     assert human_msgs, "memory_prefix not found in fundamental generate_analysis_node messages"
 
 
-def test_fundamental_generate_analysis_node_no_prefix_ok(monkeypatch):
-    import hifi.agents.fundamental_agent as fa
+def test_fundamental_generate_analysis_node_no_prefix_ok():
     from hifi.agents.fundamental_agent import FundamentalistState, generate_analysis_node
 
     captured: list = []
-    monkeypatch.setattr(fa, "make_llm", lambda *a, **kw: _capturing_llm(captured, _MINIMAL_FUND_RESPONSE))  # noqa: E501
-
     state: FundamentalistState = {
         "ticker": "AAPL",
         "as_of_date": "2023-03-31",
@@ -270,6 +252,7 @@ def test_fundamental_generate_analysis_node_no_prefix_ok(monkeypatch):
         "error": None,
         "start_time": 0.0,
         "memory_prefix": "",
+        "_test_llm": _capturing_llm(captured, _MINIMAL_FUND_RESPONSE),
     }
     generate_analysis_node(state)
     assert len(captured) > 0
@@ -286,13 +269,10 @@ def _make_tech_tool_results():
     }
 
 
-def test_technical_generate_analysis_node_injects_memory_prefix(monkeypatch):
-    import hifi.agents.technical_agent as ta
+def test_technical_generate_analysis_node_injects_memory_prefix():
     from hifi.agents.technical_agent import TechnicalAnalystState, generate_analysis_node
 
     captured: list = []
-    monkeypatch.setattr(ta, "make_llm", lambda *a, **kw: _capturing_llm(captured, _MINIMAL_TECH_RESPONSE))  # noqa: E501
-
     state: TechnicalAnalystState = {
         "ticker": "AAPL",
         "as_of_date": "2023-03-31",
@@ -305,6 +285,7 @@ def test_technical_generate_analysis_node_injects_memory_prefix(monkeypatch):
         "error": None,
         "start_time": 0.0,
         "memory_prefix": _MEMORY_PREFIX,
+        "_test_llm": _capturing_llm(captured, _MINIMAL_TECH_RESPONSE),
     }
     generate_analysis_node(state)
 
@@ -312,14 +293,11 @@ def test_technical_generate_analysis_node_injects_memory_prefix(monkeypatch):
     assert human_msgs, "memory_prefix not found in technical generate_analysis_node messages"
 
 
-def test_technical_generate_analysis_node_prefix_appears_before_analysis(monkeypatch):
+def test_technical_generate_analysis_node_prefix_appears_before_analysis():
     """Memory prefix must appear before the analytical content (not after)."""
-    import hifi.agents.technical_agent as ta
     from hifi.agents.technical_agent import TechnicalAnalystState, generate_analysis_node
 
     captured: list = []
-    monkeypatch.setattr(ta, "make_llm", lambda *a, **kw: _capturing_llm(captured, _MINIMAL_TECH_RESPONSE))  # noqa: E501
-
     state: TechnicalAnalystState = {
         "ticker": "AAPL",
         "as_of_date": "2023-03-31",
@@ -332,6 +310,7 @@ def test_technical_generate_analysis_node_prefix_appears_before_analysis(monkeyp
         "error": None,
         "start_time": 0.0,
         "memory_prefix": _MEMORY_PREFIX,
+        "_test_llm": _capturing_llm(captured, _MINIMAL_TECH_RESPONSE),
     }
     generate_analysis_node(state)
 
@@ -349,38 +328,32 @@ def test_technical_generate_analysis_node_prefix_appears_before_analysis(monkeyp
 # Sentiment agent — _call_llm_for_sentiment memory injection
 # ---------------------------------------------------------------------------
 
-def test_sentiment_call_llm_injects_memory_prefix(monkeypatch):
-    import hifi.agents.sentiment_agent as sa
+def test_sentiment_call_llm_injects_memory_prefix():
+    from hifi.agents.sentiment_agent import _call_llm_for_sentiment
 
     captured: list = []
-    monkeypatch.setattr(sa, "make_llm", lambda *a, **kw: _capturing_llm(captured, _MINIMAL_SENT_RESPONSE))  # noqa: E501
-
-    from hifi.agents.sentiment_agent import _call_llm_for_sentiment
     _call_llm_for_sentiment(
         ticker="AAPL",
         as_of_date="2023-03-31",
         retrieved_context="Apple services revenue grew 5% YoY.",
-        model_id="gemma-4-e4b",
         memory_prefix=_MEMORY_PREFIX,
+        _test_llm=_capturing_llm(captured, _MINIMAL_SENT_RESPONSE),
     )
 
     human_msgs = [m for m in captured if hasattr(m, "content") and _MEMORY_PREFIX in m.content]
     assert human_msgs, "memory_prefix not found in sentiment _call_llm_for_sentiment messages"
 
 
-def test_sentiment_call_llm_empty_prefix_ok(monkeypatch):
-    import hifi.agents.sentiment_agent as sa
+def test_sentiment_call_llm_empty_prefix_ok():
+    from hifi.agents.sentiment_agent import _call_llm_for_sentiment
 
     captured: list = []
-    monkeypatch.setattr(sa, "make_llm", lambda *a, **kw: _capturing_llm(captured, _MINIMAL_SENT_RESPONSE))  # noqa: E501
-
-    from hifi.agents.sentiment_agent import _call_llm_for_sentiment
     _call_llm_for_sentiment(
         ticker="AAPL",
         as_of_date="2023-03-31",
         retrieved_context="Apple services revenue grew 5% YoY.",
-        model_id="gemma-4-e4b",
         memory_prefix="",
+        _test_llm=_capturing_llm(captured, _MINIMAL_SENT_RESPONSE),
     )
     assert len(captured) > 0
 
@@ -392,11 +365,11 @@ def test_sentiment_run_accepts_memory_prefix(monkeypatch, tmp_path):
     passages = [{"rank": 1, "filing_type": "10-K", "section": "MD&A",
                  "period": "2022-09-30", "text": "Apple services revenue grew 5% YoY."}]
     monkeypatch.setattr(sa, "call_tool", lambda *a, **kw: {"passages": passages, "call_id": "x"})
-    monkeypatch.setattr(sa, "make_llm", lambda *a, **kw: _capturing_llm([], _MINIMAL_SENT_RESPONSE))
 
     from hifi.agents.sentiment_agent import run_sentiment_analysis
     result = run_sentiment_analysis(
-        "AAPL", "2023-03-31", data_dir=str(tmp_path), memory_prefix=_MEMORY_PREFIX
+        "AAPL", "2023-03-31", data_dir=str(tmp_path), memory_prefix=_MEMORY_PREFIX,
+        _test_llm=_capturing_llm([], _MINIMAL_SENT_RESPONSE),
     )
     assert result is not None
     assert result.signal is not None

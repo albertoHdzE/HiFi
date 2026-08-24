@@ -1,7 +1,7 @@
 """
 Holistic test for the Phase 6 observability pipeline (P6-E6-T4, P6-E6-T5, P6-E6-T6).
 
-Uses a stub LLM and fixture parquet files so no live LM Studio or LangFuse
+Uses DI LLMs and fixture parquet files so no live LM Studio or LangFuse
 server is required.
 
 What this test validates:
@@ -122,7 +122,7 @@ def fixtures_data_dir(tmp_path):
 # ---------------------------------------------------------------------------
 
 
-def test_phase6_full_pipeline_with_noop_tracer(monkeypatch, fixtures_data_dir):
+def test_phase6_full_pipeline_with_noop_tracer(fixtures_data_dir):
     """
     run_ensemble(    agents=["fundamental", "technical"],
     ) with NoOpTracer:
@@ -131,12 +131,7 @@ def test_phase6_full_pipeline_with_noop_tracer(monkeypatch, fixtures_data_dir):
     3. Verification scores logged
     4. flush() called once
     """
-    import hifi.agents.fundamental_agent as fa
-    import hifi.agents.technical_agent as ta
     from hifi.agents.ensemble_runner import run_ensemble
-
-    monkeypatch.setattr(fa, "make_llm", lambda *a, **kw: _stub_llm("fund-model"))
-    monkeypatch.setattr(ta, "make_llm", lambda *a, **kw: _stub_llm("tech-model"))
 
     tracer = RecordingTracer()
     snap = _make_snapshot()
@@ -145,6 +140,10 @@ def test_phase6_full_pipeline_with_noop_tracer(monkeypatch, fixtures_data_dir):
         data_dir=fixtures_data_dir,
         tracer=tracer,
         agents=["fundamental", "technical"],
+        _test_llms={
+            "fundamental": _stub_llm("fund-model"),
+            "technical": _stub_llm("tech-model"),
+        },
     )
 
     # Assertion 1: valid EnsembleOutput
@@ -177,22 +176,21 @@ def test_phase6_full_pipeline_with_noop_tracer(monkeypatch, fixtures_data_dir):
 # ---------------------------------------------------------------------------
 
 
-def test_phase5_regression_verify_ensemble(monkeypatch, fixtures_data_dir):
+def test_phase5_regression_verify_ensemble(fixtures_data_dir):
     """Phase 5 regression: verify_ensemble output is unchanged by Phase 6."""
-    import hifi.agents.fundamental_agent as fa
-    import hifi.agents.technical_agent as ta
     from hifi.agents.ensemble_runner import run_ensemble
     from hifi.verification.schemas import EnsembleVerificationReport
     from hifi.verification.verifier import verify_ensemble
-
-    monkeypatch.setattr(fa, "make_llm", lambda *a, **kw: _stub_llm("fund-model"))
-    monkeypatch.setattr(ta, "make_llm", lambda *a, **kw: _stub_llm("tech-model"))
 
     snap = _make_snapshot()
     output = run_ensemble(
         "AAPL", "2023-03-31", snap.model_dump_json(),
         data_dir=fixtures_data_dir,
         agents=["fundamental", "technical"],
+        _test_llms={
+            "fundamental": _stub_llm("fund-model"),
+            "technical": _stub_llm("tech-model"),
+        },
     )
 
     # Directly call verify_ensemble on the output (Phase 5 pipeline unchanged)
@@ -213,15 +211,10 @@ def test_phase5_regression_verify_ensemble(monkeypatch, fixtures_data_dir):
 # ---------------------------------------------------------------------------
 
 
-def test_phase4_regression_run_ensemble_without_tracer(monkeypatch, fixtures_data_dir):
+def test_phase4_regression_run_ensemble_without_tracer(fixtures_data_dir):
     """Phase 4 regression: run_ensemble(    agents=["fundamental", "technical"],
     ) without explicit tracer still works."""
-    import hifi.agents.fundamental_agent as fa
-    import hifi.agents.technical_agent as ta
     from hifi.agents.ensemble_runner import run_ensemble
-
-    monkeypatch.setattr(fa, "make_llm", lambda *a, **kw: _stub_llm("fund-model"))
-    monkeypatch.setattr(ta, "make_llm", lambda *a, **kw: _stub_llm("tech-model"))
 
     snap = _make_snapshot()
     # No explicit tracer -- falls back to get_tracer() which returns NoOpTracer
@@ -229,6 +222,10 @@ def test_phase4_regression_run_ensemble_without_tracer(monkeypatch, fixtures_dat
     output = run_ensemble(
         "AAPL", "2023-03-31", snap.model_dump_json(),
         fixtures_data_dir, agents=["fundamental", "technical"],
+        _test_llms={
+            "fundamental": _stub_llm("fund-model"),
+            "technical": _stub_llm("tech-model"),
+        },
     )
 
     assert isinstance(output, EnsembleOutput)

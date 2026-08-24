@@ -34,7 +34,6 @@ Format convention for format_as_jsonl (mlx_lm chat format):
 
 from __future__ import annotations
 
-import glob as _glob
 import json
 import logging
 import math
@@ -70,13 +69,15 @@ def _load_close_series(ticker: str, data_dir: str) -> pd.Series | None:
     Returns a pd.Series with DatetimeIndex (ascending), or None if no file found.
     Prefers Adj Close / adjusted_close over Close / close when available.
     """
-    pattern = str(Path(data_dir) / "market" / f"{ticker}_*.parquet")
-    files = sorted(_glob.glob(pattern))
-    if not files:
+    from hifi.data.market_store import resolve_ohlcv_path
+
+    try:
+        path = resolve_ohlcv_path(ticker, data_dir)
+    except FileNotFoundError:
         logger.warning("No OHLCV Parquet for %s in %s", ticker, data_dir)
         return None
 
-    df = pd.read_parquet(files[-1])
+    df = pd.read_parquet(path)
 
     # Normalise index to DatetimeIndex
     for col in ("date", "Date"):
@@ -91,7 +92,7 @@ def _load_close_series(ticker: str, data_dir: str) -> pd.Series | None:
         None,
     )
     if col is None:
-        logger.warning("No close column for %s in %s", ticker, files[-1])
+        logger.warning("No close column for %s in %s", ticker, path)
         return None
 
     return df[col].dropna().astype(float)
@@ -105,13 +106,15 @@ def _load_ohlcv_df(ticker: str, data_dir: str) -> pd.DataFrame | None:
       open, high, low, close, volume, adjusted_close (when available)
     Returns None when no Parquet file exists.
     """
-    pattern = str(Path(data_dir) / "market" / f"{ticker}_*.parquet")
-    files = sorted(_glob.glob(pattern))
-    if not files:
+    from hifi.data.market_store import resolve_ohlcv_path
+
+    try:
+        path = resolve_ohlcv_path(ticker, data_dir)
+    except FileNotFoundError:
         logger.warning("No OHLCV Parquet for %s in %s", ticker, data_dir)
         return None
 
-    df = pd.read_parquet(files[-1])
+    df = pd.read_parquet(path)
 
     for col in ("date", "Date"):
         if col in df.columns:

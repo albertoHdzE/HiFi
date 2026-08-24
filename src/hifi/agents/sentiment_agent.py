@@ -31,7 +31,7 @@ from pathlib import Path
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from hifi.agents.lm_client import make_llm
+from hifi.agents.lm_client import GEMMA3_12B, make_llm
 from hifi.agents.mcp_client import call_tool
 from hifi.agents.schemas import AgentSignal, SentimentAnalysis
 from hifi.observability.tracing import AbstractTracer, get_tracer, trace_context
@@ -40,7 +40,7 @@ logger = logging.getLogger(__name__)
 
 _PROMPT_VERSION = "sentiment_v1"
 _PROMPT_PATH = Path(__file__).parent / "prompts" / f"{_PROMPT_VERSION}.md"
-_DEFAULT_SENTIMENT_MODEL = "qwen2.5-coder-32b-instruct-mlx"  # DJ-087: reverted from gemma-4-e4b
+_DEFAULT_SENTIMENT_MODEL = GEMMA3_12B  # E0-T3: Gemma 3 12B (DJ-089)
 _INSUFFICIENT_DATA_MODEL = "sentiment-default"
 _RETRY_MSG = (
     "Your previous response was not valid JSON or was missing required fields. "
@@ -111,11 +111,24 @@ def _default_insufficient_signal(ticker: str, as_of_date: str) -> AgentSignal:
 
 def _retrieve_context(ticker: str, as_of_date: str, data_dir: str) -> str:
     """
-    Query the knowledge MCP server for SEC filing passages.
+    Retrieve SEC filing passages for the sentiment agent.
+
+    Two sources, tried in order:
+
+    1. The knowledge MCP server's vector search over ingested chunks.
+    2. The EDGAR MD&A corpus (DJ-120 fallback).
+
+    The fallback exists because the vector store's ``chunks_a`` table was only
+    ever populated for three tickers, while the EDGAR table holds 209,722 MD&A
+    chunks for all 98. With no fallback the agent hit its "Insufficient Data"
+    path on 97% of passes and returned Hold at confidence 0.0 every time — a
+    silent constant inside an ensemble whose entire purpose is disagreement.
+
+    Both paths are queried with the same narrative-tuned query (DJ-034), which
+    also keeps the EDGAR chunks distinct from the head-of-document slice the
+    fundamental agent receives from the same filing.
 
     Fail-open: any error returns "" so the agent returns the default signal.
-    The query is tuned for qualitative/narrative content (management tone,
-    forward guidance) rather than numerical data (DJ-034).
     """
     query = (
         f"{ticker} management outlook guidance forward-looking statements risks "
@@ -139,9 +152,20 @@ def _retrieve_context(ticker: str, as_of_date: str, data_dir: str) -> str:
                 lines.append(p["text"])
                 lines.append("---")
             return "\n".join(lines)
-        return ""
     except Exception as exc:
         logger.warning("retrieve_context failed for %s: %s", ticker, exc)
+
+    try:
+        from hifi.knowledge.edgar_retriever import retrieve_mda_context
+
+        return retrieve_mda_context(
+            ticker=ticker,
+            as_of_date=as_of_date,
+            db_path=str(Path(data_dir) / "knowledge.lance"),
+            query=query,
+        )
+    except Exception as exc:
+        logger.warning("EDGAR MD&A fallback failed for %s: %s", ticker, exc)
         return ""
 
 
@@ -149,8 +173,9 @@ def _call_llm_for_sentiment(
     ticker: str,
     as_of_date: str,
     retrieved_context: str,
-    model_id: str,
     memory_prefix: str = "",
+    _test_llm: object | None = None,
+    callbacks: list | None = None,
 ) -> tuple[AgentSignal | None, str, list[str]]:
     """
     Call the LLM with the retrieved context.
@@ -168,7 +193,8 @@ def _call_llm_for_sentiment(
     if memory_prefix:
         user_text = memory_prefix + "\n\n" + user_text
 
-    llm = make_llm(_sentiment_model(), max_tokens=1024)
+    llm = _test_llm if _test_llm is not None else make_llm(_sentiment_model(), max_tokens=1024)
+    model_id = llm.model_name
 
     def _try_parse(text: str):
         parsed = _extract_json(text)
@@ -196,8 +222,12 @@ def _call_llm_for_sentiment(
             logger.warning("Sentiment signal build failed: %s", exc)
             return None, "", []
 
+    # LangFuse tracing: attach the callback so this direct llm.invoke is traced
+    # like the LangGraph agents (DJ-116). Only add config when tracing is active
+    # so the untraced call signature is unchanged.
+    _kw = {"config": {"callbacks": callbacks}} if callbacks else {}
     messages = [SystemMessage(content=system_text), HumanMessage(content=user_text)]
-    response = llm.invoke(messages)
+    response = llm.invoke(messages, **_kw)
     signal, summary, notable = _try_parse(response.content)
     if signal is not None:
         return signal, summary, notable
@@ -206,7 +236,7 @@ def _call_llm_for_sentiment(
     retry_response = llm.invoke([
         HumanMessage(content=response.content),
         HumanMessage(content=_RETRY_MSG),
-    ])
+    ], **_kw)
     return _try_parse(retry_response.content)
 
 
@@ -221,6 +251,7 @@ def run_sentiment_analysis(
     data_dir: str | None = None,
     tracer: AbstractTracer | None = None,
     memory_prefix: str = "",
+    _test_llm: object | None = None,
 ) -> SentimentAnalysis:
     """
     Run the Sentiment Analyst Agent for one ticker on one date.
@@ -249,6 +280,8 @@ def run_sentiment_analysis(
     trace_id = _tracer.start_trace(
         "sentiment_agent", ticker=ticker, as_of_date=as_of_date
     )
+    handler = _tracer.get_callback_handler(trace_id)
+    callbacks = [handler] if handler is not None else None
 
     start = time.monotonic()
     effective_data_dir = data_dir or os.environ.get("HIFI_DATA_DIR", "data")
@@ -269,9 +302,9 @@ def run_sentiment_analysis(
                 latency_ms=round(latency_ms, 1),
             )
 
-        llm_model_id = make_llm(_sentiment_model(), max_tokens=1024).model_name
         signal, sentiment_summary, notable_signals = _call_llm_for_sentiment(
-            ticker, as_of_date, retrieved_context, llm_model_id, memory_prefix
+            ticker, as_of_date, retrieved_context, memory_prefix,
+            _test_llm=_test_llm, callbacks=callbacks,
         )
 
     _tracer.flush()

@@ -123,16 +123,8 @@ def test_call_mcp_tools_node_results_have_call_ids(fixtures_data_dir, aapl_snaps
             assert "call_id" in result, f"{key} missing call_id"
 
 
-def test_parse_output_node_produces_valid_signal(monkeypatch, aapl_snapshot_json):
+def test_parse_output_node_produces_valid_signal(aapl_snapshot_json):
     """parse_output_node produces AgentSignal from a pre-set valid JSON response."""
-    class _StubLLM:
-        model_name = "qwen2.5-coder-32b-instruct-mlx"
-        def invoke(self, messages):
-            raise AssertionError("LLM should not be called when first parse succeeds")
-
-    import hifi.agents.fundamental_agent as fa
-    monkeypatch.setattr(fa, "make_llm", lambda: _StubLLM())
-
     state: FundamentalistState = {
         "ticker": "AAPL",
         "as_of_date": "2023-03-31",
@@ -145,6 +137,7 @@ def test_parse_output_node_produces_valid_signal(monkeypatch, aapl_snapshot_json
             "macro_snapshot": {"fed_funds_rate": 4.75, "call_id": "jkl"},
         },
         "llm_response": _STUB_SIGNAL_JSON,
+        "model_id": "qwen2.5-coder-32b-instruct-mlx",
         "signal": None,
         "error": None,
         "start_time": 0.0,
@@ -162,30 +155,25 @@ def test_parse_output_node_produces_valid_signal(monkeypatch, aapl_snapshot_json
 # ---------------------------------------------------------------------------
 
 
-def test_full_agent_pipeline_aapl(monkeypatch, fixtures_data_dir, aapl_snapshot_json):
+def test_full_agent_pipeline_aapl(fixtures_data_dir, aapl_snapshot_json):
     """
     End-to-end agent run for AAPL Q1 2023.
-    MCP server uses Phase 1 fixtures. LLM is monkeypatched to return a valid response.
+    MCP server uses Phase 1 fixtures. LLM uses DI stub to return a valid response.
     """
-    class _StubLLM:
+    class _ResponseLLM:
         model_name = "qwen2.5-coder-32b-instruct-mlx"
-        call_count = 0
 
         def invoke(self, messages):
-            self.call_count += 1
             class _Resp:
                 content = _STUB_SIGNAL_JSON
             return _Resp()
-
-    stub = _StubLLM()
-    import hifi.agents.fundamental_agent as fa
-    monkeypatch.setattr(fa, "make_llm", lambda: stub)
 
     analysis = run_analysis(
         ticker="AAPL",
         as_of_date="2023-03-31",
         snapshot_json=aapl_snapshot_json,
         data_dir=fixtures_data_dir,
+        _test_llm=_ResponseLLM(),
     )
 
     # Structural validity
@@ -206,23 +194,21 @@ def test_full_agent_pipeline_aapl(monkeypatch, fixtures_data_dir, aapl_snapshot_
     assert loaded["signal"]["decision"] in ("Buy", "Hold", "Sell")
 
 
-def test_full_agent_pipeline_json_safe(monkeypatch, fixtures_data_dir, aapl_snapshot_json):
+def test_full_agent_pipeline_json_safe(fixtures_data_dir, aapl_snapshot_json):
     """FundamentalAnalysis.model_dump() produces only JSON-safe values (no NaN)."""
-    class _StubLLM:
+    class _ResponseLLM:
         model_name = "model"
         def invoke(self, m):
             class R:
                 content = _STUB_SIGNAL_JSON
             return R()
 
-    import hifi.agents.fundamental_agent as fa
-    monkeypatch.setattr(fa, "make_llm", lambda: _StubLLM())
-
     analysis = run_analysis(
         ticker="AAPL",
         as_of_date="2023-03-31",
         snapshot_json=aapl_snapshot_json,
         data_dir=fixtures_data_dir,
+        _test_llm=_ResponseLLM(),
     )
     # Should not raise
     json.dumps(analysis.model_dump())
