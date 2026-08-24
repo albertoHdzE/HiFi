@@ -125,3 +125,127 @@ Learned the hard way; each corresponds to a defect above.
    stayed wired into the serving stack.
 6. **The universe is perishable.** Names delist; `check_tradability` reports the
    drift nightly.
+
+---
+
+# Genesis II — production baseline (2026-08-24)
+
+**Status:** Gate 1 PASSED 2026-08-23 (evidence below). Gate R (reset) pending —
+scheduled for tonight, after Monday-open fills reach terminal state.
+**Scope:** ALL FOUR arms restart, including C. Codebase consolidates to `main`
+as the production line (branch `phase14/heterogeneous-ensemble` merged and retired).
+
+## Why a second genesis
+
+The first checklist restarted A/B/D after five defects voided their record while
+deliberately keeping C continuous. Three things have changed since:
+
+| Change | Effect on the record |
+|---|---|
+| **DJ-129a**: orders now carry deterministic `client_order_id`s | Every episode before 2026-08-21 has no id column — a permanent structural break in the record schema. Mixing both formats in one series poisons automated analysis. |
+| **DJ-126/127**: notional buy sizing, explicit Sell exits | Order semantics differ from everything before 2026-08-18. |
+| **DJ-129b/c**: live high-water mark, pre-submit breaker recheck | Risk controls that never fired before can fire now; a drawdown halt against a *seeded historical* peak is not comparable to one against a fresh $100k base. |
+
+A clean, uniformly-formatted baseline on hardened code is worth more than C's
+continuity across a format break. **C restarts too** — its prior validity was
+relative to defects that never touched it; the schema break touches every arm.
+
+## Gate 1 — shakedown: PASSED (2026-08-23 run, evidence retained in log)
+
+The Sunday 2026-08-23 run (`data/live/logs/nightly_20260823.log`) was the
+shakedown under Phase 19 hardening. Verified:
+
+- [x] rc=0, **zero ERROR/CRITICAL lines**, all four arms completed date=08-21
+- [x] 23 orders submitted, every one carrying a well-formed deterministic id
+      (`hifi{acct}-2026-08-21-{side}-{TICKER}`)
+- [x] Broker-side scan: **0 duplicated ids, 0 malformed** (read-only GET, all accounts)
+- [x] `hwm.json` created for all arms; account D demonstrates the ratchet
+      (HWM $100,612 vs equity $98,820 — a historical peak held above today)
+- [x] Breakers: flags only (C's SRE −10.7%, UPS −12.8% correctly flagged at
+      ~0.09–0.11% book impact); no halts; pre-submit recheck ran per arm
+- [x] Fills confirmed at Monday open: B 8/8 filled, A 6F+2P, D 4F+3P (partials resolve intraday)
+
+## Gate R — reset to genesis (tonight)
+
+### Step 0 — confirm fills are terminal (~14:00 CT, after the open settles)
+
+    # All PARTIALLY_FILLED from last night must now read FILLED (or cancelled):
+    uv run python scripts/run_phase16_live.py --status
+
+- [ ] Zero `PARTIALLY_FILLED` orders remain from the 08-21 cycle
+- [ ] Broker positions ↔ `portfolio_history.json` ↔ last `decisions.jsonl` row
+      reconcile per arm (invariant 4)
+
+### Step 1 — archive, never delete
+
+The pre-genesis record is **evidence, not garbage**: it documents the defect
+period, the DJ-124 contamination, the EQR delisting handling, and the first
+night of DJ-129 operation.
+
+    mkdir -p data/live/_genesis1_archive
+    for a in A B C D; do
+      cp -r data/live/$a data/live/_genesis1_archive/$a
+    done
+    cp data/live/logs/nightly_20260823.log data/live/_genesis1_archive/
+
+- [ ] `_genesis1_archive/` contains A, B, C, D and the shakedown log
+- [ ] Note the archive path in the bitácora entry
+
+### Step 2 — reset the paper accounts (Alpaca dashboard, manual)
+
+For **each** of A, B, C, D: dashboard → *Reset Account* → back to $100,000.
+
+- [ ] Four resets confirmed (`--status` shows $100,000.00 equity, no positions)
+
+### Step 3 — clear local state files (the step that bites if skipped)
+
+    for a in A B C D; do
+      rm data/live/$a/hwm.json                     # CRITICAL — see note
+      rm -f data/live/$a/decisions.jsonl \
+            data/live/$a/equity.jsonl \
+            data/live/$a/portfolio_history.json \
+            data/live/$a/circuit_breakers.jsonl
+      mkdir -p data/live/$a && touch data/live/$a/decisions.jsonl \
+                                  data/live/$a/equity.jsonl
+    done
+
+> **Why deleting `hwm.json` is CRITICAL:** the ratchet keeps the highest equity
+> ever seen. If it survives the reset, arm A starts life with HWM $101,858 on a
+> $100,000 book and its drawdown breaker measures losses against a peak that no
+> longer belongs to the account. Fresh account ⇒ fresh mark; the first post-
+> genesis run re-seeds it from the fresh $100k.
+
+- [ ] No `hwm.json`, no stale `portfolio_history.json` anywhere under `data/live/{A,B,C,D}`
+- [ ] Empty `decisions.jsonl` + `equity.jsonl` recreated per arm
+
+### Step 4 — first genesis run (tonight, post-close)
+
+    make live-nightly          # LM Studio up first; Docker/Langfuse self-start
+
+Verify in `data/live/logs/nightly_<today>.log`:
+
+- [ ] `Decision date -> <today>` (Monday session)
+- [ ] `High-water mark: $100000.00` (or within cents) for **each** arm — proves fresh seeding
+- [ ] Data coverage 97/97; tradability 97/97; zero ERROR lines
+- [ ] Episodes logged for A, B, C, D dated today; every order carries
+      `client_order_id` starting `hifi<acct>-<today>-`
+- [ ] Tuesday morning: fills terminal, positions >> 1 per arm, zero duplicate ids
+
+### Step 5 — record keeping (only Alberto can file)
+
+Bitácora entry `PHASE_19_GENESIS.md` must capture: Gate 1 evidence summary,
+archive path, exact reset timestamps, opening equities, first-run verification
+lines. **OSF amendment 002** (per original Gate 3 list above) additionally
+discloses:
+
+- [ ] DJ-129a–c fixes and the client_order_id record-format break as a
+      protocol-change boundary (episodes before 2026-08-21 lack ids)
+- [ ] Genesis-II date, void period = 2026-08-14 → 2026-08-24 for ALL arms,
+      superseding the earlier "C unaffected" carve-out
+- [ ] Production-line consolidation: repository reduced to `main`
+
+## Standing invariants (amended)
+
+7. **An order without a deterministic id is a double-fill waiting for a crash.**
+   Every submit carries `client_order_id`; a rerun deduplicates at the broker,
+   never in our discipline.
