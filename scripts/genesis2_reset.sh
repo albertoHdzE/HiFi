@@ -57,7 +57,7 @@ case "$1" in
             "$d/circuit_breakers.jsonl"
       mkdir -p "$d"
       touch "$d/decisions.jsonl" "$d/equity.jsonl"
-      echo "cleared: $a (hwm.json deleted — fresh $100k baseline re-seeds it)"
+      echo "cleared: $a (hwm.json deleted — fresh 100k-dollar baseline re-seeds it)"
     done
     echo "State cleared for A, B, C, D. Ready for tonight's genesis run."
     ;;
