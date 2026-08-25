@@ -18,7 +18,7 @@ DOCKER_ENV_FILE     := docker/langfuse/.env
 	walkforward-smoke walkforward-full walkforward-parallel walkforward-homogeneous \
 	walkforward-no-memory walkforward-held-out walkforward-status walkforward-ic \
 	walkforward-smoke-full walkforward-orchestrate walkforward-pipeline walkforward-report \
-	live-status live-update-data live-dry-run live-execute live-nightly live-snapshot
+	live-status live-update-data live-dry-run live-execute live-nightly live-snapshot personality-shadow
 
 FINETUNE_VENV := venvs/finetune/bin/python
 
@@ -422,4 +422,7 @@ live-nightly: ## Manual nightly run (daily ~19:00): pre-flight + weekend/market-
 	 nohup bash scripts/nightly_live_execute.sh > /dev/null 2>&1 & \
 	 echo "Nightly cycle started in background."; \
 	 echo "Follow progress:  tail -f data/live/logs/nightly_$$(date +%Y%m%d).log"
+
+personality-shadow: ## Replay tonight's stored ensembles through the 4 personality postures (DJ-130, shadow-only)
+	uv run python scripts/run_personality_shadow.py
 
