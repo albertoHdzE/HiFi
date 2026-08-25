@@ -1,6 +1,6 @@
 # Phase 19 Plan: Genesis Hardening (DJ-129)
 
-**Created:** 2026-08-23 ~17:50 CT · **Status:** engineering COMPLETE & production-verified (shakedown 2026-08-23, merge to main + tag `genesis2-production-20260824`). Remaining: T6.4 bitácora after tonight's genesis run.
+**Created:** 2026-08-23 ~17:50 CT · **Status:** engineering COMPLETE & production-verified (shakedown 2026-08-23, merge to main + tag `genesis2-production-20260824`). COMPLETE 2026-08-25 — all tasks closed; see doc/bitacora/PHASE_19_GENESIS.md.
 **Execution mode:** single session, scope-frozen, additive-only
 
 See `PHASE_19_CONTEXT.md` for findings, evidence, and the recorded scope deviation
@@ -49,7 +49,7 @@ See `PHASE_19_CONTEXT.md` for findings, evidence, and the recorded scope deviati
 - [x] T6.1 `pytest tests/unit/execution/ -q` green.
 - [x] T6.2 `ruff check` clean on touched files (`mypy` not installed in venv — skipped, noted).
 - [x] T6.3 Commit (message cites DJ-129a/b/c). Tag `phase19-genesis-hardening`.
-- [ ] T6.4 Bitácora entry drafted AFTER tonight's genesis run (separate step, per protocol).
+- [x] T6.4 Bitácora entry drafted: doc/bitacora/PHASE_19_GENESIS.md (2026-08-25).
 
 ---
 
