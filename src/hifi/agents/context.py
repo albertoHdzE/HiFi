@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from datetime import date, datetime
 from pathlib import Path
 
@@ -190,4 +191,55 @@ def build_portfolio_context(book: dict, account: str, data_dir: str) -> str:
         "- Interpret your role within THIS situation; do not assume a blank book "
         "or a full one without checking the facts above."
     )
+    return "\n".join(lines)
+
+
+def build_market_block(ticker: str, as_of_date: str, data_dir: str) -> str:
+    """Engine-computed market one-liners for THIS ticker (DJ-002 discipline).
+
+    Every number comes from ``hifi.engines.market_summary`` — the LLM never
+    computes, and every input's freshness is printed so staleness is visible
+    rather than hidden. Absent inputs are reported as unavailable; nothing is
+    guessed.
+    """
+    from hifi.engines import market_summary as ms
+
+    lines = [f"MARKET CONTEXT (engine-computed, point-in-time {as_of_date}):"]
+
+    regime = ms.regime_snapshot(as_of_date, data_dir)
+    if regime and regime.get("label"):
+        stamps = regime.get("inputs") or {}
+        fresh = ", ".join(
+            f"{k} through {v}" for k, v in stamps.items() if v
+        ) or "input dates unknown"
+        lines.append(f"- Market regime: {regime['label']} ({fresh}).")
+    else:
+        reason = (regime or {}).get("reason") or "classifier unavailable"
+        lines.append(f"- Market regime: unavailable ({reason}); do not assume neutral.")
+
+    rel = ms.relative_strength(ticker, None, as_of_date, data_dir)
+    if rel:
+        lines.append(
+            f"- {ticker} {rel['window_sessions']}-session return "
+            f"{rel['ticker_return'] * 100:+.1f}% vs median sector peer "
+            f"{rel['peer_median'] * 100:+.1f}% "
+            f"(relative strength {rel['delta_pp']:+.1f} pp over {rel['n_peers']} peers)."
+        )
+    else:
+        lines.append(f"- Relative strength vs sector peers: unavailable for {ticker}.")
+
+    account = os.environ.get("HIFI_ACTIVE_ACCOUNT")
+    book = load_book_state(account, data_dir) if account else None
+    if book and book.get("positions"):
+        weights = {p["ticker"]: float(p["weight"]) for p in book["positions"]}
+        var = ms.book_var_95(weights, as_of_date, data_dir)
+        if var and var.get("var_95_1d") is not None:
+            lines.append(
+                f"- Book risk: 1-day VaR(95%) = {var['var_95_1d'] * 100:.1f}% of equity "
+                f"(historical simulation over {var['aligned_sessions']} aligned sessions; "
+                f"one-day figure, horizon is NOT {var['window_sessions']} days)."
+            )
+        else:
+            reason = (var or {}).get("reason") or "insufficient holdings history"
+            lines.append(f"- Book risk VaR(95%): unavailable ({reason}).")
     return "\n".join(lines)

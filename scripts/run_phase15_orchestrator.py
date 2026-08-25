@@ -491,6 +491,7 @@ def run_agent_mode(
                 _acct = os.environ.get("HIFI_ACTIVE_ACCOUNT")
                 if agent_type in _CONTEXT_ELIGIBLE_AGENTS and _acct:
                     from hifi.agents.context import (  # noqa: PLC0415
+                        build_market_block,
                         build_portfolio_context,
                         load_book_state,
                     )
@@ -500,9 +501,14 @@ def run_agent_mode(
                         extra_memory_prefix = build_portfolio_context(
                             _book, _acct, data_dir
                         )
-                        logger.info(
-                            "CONTEXT %s %s %s: portfolio block injected (%d chars)",
-                            agent_type, ticker, date, len(extra_memory_prefix))
+                    _market = build_market_block(ticker, date, data_dir)
+                    extra_memory_prefix = (
+                        (_market + "\n\n" + extra_memory_prefix).strip()
+                    )
+                    logger.info(
+                        "CONTEXT %s %s %s: portfolio+%d market+%d chars injected",
+                        agent_type, ticker, date,
+                        len(extra_memory_prefix) - len(_market) - 2, len(_market))
 
                 if agent_type == "fundamental":
                     _edgar = _fetch_edgar_context(ticker, date, db_path)

@@ -272,9 +272,15 @@ def get_executor(account: str):
 def update_data(tickers: list[str]) -> dict[str, int]:
     from hifi.execution.market_data import update_local_ohlcv
 
-    result = update_local_ohlcv(tickers, market_dir=os.path.join(_DATA_DIR, "market"))
+    # DJ-130 companion: SPY is not a universe member but is the regime
+    # classifier's benchmark input. Without nightly refresh the classifier
+    # would silently run on stale bars (the exact failure that kept it pinned
+    # at "neutral" — its old paths died in the DJ-120 store migration).
+    fetch = list(tickers) + ["SPY"]
+    result = update_local_ohlcv(fetch, market_dir=os.path.join(_DATA_DIR, "market"))
     total_new = sum(result.values())
-    logger.info("OHLCV update: %d new bars across %d tickers", total_new, len(tickers))
+    logger.info("OHLCV update: %d new bars across %d tickers (+SPY benchmark)",
+                total_new, len(fetch))
     return result
 
 
