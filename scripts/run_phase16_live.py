@@ -1186,6 +1186,17 @@ def run_account_cycle(account: str, tickers: list[str], date: str,
         hwm_value = update_hwm(account, executor.get_portfolio_value())
         logger.info("[%s] High-water mark: $%.2f", account, hwm_value)
 
+    # DJ-130: tag the arm whose signals are being generated this cycle and
+    # snapshot its book so eligible agents receive standing-situation context.
+    # Agents read data/live/<acct>/book_state.json via the orchestrator; the
+    # env tag keeps injection live-only (eval harnesses never set it).
+    if not is_dry:
+        os.environ["HIFI_ACTIVE_ACCOUNT"] = account
+        from hifi.agents.context import write_book_state
+
+        if write_book_state(executor, account, _DATA_DIR):
+            logger.info("[%s] Book state written for agent context (DJ-130)", account)
+
     if condition == "control":
         if _halt_before_submit(account, executor, is_dry, date):
             return

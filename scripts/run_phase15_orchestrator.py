@@ -442,6 +442,9 @@ def run_agent_mode(
     Load model, run agent passes for all (date, ticker), unload.
     Returns {"done": n, "skip": n, "fail": n}.
     """
+    from hifi.agents.context import (
+        CONTEXT_ELIGIBLE_AGENTS as _CONTEXT_ELIGIBLE_AGENTS,  # noqa: PLC0415
+    )
     from hifi.simulation.agent_executor import run_agent_pass  # noqa: PLC0415
     from hifi.simulation.model_manager import unload_model  # noqa: PLC0415
 
@@ -480,9 +483,31 @@ def run_agent_mode(
                 continue
 
             try:
+                # DJ-130: standing-situation context for eligible agents. Only
+                # active when the live orchestrator tagged an account via env —
+                # evaluation harnesses never do, so historical replays stay
+                # byte-identical to their original runs.
                 extra_memory_prefix = ""
+                _acct = os.environ.get("HIFI_ACTIVE_ACCOUNT")
+                if agent_type in _CONTEXT_ELIGIBLE_AGENTS and _acct:
+                    from hifi.agents.context import (  # noqa: PLC0415
+                        build_portfolio_context,
+                        load_book_state,
+                    )
+
+                    _book = load_book_state(_acct, data_dir)
+                    if _book:
+                        extra_memory_prefix = build_portfolio_context(
+                            _book, _acct, data_dir
+                        )
+                        logger.info(
+                            "CONTEXT %s %s %s: portfolio block injected (%d chars)",
+                            agent_type, ticker, date, len(extra_memory_prefix))
+
                 if agent_type == "fundamental":
-                    extra_memory_prefix = _fetch_edgar_context(ticker, date, db_path)
+                    _edgar = _fetch_edgar_context(ticker, date, db_path)
+                    extra_memory_prefix = (
+                        _edgar + "\n\n" + extra_memory_prefix).strip()
 
                 run_agent_pass(
                     agent_type=agent_type,
