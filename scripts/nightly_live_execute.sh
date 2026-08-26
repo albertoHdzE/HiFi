@@ -136,7 +136,7 @@ rc=$?
 
 # DJ-130 personality shadow replay (telemetry, not trading — fail-open).
 # Runs after the batch so it sees tonight's freshly aggregated ensembles.
-"${UV}" run python "${ROOT}/scripts/run_personality_shadow.py" \
+"${UV}" run python "${REPO}/scripts/run_personality_shadow.py" \
     || echo "WARNING: personality shadow replay failed (non-fatal; run manually)"
 
 echo "=== finished rc=${rc} $(date '+%Y-%m-%d %H:%M:%S') ==="
