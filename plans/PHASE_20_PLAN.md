@@ -44,3 +44,23 @@ See `PHASE_20_CONTEXT.md` for rationale and guardrails.
 Tonight's log shows book-state written per arm; tomorrow's signals carry the
 context block in sidecars (spot-check one); shadow jsonl populates after next
 aggregate with baseline≈stored decisions.
+
+## T6 — Engine-computed market summaries (branch feature/context-engine-summaries)
+
+- [x] T6.1 `engines/market_summary.py`: regime snapshot (live-wired DJ-089b),
+      relative strength vs sector median, book VaR95 historical simulation.
+- [x] T6.2 Point-in-time discipline: every series filtered `index <= as_of`
+      before computing; test pins invisibility of post-as_of bars.
+- [x] T6.3 C15-corrected VaR logic here: date-intersection alignment +
+      weight renormalization (positional splice and silent weight-drop both
+      test-pinned as forbidden behaviours). risk_manager's own flawed variant
+      remains queued separately.
+- [x] T6.4 Renderer `build_market_block` in agents/context.py; horizon stated
+      in words ("one-day figure, horizon is NOT 60 days") per C18 lesson.
+- [x] T6.5 SPY nightly benchmark refresh in update_data (regime input).
+- [ ] T6.6 FOLLOW-UP (discovered): `ensemble_runner._get_regime_label` reads
+      dead paths (`market/SPY.parquet`, `macro/macro.parquet`) → live regime
+      has been silently "neutral" since DJ-120 migration; also debate prompts
+      may consume it. Fix separately on main.
+- [x] T6.7 Tests: 11 new, incl. no-lookahead edge, misaligned-delisting case,
+      quantile-arithmetic fixture derived by hand ((77/100)^(1/5)−1).
