@@ -37,17 +37,41 @@ class TestScaling:
         p = PortfolioPolicy(n)
         assert n * p.max_single_stock >= 1.0
 
-    @pytest.mark.parametrize("n,max_deployable", [(1, 0.10), (2, 0.20), (5, 0.50)])
-    def test_very_narrow_books_deliberately_hold_cash(self, n, max_deployable):
-        """Below 10 candidates the 10% ceiling binds, and that is intended.
+    @pytest.mark.parametrize("n", [1, 2, 5, 7, 9])
+    def test_very_narrow_books_deploy_fully(self, n):
+        """REVERSED 2026-08-27 (DJ-131). Was `test_very_narrow_books_
+        deliberately_hold_cash`, asserting n=1 -> 10%, n=2 -> 20%, n=5 -> 50%.
 
-        If the ensemble finds only one Buy, the answer is a 10% position and
-        90% cash — not a single-name bet. Arm returns must remain a story
-        about ensemble architecture, not about one company. Cash is the
-        correct residual of low conviction, not a bug.
+        The original reasoning is preserved here because it was sound and is
+        the reason this took two months to surface:
+
+            "Below 10 candidates the 10% ceiling binds, and that is intended.
+            If the ensemble finds only one Buy, the answer is a 10% position
+            and 90% cash - not a single-name bet. Arm returns must remain a
+            story about ensemble architecture, not about one company. Cash is
+            the correct residual of low conviction, not a bug."
+
+        Two things were bundled in that behaviour, and only one of them was
+        intended:
+
+        1. **Cash on narrow books** - genuinely intended, and now reversed by
+           owner decision (2026-08-27): deploy the capital, and let risk
+           valuation and capital allocation restrain it, not a blunt cap. The
+           concentration concern above is real and is delegated to the risk
+           manager, which is the layer that can actually see correlation.
+        2. **Conviction erasure and treatment-dependence** - never intended,
+           and concealed by (1). Because the same ceiling bound every name
+           below n=10, arm A allocated an identical $10,000 to all seven of
+           its holdings across a 1.61x conviction spread on 2026-08-24, and
+           the size of the cash penalty was a monotone function of the Buy
+           count, which *is* the treatment.
+
+        The deployment decision now lives in `target_deployment`, so a future
+        owner who wants cash on narrow books sets that field rather than
+        rediscovering it as an emergent property of cap arithmetic.
         """
         p = PortfolioPolicy(n)
-        assert n * p.max_single_stock == pytest.approx(max_deployable)
+        assert n * p.max_single_stock >= p.target_deployment - 1e-9
 
     def test_cap_tightens_as_universe_widens(self):
         caps = [PortfolioPolicy(n).max_single_stock for n in (8, 16, 30, 98)]
@@ -57,10 +81,28 @@ class TestScaling:
         p = PortfolioPolicy(98)
         assert p.max_single_stock == pytest.approx(3.0 * p.equal_weight)
 
-    def test_absolute_ceiling_applies_on_narrow_books(self):
-        """3 x equal weight explodes at small n (3 x 1/2 = 150%)."""
-        assert PortfolioPolicy(2).max_single_stock == 0.10
-        assert PortfolioPolicy(8).max_single_stock == 0.10
+    def test_absolute_ceiling_yields_to_tilt_headroom_on_narrow_books(self):
+        """REVISED 2026-08-27 (DJ-131). Was `test_absolute_ceiling_applies_on_
+        narrow_books`, asserting the cap equals 0.10 at n=2 and n=8.
+
+        The concern it encoded is still real: 3 x equal weight explodes at
+        small n (3 x 1/2 = 150%). But bounding it with an absolute constant
+        made the ceiling *below* the equal weight for narrow books, which
+        stops being a concentration limit and becomes a deployment limit:
+        at n=8, 10% is 0.8x the equal share, so every name is clipped to the
+        same value and 20% of the book cannot be invested at all.
+
+        The bound is now `tilt_headroom` x equal weight, which caps the
+        explosion (2x, not 3x) while keeping the cap above the equal share so
+        conviction remains expressible and the capital remains investable.
+        """
+        for n in (2, 8):
+            p = PortfolioPolicy(n)
+            assert p.max_single_stock == pytest.approx(
+                min(1.0, p.tilt_headroom * p.equal_weight))
+            assert p.max_single_stock > p.equal_weight or n == 1
+        # The explosion the original test guarded against is still guarded.
+        assert PortfolioPolicy(2).max_single_stock <= 1.0
 
     def test_absolute_floor_applies_on_very_wide_books(self):
         assert PortfolioPolicy(1000).max_single_stock == 0.02
@@ -116,6 +158,7 @@ class TestConstraintsDict:
         )
         assert set(c) == {
             "max_single_stock", "max_sector", "min_position",
+            "target_deployment",  # DJ-131: the deployment decision, made explicit
             "capital", "current_capital", "available_cash",
         }
         assert c["capital"] == 100_000.0
