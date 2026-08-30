@@ -1,7 +1,26 @@
 # HiFi Project Status
 
-**Last Updated:** 2026-07-13 (Phase 16 IN PROGRESS — Alpaca 3-account live ablation, DJ-111)
-**Current Phase:** Phase 16 (live paper trading — Alpaca active, IBKR pending, Binance future)
+**Last Updated:** 2026-08-27 (Phase 21 PLANNED — allocation remediation + endpoint re-specification)
+**Current Phase:** Phase 21 (fixes, pre-cycle critical path) and Phase 22 (Paper I) in parallel
+**Live experiment:** Genesis II running since 2026-08-24, four arms, day 4
+
+### Numbering correction (2026-08-27, recorded in PHASE_21_CONTEXT.md §6)
+
+`doc/HIFI_PROTOCOL_V1.md` reserved Phase 17 = "Ablation Studies + Capstone
+Deliverable" and Phase 18 = "Publication + Open Source Release". Neither was
+started or given a plan file, and Phases 19 and 20 were built past them, so the
+protocol and `plans/` diverged.
+
+**19 and 20 keep their numbers; 17 and 18 are formally superseded.** Phases 19
+and 20 are cited by git tag (`phase19-genesis-hardening`), commit messages and
+`doc/bitacora/PHASE_19_GENESIS.md`. Renaming completed work to satisfy a stale
+plan would corrupt the audit trail this project exists to keep.
+
+| Old | New | Meaning |
+|---|---|---|
+| — | 21 | Allocation remediation + endpoint re-specification |
+| protocol 17 | 22 | Paper I — ablation analysis + capstone deliverable |
+| protocol 18 | 23 | Paper II — publication + open-source release |
 
 **DJ-111 (2026-07-13):** Three-account live ablation on Alpaca paper trading.
 A=parallel ensemble (champion), B=full sequential (herding contrast),
@@ -45,9 +64,14 @@ HiFi is a fully local multi-agent financial intelligence platform. Read these in
 | 14 | Infrastructure: Model Diversity, Scale Expansion, MCP Tools (DJ-088) | COMPLETE | plans/PHASE_14_PLAN.md | *(no bitacora — see Phase 14.1)* |
 | 14.1 | Pipeline Integration and Memory-Safe Orchestration (DJ-106) | COMPLETE | plans/PHASE_14.1_PLAN.md | doc/bitacora/PHASE_14.1_PIPELINE_INTEGRATION.md |
 | 15 | Historical Walk-Forward Simulation (DJ-095) | COMPLETE | plans/PHASE_15_PLAN.md | doc/bitacora/PHASE_15_WALK_FORWARD_SIMULATION.md |
-| 16 | Live Paper Trading — IBKR (DJ-098) | NEXT | plans/PHASE_16_PLAN.md | -- |
-| 17 | Ablation Studies + Capstone Deliverable | NOT STARTED | -- | -- |
-| 18 | Publication + Open Source Release | NOT STARTED | -- | -- |
+| 16 | Live Paper Trading — Alpaca 4-arm ablation (DJ-111) | RUNNING | plans/PHASE_16_PLAN.md | -- |
+| ~~17~~ | ~~Ablation Studies + Capstone Deliverable~~ | SUPERSEDED → Phase 22 | -- | -- |
+| ~~18~~ | ~~Publication + Open Source Release~~ | SUPERSEDED → Phase 23 | -- | -- |
+| 19 | Genesis Hardening (DJ-129) | COMPLETE | plans/PHASE_19_PLAN.md | doc/bitacora/PHASE_19_GENESIS.md |
+| 20 | Situated Agents — portfolio context + personalities (DJ-130) | COMPLETE except T6.6 | plans/PHASE_20_PLAN.md | doc/bitacora/PHASE_19_GENESIS.md §6 |
+| 21 | Allocation Remediation + Endpoint Re-specification (DJ-131/132) | PLANNED | plans/PHASE_21_PLAN.md | -- |
+| 22 | Paper I — Ablation Analysis + Capstone Deliverable | PLANNED | plans/PHASE_22_PLAN.md | -- |
+| 23 | Paper II — Publication + Open Source Release | NOT STARTED | -- | -- |
 
 ---
 
