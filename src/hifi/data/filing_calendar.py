@@ -61,6 +61,29 @@ _PERIODIC_FORMS = ("10-Q", "10-K")
 #: notice than the total blindness of DJ-133a.
 _MIN_PERIODIC_FILINGS = 8
 
+#: Predecessor CIKs to union with a ticker's current CIK.
+#:
+#: ``company_tickers.json`` maps a ticker to the entity that holds it *today*.
+#: After a holding-company reorganisation that is a newly registered shell with
+#: no operating history, while every 10-Q ever filed sits under the predecessor.
+#: The ticker is then silently blind -- the same failure mode as DJ-123, where a
+#: corporate action (EQR's delisting) took down a night's trading.
+#:
+#: Detection is automatic: any ticker resolving to fewer than four periodic
+#: filings is logged at WARNING, so a new succession surfaces on the next
+#: calendar build instead of quietly removing an agent's eyesight. Resolution is
+#: explicit and evidenced here, because guessing a predecessor from name
+#: similarity would be a silent correctness risk in a research dataset.
+#:
+#: XOM, verified 2026-08-30: ticker held by "ExxonMobil Holdings Corp"
+#: (CIK 2115436), registered 2026-07-01, whose entire history is one 8-K12B
+#: (succession), 23 S-8 POS and 3 8-K. The operating filer is "EXXON MOBIL CORP"
+#: (CIK 34088) with 27 periodic filings, latest 10-Q period 2026-06-30 filed
+#: 2026-08-03.
+_CIK_SUCCESSIONS: dict[str, tuple[str, ...]] = {
+    "XOM": ("0000034088",),
+}
+
 
 def _user_agent() -> str:
     """EDGAR rejects requests without a contact string; reuse the client's."""
@@ -116,6 +139,39 @@ def _scan_periodic(ticker: str, batch: dict) -> list[dict]:
     return out
 
 
+def _collect_for_cik(client, ticker: str, cik: str, needed: int) -> list[dict]:
+    """Periodic filings for one CIK, following EDGAR's paginated shards.
+
+    ``filings.recent`` is capped and mixes every form type, so a heavy 8-K filer
+    can have its 10-Qs pushed out of that window entirely -- which cost JPM,
+    BAC, GS, MS, BLK, PEP and COST all of their TTM ratios.
+    """
+    try:
+        subs = client.get_submissions(cik)
+    except Exception as exc:
+        logger.error("Submissions fetch failed for %s (CIK %s): %s", ticker, cik, exc)
+        return []
+
+    filings = subs.get("filings") or {}
+    found = _scan_periodic(ticker, filings.get("recent") or {})
+    if len(found) >= needed:
+        return found
+
+    for entry in filings.get("files", []):  # newest-first
+        name = entry.get("name", "")
+        if not name:
+            continue
+        try:
+            page = client._get_json(f"{_SUBMISSIONS_BASE}/{name}")
+        except Exception as exc:
+            logger.warning("Failed to fetch shard %s for %s: %s", name, ticker, exc)
+            continue
+        found.extend(_scan_periodic(ticker, page))
+        if len(found) >= needed:
+            break
+    return found
+
+
 def build_filing_calendar(
     tickers: list[str],
     data_dir: str | Path = "data",
@@ -137,38 +193,34 @@ def build_filing_calendar(
 
     rows: list[dict] = []
     for ticker in sorted(ciks):
-        try:
-            subs = client.get_submissions(ciks[ticker])
-        except Exception as exc:
-            logger.error("Submissions fetch failed for %s: %s", ticker, exc)
-            continue
+        found: list[dict] = []
+        # Current CIK first, then any documented predecessor, so a
+        # reorganisation mid-quarter keeps both sides of the transition.
+        for cik in (ciks[ticker], *_CIK_SUCCESSIONS.get(ticker, ())):
+            found.extend(_collect_for_cik(client, ticker, cik, needed=_MIN_PERIODIC_FILINGS))
+            if len(found) >= _MIN_PERIODIC_FILINGS:
+                break
 
-        filings = subs.get("filings") or {}
-        found = _scan_periodic(ticker, filings.get("recent") or {})
+        # Dedupe: a predecessor and successor can both report a transition
+        # filing, and a double-counted quarter would corrupt every TTM.
+        seen: set = set()
+        unique = []
+        for row in found:
+            key = row["accession"] or (row["form"], row["period_end"])
+            if key in seen:
+                continue
+            seen.add(key)
+            unique.append(row)
 
-        # ``recent`` is capped and mixes all form types, so walk the paginated
-        # history shards until we have enough periodic filings (see
-        # _MIN_PERIODIC_FILINGS). Shards are newest-first.
-        if len(found) < _MIN_PERIODIC_FILINGS:
-            for entry in filings.get("files", []):
-                name = entry.get("name", "")
-                if not name:
-                    continue
-                try:
-                    page = client._get_json(f"{_SUBMISSIONS_BASE}/{name}")
-                except Exception as exc:
-                    logger.warning("Failed to fetch shard %s for %s: %s", name, ticker, exc)
-                    continue
-                found.extend(_scan_periodic(ticker, page))
-                if len(found) >= _MIN_PERIODIC_FILINGS:
-                    break
-
-        if len(found) < 4:
+        if len(unique) < 4:
             logger.warning(
-                "%s: only %d periodic filing(s) found; TTM ratios will be unavailable",
-                ticker, len(found),
+                "%s: only %d periodic filing(s) found across CIK(s) %s; TTM ratios "
+                "will be unavailable. If this ticker was reorganised, add its "
+                "predecessor CIK to _CIK_SUCCESSIONS.",
+                ticker, len(unique),
+                ", ".join((ciks[ticker], *_CIK_SUCCESSIONS.get(ticker, ()))),
             )
-        rows.extend(found)
+        rows.extend(unique)
 
     df = pd.DataFrame(rows)
     if df.empty:
