@@ -1,0 +1,30 @@
+{
+ "ticker": "UPS",
+ "as_of_date": "2026-08-30",
+ "cutoff_utc": "2026-08-30T20:00:00+00:00",
+ "lookback_days": 10,
+ "fetched_at": "2026-08-30T22:04:21.860893-06:00",
+ "articles": [
+  {
+   "created_at": "2026-08-24T18:02:04+00:00",
+   "headline": "UPS Invests $2 Billion to Boost Global Shipping Speed",
+   "source": "benzinga",
+   "summary": "UPS is investing more than $2 billion across Europe, Asia-Pacific and the Americas to improve delivery speed, reliability and customer control.",
+   "symbols": [
+    "DOCK",
+    "HULL",
+    "IYT",
+    "UPS"
+   ]
+  },
+  {
+   "created_at": "2026-08-24T11:02:19+00:00",
+   "headline": "UPS Invests $2B+ To Speed Up Service And Improve Global Supply Chain Resiliency",
+   "source": "benzinga",
+   "summary": "",
+   "symbols": [
+    "UPS"
+   ]
+  }
+ ]
+}

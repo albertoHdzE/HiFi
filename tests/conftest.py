@@ -14,6 +14,23 @@ import pytest
 
 from hifi.config.loader import HiFiConfig, load_config
 
+
+@pytest.fixture(autouse=True)
+def _news_offline(monkeypatch):
+    """No test may reach the news vendor (DJ-133b).
+
+    The sentiment agent now fetches daily headlines, so a test that passes an
+    empty tmp_path as data_dir would fall through to a live API call whenever
+    ambient ALPACA_* credentials are set. That made
+    test_run_sentiment_returns_default_when_no_context pass in isolation and
+    fail in the suite -- a network-dependent unit test, which is exactly the
+    kind of nondeterminism that hides real regressions.
+
+    Tests that want news supply it through the on-disk cache, which this flag
+    still honours.
+    """
+    monkeypatch.setenv("HIFI_NEWS_OFFLINE", "1")
+
 # ---------------------------------------------------------------------------
 # DeterministicEmbeddingModel (P7-E3)
 # ---------------------------------------------------------------------------

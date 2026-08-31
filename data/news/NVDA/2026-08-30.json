@@ -1,0 +1,182 @@
+{
+ "ticker": "NVDA",
+ "as_of_date": "2026-08-30",
+ "cutoff_utc": "2026-08-30T20:00:00+00:00",
+ "lookback_days": 10,
+ "fetched_at": "2026-08-30T22:04:06.708397-06:00",
+ "articles": [
+  {
+   "created_at": "2026-08-30T19:16:19+00:00",
+   "headline": "S&P 500 and Dow Jones Outlook: Top Three Catalysts This Week",
+   "source": "benzinga",
+   "summary": "This S&amp;P 500 and Dow Jones outlook explains the top three catalysts that will move US stocks this week.",
+   "symbols": [
+    "AVGO",
+    "DELL",
+    "FDS",
+    "GOOG",
+    "MSFT",
+    "NVDA",
+    "ORCL"
+   ]
+  },
+  {
+   "created_at": "2026-08-30T12:30:19+00:00",
+   "headline": "Weekend Tech Roundup: CXMT's 874% Revenue Surge, Apple's New Macs, Nvidia's Q2 Beat and More",
+   "source": "benzinga",
+   "summary": "CXMT\u2019s revenue surge, Apple\u2019s new Macs, and strong tech earnings led the weekend news, alongside CXMT\u2019s Pentagon lawsuit.",
+   "symbols": [
+    "AAPL",
+    "CRM",
+    "CRWD",
+    "NVDA"
+   ]
+  },
+  {
+   "created_at": "2026-08-30T11:31:52+00:00",
+   "headline": "Consumer Tech (Aug. 24-28): Nvidia Q2 Earnings, Salesforce Rally, Trump Tariff Fears Rise & More",
+   "source": "benzinga",
+   "summary": "Nvidia, Salesforce and CrowdStrike lead a busy tech week as AI demand, chip shortages, tariffs, Apple, SpaceX and semiconductor stocks drive markets.",
+   "symbols": [
+    "AAPL",
+    "ADSK",
+    "BABA",
+    "CRM",
+    "CRWD",
+    "DELL",
+    "HPQ",
+    "INTC",
+    "IREN",
+    "LI",
+    "META",
+    "MRVL",
+    "MU",
+    "NVDA",
+    "PDD",
+    "RBRK",
+    "RIVN",
+    "S",
+    "SMTC",
+    "SNPS",
+    "SPCX",
+    "TSLA",
+    "WDC",
+    "XPEV"
+   ]
+  },
+  {
+   "created_at": "2026-08-29T22:15:09+00:00",
+   "headline": "Broadcom Stock Faces Valuation Test as Fiscal Q3 Earnings Approach",
+   "source": "benzinga",
+   "summary": "Broadcom stock is in the spotlight as it prepares to publish its financial results. Here&#39;s what to expect when the numbers come out",
+   "symbols": [
+    "AVGO",
+    "EVR",
+    "MU",
+    "NVDA",
+    "SNDK"
+   ]
+  },
+  {
+   "created_at": "2026-08-29T18:16:10+00:00",
+   "headline": "Dell Stock Analysis: Options and Technicals Send Mixed Signals Ahead of Earnings",
+   "source": "benzinga",
+   "summary": "Dell stock is sending mixed signals with options and technicals are sending mixed signals ahead of its earnings report next week",
+   "symbols": [
+    "DELL",
+    "MU",
+    "NBIS",
+    "NVDA",
+    "SMCI"
+   ]
+  },
+  {
+   "created_at": "2026-08-29T13:00:34+00:00",
+   "headline": "5 Stocks Investors Couldn't Stop Buzzing About This Week: NVDA, MRVL, CRM and More",
+   "source": "benzinga",
+   "summary": "Retail investors talked up 5 hot stocks during the week (Aug. 24 to Aug. 28) on X and Reddit&#39;s r/WallStreetBets: NVDA, MRVL, CRM, IREN, CRWD.",
+   "symbols": [
+    "BTCUSD",
+    "CRM",
+    "CRWD",
+    "IREN",
+    "MRVL",
+    "NVDA"
+   ]
+  },
+  {
+   "created_at": "2026-08-29T12:01:13+00:00",
+   "headline": "Benzinga Bulls and Bears: Nvidia, CrowdStrike, Intuit",
+   "source": "benzinga",
+   "summary": "Benzinga examined the prospects for many investors\u2019 favorite stocks over the last week \u2014 here\u2019s a look at some of our top stories.",
+   "symbols": [
+    "CRM",
+    "CRWD",
+    "INTU",
+    "IREN",
+    "MRVL",
+    "MU",
+    "NKE",
+    "NVDA",
+    "RBRK",
+    "SLS"
+   ]
+  },
+  {
+   "created_at": "2026-08-29T08:33:52+00:00",
+   "headline": "Hugging Face\u2019s $399 Robot Ducks Racks Up $2.6 Million in Sales as Nvidia Deal Buzz Grows",
+   "source": "benzinga",
+   "summary": "Hugging Face\u2019s Microduck robot generated more than $2.6 million in orders within 24 hours, highlighting surging interest in AI robotics.",
+   "symbols": [
+    "BOT",
+    "NVDA",
+    "TSLA"
+   ]
+  },
+  {
+   "created_at": "2026-08-28T20:27:33+00:00",
+   "headline": "Godfather Snubbed: Time's 100 AI List Skips Jensen Huang \u2014 Just Like Elon Musk",
+   "source": "benzinga",
+   "summary": "A list from Time says Bernie Sanders, Paris Hilton and Ben Affleck are more influential to AI than Nvidia CEO Jensen Huang.",
+   "symbols": [
+    "NVDA"
+   ]
+  },
+  {
+   "created_at": "2026-08-28T20:00:41+00:00",
+   "headline": "Warsh Sparks Rate-Hike Bets, Nvidia Reaffirms AI Growth Story: This Week on Wall Street",
+   "source": "benzinga",
+   "summary": "Kevin Warsh reignites rate-hike bets, Nvidia posts its best day since April, and CrowdStrike prints the biggest gain in its history.",
+   "symbols": [
+    "BUG",
+    "CRM",
+    "CRWD",
+    "MRVL",
+    "MU",
+    "NOW",
+    "NVDA",
+    "SOXX",
+    "VEEV",
+    "WDAY"
+   ]
+  },
+  {
+   "created_at": "2026-08-28T19:37:33+00:00",
+   "headline": "QUICKSPARK: a16z Bets $1.1 Billion on the Machines Behind the AI Revolution",
+   "source": "benzinga",
+   "summary": "Andreessen Horowitz is putting $1.1 billion behind the physical infrastructure through its new Machine Age Fund.",
+   "symbols": [
+    "NVDA"
+   ]
+  },
+  {
+   "created_at": "2026-08-28T17:50:07+00:00",
+   "headline": "What\u2019s Hotter Than Nvidia Stock? Jensen Huang Autograph Action Heats Up: Signed Graphics Card Auction Cost",
+   "source": "benzinga",
+   "summary": "The market for Nvidia memorabilia and Jensen Huang autographs is heating up. Here&#39;s the latest item up for auction.",
+   "symbols": [
+    "NVDA"
+   ]
+  }
+ ]
+}

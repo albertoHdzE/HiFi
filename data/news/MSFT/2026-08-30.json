@@ -1,0 +1,157 @@
+{
+ "ticker": "MSFT",
+ "as_of_date": "2026-08-30",
+ "cutoff_utc": "2026-08-30T20:00:00+00:00",
+ "lookback_days": 10,
+ "fetched_at": "2026-08-30T22:04:06.308501-06:00",
+ "articles": [
+  {
+   "created_at": "2026-08-30T19:16:19+00:00",
+   "headline": "S&P 500 and Dow Jones Outlook: Top Three Catalysts This Week",
+   "source": "benzinga",
+   "summary": "This S&amp;P 500 and Dow Jones outlook explains the top three catalysts that will move US stocks this week.",
+   "symbols": [
+    "AVGO",
+    "DELL",
+    "FDS",
+    "GOOG",
+    "MSFT",
+    "NVDA",
+    "ORCL"
+   ]
+  },
+  {
+   "created_at": "2026-08-30T18:16:18+00:00",
+   "headline": "Oracle at a Crossroads: Big Earnings Could Trigger Massive Swing",
+   "source": "benzinga",
+   "summary": "Oracle stock has moved into a crossroads, and the upcoming earnings will likely trigger a big move in the near term.",
+   "symbols": [
+    "AMZN",
+    "MSFT",
+    "ORCL"
+   ]
+  },
+  {
+   "created_at": "2026-08-30T05:07:22+00:00",
+   "headline": "Greg Abbott Pushes Back on Foreign Influence Claims Over Data Centers: \u2018I Haven't Done It Because of Anything Said by China\u2019",
+   "source": "benzinga",
+   "summary": "Texas Gov. Greg Abbott says local concerns, not Chinese disinformation, drove his decision to pause new data center construction.",
+   "symbols": [
+    "BABA",
+    "BIDU",
+    "META",
+    "MSFT",
+    "ORCL"
+   ]
+  },
+  {
+   "created_at": "2026-08-29T20:04:07+00:00",
+   "headline": "HP Enterprise Stock at a Crossroads: Earnings Could Trigger a Big Move",
+   "source": "benzinga",
+   "summary": "HP Enterprise stock is now at a crossroads. Here&#39;s why the upcoming earnings report will trigger a big move.",
+   "symbols": [
+    "AMZN",
+    "GOOG",
+    "HPE",
+    "MSFT"
+   ]
+  },
+  {
+   "created_at": "2026-08-29T19:16:04+00:00",
+   "headline": "Steve Ballmer is $65 Billion Richer than Bill Gates. Here\u2019s Why.",
+   "source": "benzinga",
+   "summary": "Find out why Steve Ballmer, the former CEO of Microsoft is $65 billion richer than Bill Gates, the company&#39;s founder",
+   "symbols": [
+    "MSFT",
+    "NYT"
+   ]
+  },
+  {
+   "created_at": "2026-08-28T16:11:24+00:00",
+   "headline": "Cathie Wood Trims AMD After a 120% Rally \u2014 Is the AI Trade Getting Too Crowded?",
+   "source": "benzinga",
+   "summary": "Cathie Wood is trimming AMD after a massive 2026 rally, but ARK ETFs still hold a sizable stake. Here\u2019s what the move means for AI-focused ETFs.",
+   "symbols": [
+    "AIQ",
+    "AMD",
+    "ARKK",
+    "AVGO",
+    "BAI",
+    "MSFT",
+    "MU",
+    "ORCL",
+    "PLTR",
+    "SOXX",
+    "SPCX",
+    "TSM"
+   ]
+  },
+  {
+   "created_at": "2026-08-28T14:38:33+00:00",
+   "headline": "Microsoft Runs On It, Nvidia Validates It: IREN CEO Says the Real Edge Is Owning the Entire AI Stack",
+   "source": "benzinga",
+   "summary": "Microsoft and Nvidia milestones reinforce IREN&#39;s strategy of owning the full AI infrastructure stack, CEO Daniel Roberts says.",
+   "symbols": [
+    "IREN",
+    "MSFT",
+    "NVDA"
+   ]
+  },
+  {
+   "created_at": "2026-08-28T13:27:39+00:00",
+   "headline": "EXCLUSIVE: Claude Revenue Surges 1,000% as Anthropic Gains on ChatGPT",
+   "source": "benzinga",
+   "summary": "Claude now earns 31 cents for every $1 ChatGPT makes on mobile, up from just 3 cents in January, as Anthropic rapidly closes the revenue gap.",
+   "symbols": [
+    "AMZN",
+    "GOOGL",
+    "MSFT"
+   ]
+  },
+  {
+   "created_at": "2026-08-28T10:32:18+00:00",
+   "headline": "Bloomberg Reported SoftBank Seeks Another $10B Loan For OpenAI Stake Funding",
+   "source": "benzinga",
+   "summary": "",
+   "symbols": [
+    "MSFT",
+    "SFTBY"
+   ]
+  },
+  {
+   "created_at": "2026-08-28T09:58:30+00:00",
+   "headline": "Comparative Study: Microsoft And Industry Competitors In Software Industry",
+   "source": "benzinga",
+   "summary": "In today&#39;s fast-paced and competitive business landscape, it is essential for investors and industry enthusiasts to thoroughly analyze companies before making investment decisions. In this article, we will conduct a",
+   "symbols": [
+    "MSFT"
+   ]
+  },
+  {
+   "created_at": "2026-08-28T07:04:58+00:00",
+   "headline": "SK Hynix CEO Warns Memory Shortage Will Persist Through 2030 as Chipmaker Builds $4 Billion Indiana Fab",
+   "source": "benzinga",
+   "summary": "SK Hynix plans to begin HBM4E production in Indiana by 2029 as AI demand fuels a prolonged memory shortage.",
+   "symbols": [
+    "GOOG",
+    "GOOGL",
+    "MSFT",
+    "MU",
+    "NVDA",
+    "SKHY"
+   ]
+  },
+  {
+   "created_at": "2026-08-27T21:27:31+00:00",
+   "headline": "'Anthropic planned, then abandoned $7B purchase of MatX, sources say'- Reuters Exclusive",
+   "source": "benzinga",
+   "summary": "",
+   "symbols": [
+    "AMZN",
+    "GOOG",
+    "GOOGL",
+    "MSFT"
+   ]
+  }
+ ]
+}

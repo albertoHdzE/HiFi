@@ -1,0 +1,119 @@
+{
+ "ticker": "GS",
+ "as_of_date": "2026-08-30",
+ "cutoff_utc": "2026-08-30T20:00:00+00:00",
+ "lookback_days": 10,
+ "fetched_at": "2026-08-30T22:04:12.979063-06:00",
+ "articles": [
+  {
+   "created_at": "2026-08-30T16:31:21+00:00",
+   "headline": "Planet Labs Stock is Stuck in a Bear Market: Will Its Earnings Change This?",
+   "source": "benzinga",
+   "summary": "Planet Labs stock has moved into a bear market as investors wait for its earnings report. Find out whether its results will change that",
+   "symbols": [
+    " PL",
+    "GS",
+    "PL",
+    "SPCX"
+   ]
+  },
+  {
+   "created_at": "2026-08-28T17:35:17+00:00",
+   "headline": "10 Financials Stocks Whale Activity In Today\u2019s Session",
+   "source": "benzinga",
+   "summary": "This whale alert can help traders discover the next big trading opportunities.\nWhales are entities with large sums of money and we track their transactions here at Benzinga on our options activity scanner.\nTraders will",
+   "symbols": [
+    "BNY",
+    "COIN",
+    "GS",
+    "HOOD",
+    "JPM",
+    "PYPL",
+    "SCHW",
+    "SOFI",
+    "STT",
+    "TOST"
+   ]
+  },
+  {
+   "created_at": "2026-08-28T06:08:45+00:00",
+   "headline": "Howard Lutnick Says Mark Carney Ended US-Canada Trade Talks To Garner Political Support: 'We're Just Being Used\u2026'",
+   "source": "benzinga",
+   "summary": "Trump&#39;s Commerce Secretary Howard Lutnick says Canada used the U.S. for political purposes during trade negotiations.",
+   "symbols": [
+    "F",
+    "GS",
+    "TM"
+   ]
+  },
+  {
+   "created_at": "2026-08-26T17:35:18+00:00",
+   "headline": "4 Financials Stocks With Whale Alerts In Today\u2019s Session",
+   "source": "benzinga",
+   "summary": "This whale alert can help traders discover the next big trading opportunities.\nWhales are entities with large sums of money and we track their transactions here at Benzinga on our options activity scanner.\nTraders often",
+   "symbols": [
+    "BLK",
+    "GS",
+    "HOOD",
+    "PYPL"
+   ]
+  },
+  {
+   "created_at": "2026-08-26T13:11:16+00:00",
+   "headline": "Goldman Sachs Executive Sounds The Alarm, Warns AI Could Cause 'Cognitive Atrophy' on Wall Street: 'There\u2019s a Huge Danger Here'",
+   "source": "benzinga",
+   "summary": "Goldman Sachs executive Chris Churchman warns AI overreliance could cause \u201ccognitive atrophy\u201d and weaken future Wall Street talent.",
+   "symbols": [
+    "AMZN",
+    "GS",
+    "MSFT",
+    "NVDA"
+   ]
+  },
+  {
+   "created_at": "2026-08-21T17:25:59+00:00",
+   "headline": "Deal Dispatch: MunichRe Buys At-Bay, Mavis Tire Closes Pep Boys Purchase, Werewolf Merges With Ambros",
+   "source": "benzinga",
+   "summary": "Major M&amp;A deals include: T Rowe Price buys F/M Investments, ScanSource acquires CleanWater1, Barrington &amp; Burdette filed for bankruptcy.",
+   "symbols": [
+    "DOV",
+    "GS",
+    "MAIR",
+    "NXGL",
+    "OPTT",
+    "SCSC",
+    "USAU"
+   ]
+  },
+  {
+   "created_at": "2026-08-21T14:06:53+00:00",
+   "headline": "UBS Sees S&P 500 at 8,100 but Prediction Markets Don't Buy It",
+   "source": "benzinga",
+   "summary": "UBS sees the S&amp;P 500 reaching 8,100, but prediction markets doubt it can finish above 8,000 as AI, war and rising yields test the rally.",
+   "symbols": [
+    "AMZN",
+    "GOOGL",
+    "GS",
+    "MSFT",
+    "NVDA",
+    "SPY",
+    "UBS"
+   ]
+  },
+  {
+   "created_at": "2026-08-20T11:12:57+00:00",
+   "headline": "Robinhood CEO Says Trump Accounts Give Kids a Simple Way Into S&P 500 \u2014 \u2018See the Magic of Compound Interest\u2019",
+   "source": "benzinga",
+   "summary": "Robinhood CEO Vlad Tenev explains Trump Accounts&#39; S&amp;P 500 access and potential for more investment options.",
+   "symbols": [
+    "BNY",
+    "COIN",
+    "CRCL",
+    "GS",
+    "HOOD",
+    "MS",
+    "MSTR"
+   ]
+  }
+ ]
+}

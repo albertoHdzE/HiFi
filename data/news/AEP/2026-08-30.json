@@ -1,0 +1,35 @@
+{
+ "ticker": "AEP",
+ "as_of_date": "2026-08-30",
+ "cutoff_utc": "2026-08-30T20:00:00+00:00",
+ "lookback_days": 10,
+ "fetched_at": "2026-08-30T22:04:35.787500-06:00",
+ "articles": [
+  {
+   "created_at": "2026-08-28T14:16:35+00:00",
+   "headline": "Nvidia Warns Of AI Power Bottleneck \u2014 And Bloom Energy Could Benefit",
+   "source": "benzinga",
+   "summary": "Nvidia says AI power constraints can take years to solve. Evercore sees Bloom Energy benefiting as data-center demand keeps climbing.",
+   "symbols": [
+    "AEP",
+    "BE",
+    "CEG",
+    "ET",
+    "INTC",
+    "NRG",
+    "NVDA",
+    "ORCL",
+    "TLN"
+   ]
+  },
+  {
+   "created_at": "2026-08-21T13:54:01+00:00",
+   "headline": "Morgan Stanley Maintains Overweight on American Electric Power, Lowers Price Target to $135",
+   "source": "benzinga",
+   "summary": "",
+   "symbols": [
+    "AEP"
+   ]
+  }
+ ]
+}

@@ -1,0 +1,43 @@
+{
+ "ticker": "MCD",
+ "as_of_date": "2026-08-30",
+ "cutoff_utc": "2026-08-30T20:00:00+00:00",
+ "lookback_days": 10,
+ "fetched_at": "2026-08-30T22:04:16.077475-06:00",
+ "articles": [
+  {
+   "created_at": "2026-08-28T14:54:14+00:00",
+   "headline": "McDonald's Stock Bounces Off Two-Year Low: What's Going On?",
+   "source": "benzinga",
+   "summary": "McDonald&#39;s shares are climbing on Friday, sitting just above its 52-week low as the chart remains under pressure even with today&#39;s move.",
+   "symbols": [
+    "MCD"
+   ]
+  },
+  {
+   "created_at": "2026-08-26T13:27:34+00:00",
+   "headline": "Argus Research Maintains Buy on McDonald's, Lowers Price Target to $310",
+   "source": "benzinga",
+   "summary": "",
+   "symbols": [
+    "MCD"
+   ]
+  },
+  {
+   "created_at": "2026-08-21T10:59:15+00:00",
+   "headline": "President Trump Says In Social Media Post That Agreement Reached To 'Substantially Lower The Price Of Ground Beef'",
+   "source": "benzinga",
+   "summary": "",
+   "symbols": [
+    "DRI",
+    "HRL",
+    "JBS",
+    "MCD",
+    "QSR",
+    "STKH",
+    "TSN",
+    "WEN"
+   ]
+  }
+ ]
+}

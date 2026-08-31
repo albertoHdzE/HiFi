@@ -1,0 +1,118 @@
+{
+ "ticker": "FCX",
+ "as_of_date": "2026-08-30",
+ "cutoff_utc": "2026-08-30T20:00:00+00:00",
+ "lookback_days": 10,
+ "fetched_at": "2026-08-30T22:04:29.821090-06:00",
+ "articles": [
+  {
+   "created_at": "2026-08-27T21:30:54+00:00",
+   "headline": "Here's How Much $1000 Invested In Freeport-McMoRan 5 Years Ago Would Be Worth Today",
+   "source": "benzinga",
+   "summary": "Freeport-McMoRan (NYSE:FCX) has outperformed the market over the past 5 years by 5.3% on an annualized basis producing an average annual return of 16.6%. Currently, Freeport-McMoRan has a market capitalization of",
+   "symbols": [
+    "FCX"
+   ]
+  },
+  {
+   "created_at": "2026-08-21T17:03:32+00:00",
+   "headline": "Bitcoin Jumps Above $77,000, Gold Hits 3-Month Highs: Stock Market Today",
+   "source": "benzinga",
+   "summary": "Stocks steadied Friday as bond yields stabilized, Robinhood and Coinbase surged on CLARITY Act optimism, and gold hit a three-month high.",
+   "symbols": [
+    "ALB",
+    "AMLP",
+    "APLD",
+    "ARM",
+    "BTC",
+    "BTCUSD",
+    "COIN",
+    "DIA",
+    "EIX",
+    "FCX",
+    "GDX",
+    "GLD",
+    "HOOD",
+    "INTC",
+    "IWM",
+    "MP",
+    "MRNA",
+    "MRVL",
+    "MSTR",
+    "MWH",
+    "PBW",
+    "PWR",
+    "QQQ",
+    "ROST",
+    "SMH",
+    "UI",
+    "VIRT",
+    "VOO",
+    "WMT",
+    "WULF",
+    "XLB",
+    "XLE",
+    "XLK",
+    "XLRE",
+    "XLU",
+    "XLV",
+    "XLY",
+    "XME"
+   ]
+  },
+  {
+   "created_at": "2026-08-21T14:56:32+00:00",
+   "headline": "Freeport-McMoRan Stock Hits All-Time High: What's Happening?",
+   "source": "benzinga",
+   "summary": "Freeport-McMoRan Inc (NYSE:FCX) shares are trading higher and touching a new all-time high Friday, extending a strong run as copper-related stocks broadly rally. Here&#39;s what you should know.",
+   "symbols": [
+    "FCX"
+   ]
+  },
+  {
+   "created_at": "2026-08-21T14:18:30+00:00",
+   "headline": "MARA Holdings, Coinbase Global, Ternium And Other Big Stocks Moving Higher On Friday",
+   "source": "benzinga",
+   "summary": "Dow Jones index gained around 350 points on Friday. MARA Holdings Inc (NASDAQ: MARA) rose sharply, while Bitcoin (CRYPTO: BTC) also traded higher. Other stocks recording gains include Evolution Metals (NASDAQ: EMAT), TRON (NASDAQ: TRON), Bakkt (NYSE: BKKT), Rezolute (NASDAQ: RZLT), Gemini Space Station (NASDAQ: GEMI), Robinhood Markets (NASDAQ: HOOD), Strive (NASDAQ: ASST), Moderna (NASDAQ: MRNA), Coinbase Global (NASDAQ: COIN), Bitdeer Technologies (NASDAQ: BTDR), and Circle Internet Group (NYSE: CRCL).",
+   "symbols": [
+    "ASST",
+    "BKKT",
+    "BTCUSD",
+    "BTDR",
+    "CLF",
+    "COIN",
+    "CRCL",
+    "DNN",
+    "EMAT",
+    "FCX",
+    "GEMI",
+    "HOOD",
+    "MARA",
+    "MRNA",
+    "NTES",
+    "RZLT",
+    "TGTX",
+    "TRON",
+    "TX"
+   ]
+  },
+  {
+   "created_at": "2026-08-20T21:24:35+00:00",
+   "headline": "Trump\u2019s $500 Million Critical Minerals Bet Puts These Lithium & Battery ETFs in Focus",
+   "source": "benzinga",
+   "summary": "Trump\u2019s $500M critical minerals push targets lithium, refining and battery recycling. Here are 3 ETFs positioned for the U.S. reshoring boom.",
+   "symbols": [
+    "ALB",
+    "CCJ",
+    "FCX",
+    "LIT",
+    "LYSDY",
+    "MP",
+    "NATKY",
+    "PILBF",
+    "REMX",
+    "SETM"
+   ]
+  }
+ ]
+}

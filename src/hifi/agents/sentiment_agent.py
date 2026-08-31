@@ -129,11 +129,42 @@ def _retrieve_context(ticker: str, as_of_date: str, data_dir: str) -> str:
     fundamental agent receives from the same filing.
 
     Fail-open: any error returns "" so the agent returns the default signal.
+
+    DJ-133b -- a quarterly source cannot support a daily vote
+    ---------------------------------------------------------
+    Filings update quarterly; this agent votes daily. Measured on the live
+    record, the filing context for AAPL on 2026-08-24 and 2026-08-27 differed
+    by exactly one character -- the echoed ``as_of=`` in the header -- while
+    the 8,265-character body was byte-identical. For ~60 trading days per
+    quarter the input did not change at all, so the agent was a constant by
+    construction and the small wobble in its output was LLM sampling noise
+    rather than information. It voted Hold on 97/97 tickers on 2026-08-27.
+
+    Daily headlines are now prepended, so the agent has something that
+    actually varies between decisions. Filings are kept: they are the grounded,
+    audited source, and the pair is exactly the information-space diversity
+    DJ-034 wanted. News leads because it is what changed since the last vote.
     """
     query = (
         f"{ticker} management outlook guidance forward-looking statements risks "
         f"revenue growth margin services"
     )
+
+    blocks: list[str] = []
+
+    try:
+        from hifi.data.news import fetch_news, format_news_block
+
+        articles = fetch_news(ticker, as_of_date, data_dir=data_dir)
+        block = format_news_block(ticker, as_of_date, articles)
+        if block:
+            blocks.append(block)
+        else:
+            logger.info("No news for %s on or before %s", ticker, as_of_date)
+    except Exception as exc:
+        logger.warning("News retrieval failed for %s: %s", ticker, exc)
+
+    filings = ""
     try:
         result = call_tool(
             "retrieve_context",
@@ -151,22 +182,27 @@ def _retrieve_context(ticker: str, as_of_date: str, data_dir: str) -> str:
                 )
                 lines.append(p["text"])
                 lines.append("---")
-            return "\n".join(lines)
+            filings = "\n".join(lines)
     except Exception as exc:
         logger.warning("retrieve_context failed for %s: %s", ticker, exc)
 
-    try:
-        from hifi.knowledge.edgar_retriever import retrieve_mda_context
+    if not filings:
+        try:
+            from hifi.knowledge.edgar_retriever import retrieve_mda_context
 
-        return retrieve_mda_context(
-            ticker=ticker,
-            as_of_date=as_of_date,
-            db_path=str(Path(data_dir) / "knowledge.lance"),
-            query=query,
-        )
-    except Exception as exc:
-        logger.warning("EDGAR MD&A fallback failed for %s: %s", ticker, exc)
-        return ""
+            filings = retrieve_mda_context(
+                ticker=ticker,
+                as_of_date=as_of_date,
+                db_path=str(Path(data_dir) / "knowledge.lance"),
+                query=query,
+            )
+        except Exception as exc:
+            logger.warning("EDGAR MD&A fallback failed for %s: %s", ticker, exc)
+
+    if filings:
+        blocks.append(filings)
+
+    return "\n\n".join(blocks)
 
 
 def _call_llm_for_sentiment(

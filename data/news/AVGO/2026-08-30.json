@@ -1,0 +1,177 @@
+{
+ "ticker": "AVGO",
+ "as_of_date": "2026-08-30",
+ "cutoff_utc": "2026-08-30T20:00:00+00:00",
+ "lookback_days": 10,
+ "fetched_at": "2026-08-30T22:04:07.146798-06:00",
+ "articles": [
+  {
+   "created_at": "2026-08-30T19:16:19+00:00",
+   "headline": "S&P 500 and Dow Jones Outlook: Top Three Catalysts This Week",
+   "source": "benzinga",
+   "summary": "This S&amp;P 500 and Dow Jones outlook explains the top three catalysts that will move US stocks this week.",
+   "symbols": [
+    "AVGO",
+    "DELL",
+    "FDS",
+    "GOOG",
+    "MSFT",
+    "NVDA",
+    "ORCL"
+   ]
+  },
+  {
+   "created_at": "2026-08-30T12:31:55+00:00",
+   "headline": "Earnings Volatility Watch: Broadcom Sets the AI Week, But the Biggest Implied Mover Is a Whiskey Maker",
+   "source": "benzinga",
+   "summary": "Broadcom, Dell and Snowflake headline a huge tech week, but the biggest implied earnings moves belong to MongoDB, Brown-Forman and eight other names.",
+   "symbols": [
+    "AVGO",
+    "BF",
+    "CIEN",
+    "DELL",
+    "DOCU",
+    "GWRE",
+    "HPE",
+    "IOT",
+    "MDB",
+    "NTAP",
+    "PANW",
+    "SNOW",
+    "ZS"
+   ]
+  },
+  {
+   "created_at": "2026-08-29T22:15:09+00:00",
+   "headline": "Broadcom Stock Faces Valuation Test as Fiscal Q3 Earnings Approach",
+   "source": "benzinga",
+   "summary": "Broadcom stock is in the spotlight as it prepares to publish its financial results. Here&#39;s what to expect when the numbers come out",
+   "symbols": [
+    "AVGO",
+    "EVR",
+    "MU",
+    "NVDA",
+    "SNDK"
+   ]
+  },
+  {
+   "created_at": "2026-08-28T17:29:33+00:00",
+   "headline": "Why Is Broadcom Stock Sliding Ahead of Earnings?",
+   "source": "benzinga",
+   "summary": "Broadcom stock fell on Friday as potential semiconductor tariffs sparked fresh supply chain concerns across AI data center infrastructure ahead of its Q3 earnings.",
+   "symbols": [
+    "AVGO",
+    "SOXQ",
+    "SOXX",
+    "TDIV"
+   ]
+  },
+  {
+   "created_at": "2026-08-28T16:11:24+00:00",
+   "headline": "Cathie Wood Trims AMD After a 120% Rally \u2014 Is the AI Trade Getting Too Crowded?",
+   "source": "benzinga",
+   "summary": "Cathie Wood is trimming AMD after a massive 2026 rally, but ARK ETFs still hold a sizable stake. Here\u2019s what the move means for AI-focused ETFs.",
+   "symbols": [
+    "AIQ",
+    "AMD",
+    "ARKK",
+    "AVGO",
+    "BAI",
+    "MSFT",
+    "MU",
+    "ORCL",
+    "PLTR",
+    "SOXX",
+    "SPCX",
+    "TSM"
+   ]
+  },
+  {
+   "created_at": "2026-08-28T09:58:41+00:00",
+   "headline": "In-Depth Analysis: Broadcom Versus Competitors In Semiconductors &amp; Semiconductor Equipment Industry",
+   "source": "benzinga",
+   "summary": "In the dynamic and fiercely competitive business environment, conducting a thorough analysis of companies is crucial for investors and industry enthusiasts. In this article, we will perform an extensive industry",
+   "symbols": [
+    "AVGO"
+   ]
+  },
+  {
+   "created_at": "2026-08-27T13:33:37+00:00",
+   "headline": "What's Going On With Broadcom Stock Thursday?",
+   "source": "benzinga",
+   "summary": "Broadcom (AVGO) stock rises nearly 2% premarket following strong NVIDIA earnings. Get technical analysis, target prices, and Q3 forecasts.",
+   "symbols": [
+    "AVGO",
+    "NVDA",
+    "SOXQ",
+    "SOXX",
+    "TDIV"
+   ]
+  },
+  {
+   "created_at": "2026-08-27T13:01:10+00:00",
+   "headline": "Kyndryl Expands Partnership With Broadcom To Provide Consulting Services For VMware Cloud Foundation",
+   "source": "benzinga",
+   "summary": "",
+   "symbols": [
+    "AVGO",
+    "KD"
+   ]
+  },
+  {
+   "created_at": "2026-08-27T09:58:38+00:00",
+   "headline": "Comparing Broadcom With Industry Competitors In Semiconductors &amp; Semiconductor Equipment Industry",
+   "source": "benzinga",
+   "summary": "In today&#39;s rapidly changing and highly competitive business world, it is imperative for investors and industry observers to carefully assess companies before making investment choices. In this article, we will",
+   "symbols": [
+    "AVGO"
+   ]
+  },
+  {
+   "created_at": "2026-08-27T09:31:57+00:00",
+   "headline": "Nvidia Stock Climbs Over 7% in Thursday Pre-Market: What\u2019s Lifting Micron, Intel and Other Chip Stocks?",
+   "source": "benzinga",
+   "summary": "Nvidia shares surge 7.4% premarket as strong guidance boosts chip stocks, while CEO Jensen Huang cites robust AI demand.",
+   "symbols": [
+    "AMD",
+    "AVGO",
+    "INTC",
+    "MU",
+    "NVDA",
+    "TSM"
+   ]
+  },
+  {
+   "created_at": "2026-08-27T06:56:54+00:00",
+   "headline": "Nvidia CEO Jensen Huang Not Taking OpenAI's 'Jalape\u00f1o' Chip Personally: 'Lots of Projects Get Started. Lots of Projects Get Canceled'",
+   "source": "benzinga",
+   "summary": "Jensen Huang shrugged off OpenAI\u2019s Jalape\u00f1o chip, saying Nvidia remains confident despite growing AI-chip competition.",
+   "symbols": [
+    "AMZN",
+    "AVGO",
+    "GOOG",
+    "GOOGL",
+    "META",
+    "NVDA"
+   ]
+  },
+  {
+   "created_at": "2026-08-27T04:17:01+00:00",
+   "headline": "CrowdStrike Posts Best Quarter Ever, but Cathie Wood's Ark Sells Shares Amid Cloudflare, Cerebras Buys",
+   "source": "benzinga",
+   "summary": "On Wednesday, Aug. 26, 2026, Ark Invest sold CrowdStrike and AMD shares after CrowdStrike&#39;s record quarter.",
+   "symbols": [
+    "AMD",
+    "ARKF",
+    "ARKK",
+    "ARKQ",
+    "ARKW",
+    "AVGO",
+    "CBRS",
+    "CRWD",
+    "NET",
+    "NVDA"
+   ]
+  }
+ ]
+}

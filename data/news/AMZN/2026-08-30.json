@@ -1,0 +1,146 @@
+{
+ "ticker": "AMZN",
+ "as_of_date": "2026-08-30",
+ "cutoff_utc": "2026-08-30T20:00:00+00:00",
+ "lookback_days": 10,
+ "fetched_at": "2026-08-30T22:04:15.027560-06:00",
+ "articles": [
+  {
+   "created_at": "2026-08-30T18:16:18+00:00",
+   "headline": "Oracle at a Crossroads: Big Earnings Could Trigger Massive Swing",
+   "source": "benzinga",
+   "summary": "Oracle stock has moved into a crossroads, and the upcoming earnings will likely trigger a big move in the near term.",
+   "symbols": [
+    "AMZN",
+    "MSFT",
+    "ORCL"
+   ]
+  },
+  {
+   "created_at": "2026-08-30T14:01:11+00:00",
+   "headline": "Flock Cameras Received Bipartisan Backlash from Lawmakers, but New Report Says It Spent $2 Million Since 2025 To Lobby Government",
+   "source": "benzinga",
+   "summary": "Flock Safety, known for its ALPR tech-enabled cameras, reportedly spent $2 million on lobbying efforts, hired former officials.",
+   "symbols": [
+    "AMZN"
+   ]
+  },
+  {
+   "created_at": "2026-08-30T03:34:43+00:00",
+   "headline": "Kevin O\u2019Leary Tells Startup Founders to Cut Their Losses: \u2018Bad Ideas Do Not Become Good Ideas\u2019",
+   "source": "benzinga",
+   "summary": "O\u2019Leary warns entrepreneurs to stop pouring money into failed startups, accept losses, learn from mistakes and move on.",
+   "symbols": [
+    "AMZN",
+    "COIN"
+   ]
+  },
+  {
+   "created_at": "2026-08-29T20:04:07+00:00",
+   "headline": "HP Enterprise Stock at a Crossroads: Earnings Could Trigger a Big Move",
+   "source": "benzinga",
+   "summary": "HP Enterprise stock is now at a crossroads. Here&#39;s why the upcoming earnings report will trigger a big move.",
+   "symbols": [
+    "AMZN",
+    "GOOG",
+    "HPE",
+    "MSFT"
+   ]
+  },
+  {
+   "created_at": "2026-08-29T05:48:13+00:00",
+   "headline": "Trump Signs Order to Create US Space Academy, Eyes Moon Landing Before End of Presidency",
+   "source": "benzinga",
+   "summary": "Trump signed an order establishing a U.S. Space Academy to train future astronauts, engineers and scientists amid growing talent shortages.",
+   "symbols": [
+    "AMZN",
+    "SPCX"
+   ]
+  },
+  {
+   "created_at": "2026-08-28T13:27:39+00:00",
+   "headline": "EXCLUSIVE: Claude Revenue Surges 1,000% as Anthropic Gains on ChatGPT",
+   "source": "benzinga",
+   "summary": "Claude now earns 31 cents for every $1 ChatGPT makes on mobile, up from just 3 cents in January, as Anthropic rapidly closes the revenue gap.",
+   "symbols": [
+    "AMZN",
+    "GOOGL",
+    "MSFT"
+   ]
+  },
+  {
+   "created_at": "2026-08-28T09:58:48+00:00",
+   "headline": "Performance Comparison: Amazon.com And Competitors In Broadline Retail Industry",
+   "source": "benzinga",
+   "summary": "In today&#39;s rapidly changing and fiercely competitive business landscape, it is essential for investors and industry enthusiasts to thoroughly analyze companies. In this article, we will conduct a comprehensive",
+   "symbols": [
+    "AMZN"
+   ]
+  },
+  {
+   "created_at": "2026-08-28T09:40:33+00:00",
+   "headline": "Tesla's 500-Semi Einride Order Finally Gets a Timeline: '75 Approximately' This Year, CEO Says",
+   "source": "benzinga",
+   "summary": "Tesla to deliver 75 Semi trucks to Einride AB by 2026, with the rest by 2027. The order comes after Tesla received an initial order of 500 trucks.",
+   "symbols": [
+    "AMZN",
+    "ENRD",
+    "TSLA"
+   ]
+  },
+  {
+   "created_at": "2026-08-28T08:29:56+00:00",
+   "headline": "Meta, Palantir, Paramount Skydance Hedge Trump Ties by Courting Democrats as Midterms Raise Prospect of House Flip: Report",
+   "source": "benzinga",
+   "summary": "Trump-aligned companies are reportedly courting Democrats, preparing for possible investigations if Republicans lose House in the midterms.",
+   "symbols": [
+    "AAPL",
+    "AMZN",
+    "META",
+    "PLTR",
+    "PSKY"
+   ]
+  },
+  {
+   "created_at": "2026-08-28T03:41:57+00:00",
+   "headline": "Rivian Stock Slips After Hours as CFO Claire McDonough Steps Down After Nearly 6 Years",
+   "source": "benzinga",
+   "summary": "Rivian CFO Claire McDonough has departed the company and will be replaced by VP of Finance Derek Mulvey as the interim CFO.",
+   "symbols": [
+    "AAPL",
+    "AMZN",
+    "GEV",
+    "RIVN",
+    "UBER"
+   ]
+  },
+  {
+   "created_at": "2026-08-27T21:27:31+00:00",
+   "headline": "'Anthropic planned, then abandoned $7B purchase of MatX, sources say'- Reuters Exclusive",
+   "source": "benzinga",
+   "summary": "",
+   "symbols": [
+    "AMZN",
+    "GOOG",
+    "GOOGL",
+    "MSFT"
+   ]
+  },
+  {
+   "created_at": "2026-08-27T18:17:53+00:00",
+   "headline": "'Anthropic Considers Letting Shareholders Sell In IPO, Departing from SpaceX Playbook' - The Information",
+   "source": "benzinga",
+   "summary": "",
+   "symbols": [
+    "AMZN",
+    "CRM",
+    "GOOG",
+    "GOOGL",
+    "MSFT",
+    "NVDA",
+    "SKM",
+    "ZM"
+   ]
+  }
+ ]
+}

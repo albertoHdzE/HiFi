@@ -69,16 +69,41 @@ class TestNSessionReturn:
 # ---------------------------------------------------------------------------
 
 
+@pytest.fixture
+def stub_universe():
+    """Swap PHASE14_UNIVERSE's contents and put them back afterwards.
+
+    These tests used to call ``PHASE14_UNIVERSE.clear()`` and ``.extend()`` on
+    the module-level list and never restore it, so every test importing the
+    universe *after* them saw a two-to-four ticker world. That produced 14
+    spurious failures in tests/unit/test_universe.py which passed 22/22 in
+    isolation -- and a standing block of unexplained red is how a genuine
+    regression gets waved through. Ordering-dependent global mutation is the
+    same class of defect as the silent constants in DJ-131 and DJ-133a.
+    """
+    from hifi.data.universe import PHASE14_UNIVERSE
+
+    original = list(PHASE14_UNIVERSE)
+
+    def _install(entries):
+        PHASE14_UNIVERSE.clear()
+        PHASE14_UNIVERSE.extend(entries)
+        return PHASE14_UNIVERSE
+
+    yield _install
+
+    PHASE14_UNIVERSE.clear()
+    PHASE14_UNIVERSE.extend(original)
+
+
 class TestRelativeStrength:
-    def test_outperformer_positive_delta(self, tmp_path):
+    def test_outperformer_positive_delta(self, tmp_path, stub_universe):
         dates = _business_days("2026-08-21", 22)
         _write_close(tmp_path, "AAA", dates, [100.0] + [100.0] * 20 + [120.0])
         for _i, t in enumerate(("P1", "P2", "P3")):
             _write_close(tmp_path, t, dates, [100.0] + [100.0] * 20 + [100.0])
 
-        from hifi.data.universe import PHASE14_UNIVERSE  # noqa: PLC0415
-        PHASE14_UNIVERSE.clear()
-        PHASE14_UNIVERSE.extend([
+        stub_universe([
             {"ticker": "AAA", "sector": "Tech"},
             {"ticker": "P1", "sector": "Tech"},
             {"ticker": "P2", "sector": "Tech"},
@@ -89,12 +114,10 @@ class TestRelativeStrength:
         assert rel["peer_median"] == pytest.approx(0.0)
         assert rel["delta_pp"] == pytest.approx(20.0)
 
-    def test_fewer_than_min_peers_is_none(self, tmp_path):
+    def test_fewer_than_min_peers_is_none(self, tmp_path, stub_universe):
         dates = _business_days("2026-08-21", 22)
         _write_close(tmp_path, "LONELY", dates, [100.0] * 22)
-        from hifi.data.universe import PHASE14_UNIVERSE  # noqa: PLC0415
-        PHASE14_UNIVERSE.clear()
-        PHASE14_UNIVERSE.extend([{"ticker": "LONELY", "sector": "Tech"}])
+        stub_universe([{"ticker": "LONELY", "sector": "Tech"}])
         assert ms.relative_strength("LONELY", None, "2026-08-21",
                                     str(tmp_path)) is None
 

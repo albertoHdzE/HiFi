@@ -1,0 +1,19 @@
+{
+ "ticker": "PSA",
+ "as_of_date": "2026-08-30",
+ "cutoff_utc": "2026-08-30T20:00:00+00:00",
+ "lookback_days": 10,
+ "fetched_at": "2026-08-30T22:04:33.759879-06:00",
+ "articles": [
+  {
+   "created_at": "2026-08-20T15:47:52+00:00",
+   "headline": "Public Storage Vs. Extra Space: A Dividend Comparison",
+   "source": "benzinga",
+   "summary": "The Print\n\n\n\nPublic Storage (NYSE:PSA) and Extra Space Storage Inc. (NYSE:EXR) both raised full-year 2026 Core FFO guidance when they reported second-quarter results, but their annualized dividends claim different",
+   "symbols": [
+    "EXR",
+    "PSA"
+   ]
+  }
+ ]
+}

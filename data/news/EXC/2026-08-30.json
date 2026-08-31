@@ -1,0 +1,54 @@
+{
+ "ticker": "EXC",
+ "as_of_date": "2026-08-30",
+ "cutoff_utc": "2026-08-30T20:00:00+00:00",
+ "lookback_days": 10,
+ "fetched_at": "2026-08-30T22:04:36.071551-06:00",
+ "articles": [
+  {
+   "created_at": "2026-08-25T20:43:13+00:00",
+   "headline": "Exelon Reaffirms Previously Disclosed 2026 Adj. Operating Earnings Guidance Range Of $2.81-$2.91 Per Share; Reaffirms 2025-2029 Adj. Operating Earnings Growth Near Top End Of 5%-7% Range",
+   "source": "benzinga",
+   "summary": "",
+   "symbols": [
+    "EXC"
+   ]
+  },
+  {
+   "created_at": "2026-08-25T20:38:36+00:00",
+   "headline": "Exelon Announces COO Mike Innocenzo To Depart in 2027; CFO Jeanne Jones Named Finance & Strategy Chief; Robert Kleczynski Named New CFO",
+   "source": "benzinga",
+   "summary": "",
+   "symbols": [
+    "EXC"
+   ]
+  },
+  {
+   "created_at": "2026-08-24T17:46:58+00:00",
+   "headline": "Exelon's ComEd Subsidiary Receives Illinois Commerce Commission Approval For Its Proposed Plan To Build New Transmission Line In DeKalb County",
+   "source": "benzinga",
+   "summary": "",
+   "symbols": [
+    "EXC"
+   ]
+  },
+  {
+   "created_at": "2026-08-24T07:26:21+00:00",
+   "headline": "Reported Saturday, ComEd Launches Mobile Assistance Fleet In Northern Illinois To Expand Access To Bill Help, Payment Options And Energy-Saving Programs",
+   "source": "benzinga",
+   "summary": "",
+   "symbols": [
+    "EXC"
+   ]
+  },
+  {
+   "created_at": "2026-08-21T16:08:33+00:00",
+   "headline": "Morgan Stanley Maintains Equal-Weight on Exelon, Lowers Price Target to $53",
+   "source": "benzinga",
+   "summary": "",
+   "symbols": [
+    "EXC"
+   ]
+  }
+ ]
+}

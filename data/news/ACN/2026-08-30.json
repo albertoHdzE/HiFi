@@ -1,0 +1,98 @@
+{
+ "ticker": "ACN",
+ "as_of_date": "2026-08-30",
+ "cutoff_utc": "2026-08-30T20:00:00+00:00",
+ "lookback_days": 10,
+ "fetched_at": "2026-08-30T22:04:08.497332-06:00",
+ "articles": [
+  {
+   "created_at": "2026-08-27T11:47:02+00:00",
+   "headline": "Wall Street's Most Accurate Analysts Give Their Take On 3 Tech Stocks Delivering High-Dividend Yields",
+   "source": "benzinga",
+   "summary": "Investors turn to dividend-yielding stocks in turbulent times. Benzinga offers analyst ratings for high-yield stocks in tech sector. OSPN, ACN, DOX have high yields and analyst accuracy rates of 75%, 55%, 66% respectively.",
+   "symbols": [
+    "ACN",
+    "DOX",
+    "OSPN"
+   ]
+  },
+  {
+   "created_at": "2026-08-27T11:03:49+00:00",
+   "headline": "What's Going On With Accenture Stock Thursday?",
+   "source": "benzinga",
+   "summary": "Accenture (NYSE: ACN) acquires Tokyo-based COMWARE to expand AI and cloud services for midsize firms, boosting premarket momentum. Read more.",
+   "symbols": [
+    "ACN",
+    "DIVN",
+    "SDY",
+    "VFLO"
+   ]
+  },
+  {
+   "created_at": "2026-08-27T06:48:18+00:00",
+   "headline": "Accenture Acquires Japan's COMWARE, A 25-Year SAP Business Partner With Manufacturing Expertise; Terms Not Disclosed",
+   "source": "benzinga",
+   "summary": "",
+   "symbols": [
+    "ACN"
+   ]
+  },
+  {
+   "created_at": "2026-08-26T15:01:23+00:00",
+   "headline": "Recent Report Shows That Rep. Kelly Morrison Sold Up to $140K Worth of Accenture Stock",
+   "source": "benzinga",
+   "summary": "Records from August 25, 2026 indicate that Representative Kelly Morrison of Minnesota made a sale of Accenture (NYSE:ACN), valued between $21,007 and $140,000, with the transaction dated August 11, 2026 and filed in",
+   "symbols": [
+    "ACN"
+   ]
+  },
+  {
+   "created_at": "2026-08-26T13:33:46+00:00",
+   "headline": "TD Cowen Maintains Hold on Accenture, Raises Price Target to $173",
+   "source": "benzinga",
+   "summary": "",
+   "symbols": [
+    "ACN"
+   ]
+  },
+  {
+   "created_at": "2026-08-25T15:11:21+00:00",
+   "headline": "Accenture Buys McCoy To Accelerate Midmarket AI Expansion",
+   "source": "benzinga",
+   "summary": "Accenture to acquire SAP partner McCoy to boost midmarket AI services. Explore ACN stock technicals, analyst targets, and ETF exposure.",
+   "symbols": [
+    "ACN",
+    "DSTL",
+    "SDY",
+    "VFLO"
+   ]
+  },
+  {
+   "created_at": "2026-08-25T14:27:11+00:00",
+   "headline": "Wolfe Research Maintains Outperform on Accenture, Raises Price Target to $215",
+   "source": "benzinga",
+   "summary": "",
+   "symbols": [
+    "ACN"
+   ]
+  },
+  {
+   "created_at": "2026-08-25T10:30:21+00:00",
+   "headline": "Accenture To Acquire Dutch SAP Transformation Partner McCoy; Terms Not Disclosed",
+   "source": "benzinga",
+   "summary": "",
+   "symbols": [
+    "ACN"
+   ]
+  },
+  {
+   "created_at": "2026-08-24T19:19:08+00:00",
+   "headline": "Citigroup Maintains Neutral on Accenture, Raises Price Target to $190",
+   "source": "benzinga",
+   "summary": "",
+   "symbols": [
+    "ACN"
+   ]
+  }
+ ]
+}

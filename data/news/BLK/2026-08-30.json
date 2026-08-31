@@ -1,0 +1,122 @@
+{
+ "ticker": "BLK",
+ "as_of_date": "2026-08-30",
+ "cutoff_utc": "2026-08-30T20:00:00+00:00",
+ "lookback_days": 10,
+ "fetched_at": "2026-08-30T22:04:13.644039-06:00",
+ "articles": [
+  {
+   "created_at": "2026-08-27T15:56:41+00:00",
+   "headline": "BlackRock's Exec Says CLARITY Act Is 'Less Critical' for Bitcoin Other Cryptos",
+   "source": "benzinga",
+   "summary": "BlackRock says the Clarity Act matters less for Bitcoin as institutions increasingly treat BTC like digital gold.",
+   "symbols": [
+    "BLK",
+    "BTCUSD",
+    "ETHUSD",
+    "IBIT"
+   ]
+  },
+  {
+   "created_at": "2026-08-26T20:15:29+00:00",
+   "headline": "Here's How Much $100 Invested In BlackRock 20 Years Ago Would Be Worth Today",
+   "source": "benzinga",
+   "summary": "BlackRock (NYSE:BLK) has outperformed the market over the past 20 years by 2.29% on an annualized basis producing an average annual return of 11.5%. Currently, BlackRock has a market capitalization of $181.69 billion.",
+   "symbols": [
+    "BLK"
+   ]
+  },
+  {
+   "created_at": "2026-08-26T19:16:14+00:00",
+   "headline": "Banks Fought Stablecoins For Years, JPMorgan Now Evaluates Its Own: 'We Would Evaluate All Options'",
+   "source": "benzinga",
+   "summary": "JPMorgan weighs a stablecoin as major banks shift from resisting the technology to building their own blockchain-based payment products.",
+   "symbols": [
+    "BAC",
+    "BLK",
+    "DASH",
+    "ETHUSD",
+    "GOOGL",
+    "JPM",
+    "SOLUSD",
+    "V",
+    "WFC"
+   ]
+  },
+  {
+   "created_at": "2026-08-26T17:35:18+00:00",
+   "headline": "4 Financials Stocks With Whale Alerts In Today\u2019s Session",
+   "source": "benzinga",
+   "summary": "This whale alert can help traders discover the next big trading opportunities.\nWhales are entities with large sums of money and we track their transactions here at Benzinga on our options activity scanner.\nTraders often",
+   "symbols": [
+    "BLK",
+    "GS",
+    "HOOD",
+    "PYPL"
+   ]
+  },
+  {
+   "created_at": "2026-08-25T12:01:14+00:00",
+   "headline": "BlackRock, Charles Schwab, Dick's Sporting And More On CNBC\u2019s \u2018Final Trades\u2019",
+   "source": "benzinga",
+   "summary": "Stephen Weiss picks Dick&#39;s Sporting Goods, supported by Wells Fargo&#39;s upgrade. Jim Lebenthal&#39;s final trade is BlackRock, recommended by Evercore ISI&#39;s analyst upgrade. Shannon Saccocia recommends iShares U.S. Industrials ETF and Joseph M. Terranova mentions Charles Schwab breaking up.",
+   "symbols": [
+    "BLK",
+    "DKS",
+    "IYJ",
+    "SCHW"
+   ]
+  },
+  {
+   "created_at": "2026-08-24T18:27:47+00:00",
+   "headline": "'BlackRock Pitches TCP Private Credit Assets to Rival Managers' - Bloomberg",
+   "source": "benzinga",
+   "summary": "",
+   "symbols": [
+    "BLK"
+   ]
+  },
+  {
+   "created_at": "2026-08-24T17:00:59+00:00",
+   "headline": "CNBC Halftime Report Final Trades: Charles Schwab, BlackRock, Dick's Sporting Goods, iShares U.S. Industrials ETF",
+   "source": "benzinga",
+   "summary": "",
+   "symbols": [
+    "BLK",
+    "DKS",
+    "IYJ",
+    "SCHW"
+   ]
+  },
+  {
+   "created_at": "2026-08-24T11:18:30+00:00",
+   "headline": "AI's Next Bottleneck Isn't Chips, It's Power, With Demand Expected to Soar 1,100% by 2033: Why CEG, VST, GEV Stocks Are in Focus",
+   "source": "benzinga",
+   "summary": "Global AI electricity demand is set to explode, straining an already struggling power grid, with the U.S. absorbing most of it.",
+   "symbols": [
+    "AMZN",
+    "BKR",
+    "BLK",
+    "CEG",
+    "GEV",
+    "GOOGL",
+    "HYLN",
+    "META",
+    "MSFT",
+    "NEE",
+    "ORCL",
+    "VST"
+   ]
+  },
+  {
+   "created_at": "2026-08-24T05:54:10+00:00",
+   "headline": "Elon Musk Weighs In As Atreides CIO Gavin Baker Warns of 'Compute Inequality,' Sees His Firm's AI Spending Double Monthly",
+   "source": "benzinga",
+   "summary": "Gavin Baker says AI spending is soaring as compute becomes a competitive necessity, drawing an \u201cInteresting\u201d response from Elon Musk.",
+   "symbols": [
+    "BLK",
+    "SPCX"
+   ]
+  }
+ ]
+}

@@ -1,0 +1,8 @@
+{
+ "ticker": "CB",
+ "as_of_date": "2026-08-30",
+ "cutoff_utc": "2026-08-30T20:00:00+00:00",
+ "lookback_days": 10,
+ "fetched_at": "2026-08-30T22:04:13.991350-06:00",
+ "articles": []
+}

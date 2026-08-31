@@ -1,0 +1,54 @@
+{
+ "ticker": "MDT",
+ "as_of_date": "2026-08-30",
+ "cutoff_utc": "2026-08-30T20:00:00+00:00",
+ "lookback_days": 10,
+ "fetched_at": "2026-08-30T22:04:11.478852-06:00",
+ "articles": [
+  {
+   "created_at": "2026-08-28T16:02:50+00:00",
+   "headline": "TD Cowen Maintains Buy on Medtronic, Raises Price Target to $110",
+   "source": "benzinga",
+   "summary": "",
+   "symbols": [
+    "MDT"
+   ]
+  },
+  {
+   "created_at": "2026-08-28T10:03:51+00:00",
+   "headline": "Medtronic Earnings Are Imminent; These Most Accurate Analysts Revise Forecasts Ahead Of Earnings Call",
+   "source": "benzinga",
+   "summary": "Medtronic plc (NYSE: MDT) will release Q1 earnings on Sept. 1. Analysts predict $1.39 EPS and $9.54B revenue. Stock fell 2.2% to $89.97 on Aug. 27.",
+   "symbols": [
+    "MDT"
+   ]
+  },
+  {
+   "created_at": "2026-08-27T12:07:34+00:00",
+   "headline": "Needham Maintains Buy on Medtronic, Raises Price Target to $114",
+   "source": "benzinga",
+   "summary": "",
+   "symbols": [
+    "MDT"
+   ]
+  },
+  {
+   "created_at": "2026-08-25T17:35:17+00:00",
+   "headline": "10 Health Care Stocks Whale Activity In Today\u2019s Session",
+   "source": "benzinga",
+   "summary": "This whale alert can help traders discover the next big trading opportunities.\nWhales are entities with large sums of money and we track their transactions here at Benzinga on our options activity scanner.\nTraders often",
+   "symbols": [
+    "ABT",
+    "ALKS",
+    "BSX",
+    "CNC",
+    "GILD",
+    "HROW",
+    "KOD",
+    "MDT",
+    "MRNA",
+    "TXG"
+   ]
+  }
+ ]
+}

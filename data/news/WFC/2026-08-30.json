@@ -1,0 +1,44 @@
+{
+ "ticker": "WFC",
+ "as_of_date": "2026-08-30",
+ "cutoff_utc": "2026-08-30T20:00:00+00:00",
+ "lookback_days": 10,
+ "fetched_at": "2026-08-30T22:04:12.684822-06:00",
+ "articles": [
+  {
+   "created_at": "2026-08-26T19:16:14+00:00",
+   "headline": "Banks Fought Stablecoins For Years, JPMorgan Now Evaluates Its Own: 'We Would Evaluate All Options'",
+   "source": "benzinga",
+   "summary": "JPMorgan weighs a stablecoin as major banks shift from resisting the technology to building their own blockchain-based payment products.",
+   "symbols": [
+    "BAC",
+    "BLK",
+    "DASH",
+    "ETHUSD",
+    "GOOGL",
+    "JPM",
+    "SOLUSD",
+    "V",
+    "WFC"
+   ]
+  },
+  {
+   "created_at": "2026-08-21T17:35:18+00:00",
+   "headline": "10 Financials Stocks With Whale Alerts In Today\u2019s Session",
+   "source": "benzinga",
+   "summary": "This whale alert can help traders discover the next big trading opportunities.\nWhales are entities with large sums of money and we track their transactions here at Benzinga on our options activity scanner.\nTraders will",
+   "symbols": [
+    "BAC",
+    "BNY",
+    "BULL",
+    "C",
+    "COIN",
+    "FISV",
+    "HOOD",
+    "JPM",
+    "MRSH",
+    "WFC"
+   ]
+  }
+ ]
+}

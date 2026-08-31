@@ -1,0 +1,177 @@
+{
+ "ticker": "CRM",
+ "as_of_date": "2026-08-30",
+ "cutoff_utc": "2026-08-30T20:00:00+00:00",
+ "lookback_days": 10,
+ "fetched_at": "2026-08-30T22:04:07.830542-06:00",
+ "articles": [
+  {
+   "created_at": "2026-08-30T12:30:19+00:00",
+   "headline": "Weekend Tech Roundup: CXMT's 874% Revenue Surge, Apple's New Macs, Nvidia's Q2 Beat and More",
+   "source": "benzinga",
+   "summary": "CXMT\u2019s revenue surge, Apple\u2019s new Macs, and strong tech earnings led the weekend news, alongside CXMT\u2019s Pentagon lawsuit.",
+   "symbols": [
+    "AAPL",
+    "CRM",
+    "CRWD",
+    "NVDA"
+   ]
+  },
+  {
+   "created_at": "2026-08-30T11:31:52+00:00",
+   "headline": "Consumer Tech (Aug. 24-28): Nvidia Q2 Earnings, Salesforce Rally, Trump Tariff Fears Rise & More",
+   "source": "benzinga",
+   "summary": "Nvidia, Salesforce and CrowdStrike lead a busy tech week as AI demand, chip shortages, tariffs, Apple, SpaceX and semiconductor stocks drive markets.",
+   "symbols": [
+    "AAPL",
+    "ADSK",
+    "BABA",
+    "CRM",
+    "CRWD",
+    "DELL",
+    "HPQ",
+    "INTC",
+    "IREN",
+    "LI",
+    "META",
+    "MRVL",
+    "MU",
+    "NVDA",
+    "PDD",
+    "RBRK",
+    "RIVN",
+    "S",
+    "SMTC",
+    "SNPS",
+    "SPCX",
+    "TSLA",
+    "WDC",
+    "XPEV"
+   ]
+  },
+  {
+   "created_at": "2026-08-29T13:00:34+00:00",
+   "headline": "5 Stocks Investors Couldn't Stop Buzzing About This Week: NVDA, MRVL, CRM and More",
+   "source": "benzinga",
+   "summary": "Retail investors talked up 5 hot stocks during the week (Aug. 24 to Aug. 28) on X and Reddit&#39;s r/WallStreetBets: NVDA, MRVL, CRM, IREN, CRWD.",
+   "symbols": [
+    "BTCUSD",
+    "CRM",
+    "CRWD",
+    "IREN",
+    "MRVL",
+    "NVDA"
+   ]
+  },
+  {
+   "created_at": "2026-08-29T12:01:13+00:00",
+   "headline": "Benzinga Bulls and Bears: Nvidia, CrowdStrike, Intuit",
+   "source": "benzinga",
+   "summary": "Benzinga examined the prospects for many investors\u2019 favorite stocks over the last week \u2014 here\u2019s a look at some of our top stories.",
+   "symbols": [
+    "CRM",
+    "CRWD",
+    "INTU",
+    "IREN",
+    "MRVL",
+    "MU",
+    "NKE",
+    "NVDA",
+    "RBRK",
+    "SLS"
+   ]
+  },
+  {
+   "created_at": "2026-08-28T20:00:41+00:00",
+   "headline": "Warsh Sparks Rate-Hike Bets, Nvidia Reaffirms AI Growth Story: This Week on Wall Street",
+   "source": "benzinga",
+   "summary": "Kevin Warsh reignites rate-hike bets, Nvidia posts its best day since April, and CrowdStrike prints the biggest gain in its history.",
+   "symbols": [
+    "BUG",
+    "CRM",
+    "CRWD",
+    "MRVL",
+    "MU",
+    "NOW",
+    "NVDA",
+    "SOXX",
+    "VEEV",
+    "WDAY"
+   ]
+  },
+  {
+   "created_at": "2026-08-28T18:54:15+00:00",
+   "headline": "QUICK SPARK: Salesforce Stock Books Best Week Since August 2020",
+   "source": "benzinga",
+   "summary": "Salesforce closed up 24.31% for the week, its strongest run since August 2020 and the top S&amp;P 500 performer, after an 80% Q2 EPS beat and Anthropic AI deal.",
+   "symbols": [
+    "CRM"
+   ]
+  },
+  {
+   "created_at": "2026-08-28T17:35:17+00:00",
+   "headline": "10 Information Technology Stocks Whale Activity In Today\u2019s Session",
+   "source": "benzinga",
+   "summary": "This whale alert can help traders discover the next big trading opportunities.\nWhales are entities with large sums of money and we track their transactions here at Benzinga on our options activity scanner.\nTraders often",
+   "symbols": [
+    "AMAT",
+    "CRM",
+    "FLEX",
+    "HUT",
+    "MNDY",
+    "MSTR",
+    "MU",
+    "NBIS",
+    "NVDA",
+    "SNDK"
+   ]
+  },
+  {
+   "created_at": "2026-08-28T15:53:35+00:00",
+   "headline": "QUICK SPARK: Jim Cramer Says 'Worst is Over' for Salesforce Stock",
+   "source": "benzinga",
+   "summary": "Jim Cramer suggests that the worst may be over for Salesforce and that the SaaSpocalypse was driven by short bets from Situational Awareness.",
+   "symbols": [
+    "CRM"
+   ]
+  },
+  {
+   "created_at": "2026-08-28T15:48:21+00:00",
+   "headline": "Atlassian Stock Hits New 52-Week High: What's Going On?",
+   "source": "benzinga",
+   "summary": "Atlassian shares are extending Thursday&#39;s rally on Friday, touching a new all-time high today. Here&#39;s what you need to know.",
+   "symbols": [
+    "CRM",
+    "TEAM"
+   ]
+  },
+  {
+   "created_at": "2026-08-28T14:28:25+00:00",
+   "headline": "Stock of the Day: Where is the Top for Salesforce?",
+   "source": "benzinga",
+   "summary": "Salesforce&#39;s shares may face resistance at $265, where many investors bought at a high price and may sell to avoid losses, causing a sell-off.",
+   "symbols": [
+    "CRM"
+   ]
+  },
+  {
+   "created_at": "2026-08-28T14:13:24+00:00",
+   "headline": "What's Going on With Salesforce Stock on Friday?",
+   "source": "benzinga",
+   "summary": "Salesforce stock dipped on Friday due to profit-taking following a historic rally driven by Q2 earnings, raised guidance and Claudeforce.",
+   "symbols": [
+    "CRM",
+    "TEL"
+   ]
+  },
+  {
+   "created_at": "2026-08-27T19:30:33+00:00",
+   "headline": "Citigroup Maintains Neutral on Salesforce, Raises Price Target to $233",
+   "source": "benzinga",
+   "summary": "",
+   "symbols": [
+    "CRM"
+   ]
+  }
+ ]
+}

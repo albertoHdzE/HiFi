@@ -1,0 +1,75 @@
+{
+ "ticker": "COST",
+ "as_of_date": "2026-08-30",
+ "cutoff_utc": "2026-08-30T20:00:00+00:00",
+ "lookback_days": 10,
+ "fetched_at": "2026-08-30T22:04:25.195738-06:00",
+ "articles": [
+  {
+   "created_at": "2026-08-26T15:08:45+00:00",
+   "headline": "Hotter PCE Inflation: 5 Defensive ETFs Investors Can Turn to as Rate-Cut Hopes Fade",
+   "source": "benzinga",
+   "summary": "Hotter-than-expected inflation could keep rates higher. These ETFs offer potentially steadier exposure amid persistent price pressures.",
+   "symbols": [
+    "COST",
+    "PG",
+    "SPLV",
+    "VHT",
+    "WMT",
+    "XLP",
+    "XLU",
+    "XLV"
+   ]
+  },
+  {
+   "created_at": "2026-08-21T18:20:50+00:00",
+   "headline": "Centers For Disease Control And Prevention: Investigating A Multistate Outbreak Of E. Coli And Salmonella Infections Linked To Alfalfa Sprouts",
+   "source": "benzinga",
+   "summary": "",
+   "symbols": [
+    "ACI",
+    "BJ",
+    "CASY",
+    "CHEF",
+    "COST",
+    "GO",
+    "KR",
+    "PFGC",
+    "SFM",
+    "SYY",
+    "TGT",
+    "UNFI",
+    "USFD",
+    "WMT"
+   ]
+  },
+  {
+   "created_at": "2026-08-20T14:12:47+00:00",
+   "headline": "A 10-Year Treasury Bond Now Pays More Than 118 Of America's Biggest Companies",
+   "source": "benzinga",
+   "summary": "Only 3.85% of S&amp;P 500 stocks now yield more than the 10-year Treasury, the lowest since May 2007. Benzinga found 118 mega-caps that pay less.",
+   "symbols": [
+    "AAPL",
+    "AMAT",
+    "APH",
+    "AVGO",
+    "COST",
+    "DELL",
+    "GOOGL",
+    "HWM",
+    "KLAC",
+    "LRCX",
+    "MA",
+    "META",
+    "MRVL",
+    "MU",
+    "NVDA",
+    "PGR",
+    "PWR",
+    "TLT",
+    "V",
+    "WDC"
+   ]
+  }
+ ]
+}

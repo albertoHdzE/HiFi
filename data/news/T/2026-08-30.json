@@ -1,0 +1,33 @@
+{
+ "ticker": "T",
+ "as_of_date": "2026-08-30",
+ "cutoff_utc": "2026-08-30T20:00:00+00:00",
+ "lookback_days": 10,
+ "fetched_at": "2026-08-30T22:04:19.979368-06:00",
+ "articles": [
+  {
+   "created_at": "2026-08-26T09:49:38+00:00",
+   "headline": "iPhone Buyers Rush in Before Potential Apple Price Increases",
+   "source": "benzinga",
+   "summary": "Apple global iPhone shipments jumped 13% in Q2 2026, driven by strong iPhone 17 demand and stable pricing. Read the breakdown.",
+   "symbols": [
+    "AAPL",
+    "LRND",
+    "OEF",
+    "QQH",
+    "T",
+    "TMUS"
+   ]
+  },
+  {
+   "created_at": "2026-08-21T15:00:19+00:00",
+   "headline": "North Carolina Rep. Tim Moore Sold Up to $100K Worth of AT&T Stock",
+   "source": "benzinga",
+   "summary": "A August filing shows that Representative Tim Moore reported a sale in AT&amp;T (NYSE:T), valued between $50,001 and $100,000. The transaction date is listed as August 14, 2026, with the report published on August 20,",
+   "symbols": [
+    "DASH",
+    "T"
+   ]
+  }
+ ]
+}

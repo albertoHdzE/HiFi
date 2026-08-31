@@ -1,0 +1,144 @@
+{
+ "ticker": "LLY",
+ "as_of_date": "2026-08-30",
+ "cutoff_utc": "2026-08-30T20:00:00+00:00",
+ "lookback_days": 10,
+ "fetched_at": "2026-08-30T22:04:09.486387-06:00",
+ "articles": [
+  {
+   "created_at": "2026-08-28T11:03:14+00:00",
+   "headline": "Eli Lilly Says FDA Approves Mounjaro, Dual GIP And GLP-1 Hormone Receptor Agonist, To Lower Risk Of Major Adverse Cardiovascular Events In Adults With Type 2 Diabetes",
+   "source": "benzinga",
+   "summary": "",
+   "symbols": [
+    "LLY"
+   ]
+  },
+  {
+   "created_at": "2026-08-26T19:30:19+00:00",
+   "headline": "Obesity Drug Alert: Eli Lilly Study Shows Sustained Zepbound Treatment Reduces Hospital Visits, Medical Costs",
+   "source": "benzinga",
+   "summary": "New Eli Lilly study reveals that Zepbound significantly lowers monthly healthcare costs for older adults with overweight or obesity.",
+   "symbols": [
+    "LLY"
+   ]
+  },
+  {
+   "created_at": "2026-08-26T18:40:02+00:00",
+   "headline": "Eli Lilly Stock Pulls Back After Hitting Record Highs Last Week",
+   "source": "benzinga",
+   "summary": "Eli Lilly and Co. shares are trading lower Wednesday, pulling back from last week&#39;s record high despite positive real-world data on Zepbound.",
+   "symbols": [
+    "LLY"
+   ]
+  },
+  {
+   "created_at": "2026-08-26T16:58:34+00:00",
+   "headline": "Nasdaq 100 Falls as Hot PCE Inflation Stirs Rate-Hike Bets: Stock Market Today",
+   "source": "benzinga",
+   "summary": "Nasdaq 100 falls 0.6% as traders wait on Nvidia and hot July PCE revives September rate-hike bets. Energy leads, gold sinks 1.3% to $4,599.",
+   "symbols": [
+    "ANET",
+    "AU",
+    "BBWI",
+    "BSX",
+    "BTCUSD",
+    "CAI",
+    "CHRW",
+    "COIN",
+    "DIA",
+    "DKS",
+    "DTM",
+    "DY",
+    "FIGR",
+    "GAP",
+    "GDX",
+    "GLD",
+    "INTU",
+    "IREN",
+    "IWM",
+    "KIE",
+    "KMI",
+    "LITE",
+    "LLY",
+    "MOO",
+    "MRNA",
+    "MSTR",
+    "NVDA",
+    "PBW",
+    "QQQ",
+    "SJM",
+    "SMMT",
+    "SMTC",
+    "TTMI",
+    "VOO",
+    "WMB",
+    "XLE",
+    "XLI",
+    "XLK",
+    "XLV",
+    "XLY",
+    "ZM"
+   ]
+  },
+  {
+   "created_at": "2026-08-26T15:01:23+00:00",
+   "headline": "Ohio Rep. Michael Rulli Sold Up to $100K Worth of Alphabet Stock",
+   "source": "benzinga",
+   "summary": "An official report on August 25, 2026 reveals Representative Michael Rulli&#39;s recent sale of Alphabet (NASDAQ:GOOGL) stock, valued between $50,001 and $100,000. The transaction took place on August 24, 2026, as per",
+   "symbols": [
+    "CCI",
+    "GOOGL",
+    "LLY"
+   ]
+  },
+  {
+   "created_at": "2026-08-26T10:47:43+00:00",
+   "headline": "Eli Lilly Announces Results From Real-World Study Of Overweight Or Obese Adults Over 55 Indicating That Staying On Zepbound For Weight Management Lowered Healthcare Costs Over Time",
+   "source": "benzinga",
+   "summary": "",
+   "symbols": [
+    "HIMS",
+    "LLY",
+    "NVO"
+   ]
+  },
+  {
+   "created_at": "2026-08-24T07:42:11+00:00",
+   "headline": "Eli Lilly Makes Foundayo Available To Eligible UK Adults Privately, Seeks NICE Assessment For NHS Use At \u00a3100-\u00a3120 Pricing",
+   "source": "benzinga",
+   "summary": "",
+   "symbols": [
+    "EWU",
+    "LLY"
+   ]
+  },
+  {
+   "created_at": "2026-08-21T22:00:39+00:00",
+   "headline": "Here\u2019s How Much You Would Have Made Owning Eli Lilly Stock In The Last 5 Years",
+   "source": "benzinga",
+   "summary": "Eli Lilly (NYSE:LLY) has outperformed the market over the past 5 years by 25.41% on an annualized basis producing an average annual return of 36.72%. Currently, Eli Lilly has a market capitalization of $1.12 trillion.",
+   "symbols": [
+    "LLY"
+   ]
+  },
+  {
+   "created_at": "2026-08-21T17:35:19+00:00",
+   "headline": "10 Health Care Stocks Whale Activity In Today\u2019s Session",
+   "source": "benzinga",
+   "summary": "This whale alert can help traders discover the next big trading opportunities.\nWhales are entities with large sums of money and we track their transactions here at Benzinga on our options activity scanner.\nTraders often",
+   "symbols": [
+    "AGEN",
+    "BBIO",
+    "BSX",
+    "CAPR",
+    "HIMS",
+    "LLY",
+    "NBIX",
+    "NVO",
+    "SLS",
+    "ZTS"
+   ]
+  }
+ ]
+}

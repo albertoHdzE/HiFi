@@ -1,0 +1,136 @@
+{
+ "ticker": "BA",
+ "as_of_date": "2026-08-30",
+ "cutoff_utc": "2026-08-30T20:00:00+00:00",
+ "lookback_days": 10,
+ "fetched_at": "2026-08-30T22:04:23.350163-06:00",
+ "articles": [
+  {
+   "created_at": "2026-08-28T17:08:12+00:00",
+   "headline": "Boeing, Union Negotiators To Meet Monday To Resume Stalled Contract Negotiations",
+   "source": "benzinga",
+   "summary": "",
+   "symbols": [
+    "BA"
+   ]
+  },
+  {
+   "created_at": "2026-08-27T17:35:26+00:00",
+   "headline": "10 Industrials Stocks Whale Activity In Today\u2019s Session",
+   "source": "benzinga",
+   "summary": "This whale alert can help traders discover the next big trading opportunities.\nWhales are entities with large sums of money and we track their transactions here at Benzinga on our options activity scanner.\nTraders often",
+   "symbols": [
+    "AME",
+    "BA",
+    "CAT",
+    "DE",
+    "EMR",
+    "HONA",
+    "LHX",
+    "ODFL",
+    "RKLB",
+    "VICR"
+   ]
+  },
+  {
+   "created_at": "2026-08-26T18:55:21+00:00",
+   "headline": "'Boeing Fails to Overturn Revived $72 Million Trade Secrets Loss' - Bloomberg Law",
+   "source": "benzinga",
+   "summary": "",
+   "symbols": [
+    "BA"
+   ]
+  },
+  {
+   "created_at": "2026-08-26T15:04:16+00:00",
+   "headline": "U.S. Federal Aviation Administration Requires Inspection Of Some Boeing Dreamliners",
+   "source": "benzinga",
+   "summary": "",
+   "symbols": [
+    "BA"
+   ]
+  },
+  {
+   "created_at": "2026-08-25T10:53:11+00:00",
+   "headline": "Boeing Wins Major F-15 Contract With $131 Billion Ceiling",
+   "source": "benzinga",
+   "summary": "Boeing (NYSE: BA) rises premarket on a massive $131B F-15 defense contract. See technical levels, key resistance, and analyst targets.",
+   "symbols": [
+    "AV",
+    "BA",
+    "ITA",
+    "PPA"
+   ]
+  },
+  {
+   "created_at": "2026-08-25T10:19:16+00:00",
+   "headline": "Adam Schiff Slams Trump\u2019s Freedom 250 Race as \u2018Spectacle\u2019 Amid $4 Gas, Graham Rahal Fires Back",
+   "source": "benzinga",
+   "summary": "Schiff accuses Trump of using IndyCar race as a political distraction from gas prices. Rahal defends race as privately funded and unifying.",
+   "symbols": [
+    "BA",
+    "DAL",
+    "SPCX"
+   ]
+  },
+  {
+   "created_at": "2026-08-24T21:25:51+00:00",
+   "headline": "Boeing Wins $131.23B Ceiling, Indefinite-Delivery/Indefinite-Quantity Contract For The F-15 Eagle Crest In Support Of The F-15 Program Office",
+   "source": "benzinga",
+   "summary": "",
+   "symbols": [
+    "BA"
+   ]
+  },
+  {
+   "created_at": "2026-08-24T17:35:25+00:00",
+   "headline": "10 Industrials Stocks Whale Activity In Today\u2019s Session",
+   "source": "benzinga",
+   "summary": "This whale alert can help traders discover the next big trading opportunities.\nWhales are entities with large sums of money and we track their transactions here at Benzinga on our options activity scanner.\nTraders often",
+   "symbols": [
+    "BA",
+    "BE",
+    "CMI",
+    "FCEL",
+    "FERG",
+    "FIX",
+    "SBLK",
+    "TXT",
+    "UBER",
+    "XE"
+   ]
+  },
+  {
+   "created_at": "2026-08-21T20:30:10+00:00",
+   "headline": "Boeing SPEEA Members Reject Contract Offers, Authorize Strike By Large Margin",
+   "source": "benzinga",
+   "summary": "",
+   "symbols": [
+    "BA"
+   ]
+  },
+  {
+   "created_at": "2026-08-21T03:42:14+00:00",
+   "headline": "Trump Signs New National Space Transportation Policy That Aims for 1,000 Launches by 2030, Outlines Plans for 'Americans to the Moon' by 2028",
+   "source": "benzinga",
+   "summary": "Trump signed a new policy Thursday aimed at growing U.S. launch and re-entry capacity, including new federal launch sites.",
+   "symbols": [
+    "BA",
+    "LMT",
+    "RKLB",
+    "SPCX"
+   ]
+  },
+  {
+   "created_at": "2026-08-20T15:21:25+00:00",
+   "headline": "U.S. Department Of State Approves $4.5B Possible Foreign Military Sale To Qatar For Purchase Of KC-46A Aerial Refueling Aircraft",
+   "source": "benzinga",
+   "summary": "",
+   "symbols": [
+    "BA",
+    "NOC",
+    "RTX"
+   ]
+  }
+ ]
+}

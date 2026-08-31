@@ -1,0 +1,138 @@
+{
+ "ticker": "DE",
+ "as_of_date": "2026-08-30",
+ "cutoff_utc": "2026-08-30T20:00:00+00:00",
+ "lookback_days": 10,
+ "fetched_at": "2026-08-30T22:04:22.438101-06:00",
+ "articles": [
+  {
+   "created_at": "2026-08-27T17:35:26+00:00",
+   "headline": "10 Industrials Stocks Whale Activity In Today\u2019s Session",
+   "source": "benzinga",
+   "summary": "This whale alert can help traders discover the next big trading opportunities.\nWhales are entities with large sums of money and we track their transactions here at Benzinga on our options activity scanner.\nTraders often",
+   "symbols": [
+    "AME",
+    "BA",
+    "CAT",
+    "DE",
+    "EMR",
+    "HONA",
+    "LHX",
+    "ODFL",
+    "RKLB",
+    "VICR"
+   ]
+  },
+  {
+   "created_at": "2026-08-26T11:06:26+00:00",
+   "headline": "Ouster Announces Its Rev8 OS0 Native Color Digital Lidar Sensors Will Be Integrated Into Deere Subsidiary Guss Automation's Autonomous Orchard Machine Fleet",
+   "source": "benzinga",
+   "summary": "",
+   "symbols": [
+    "DE",
+    "OUST"
+   ]
+  },
+  {
+   "created_at": "2026-08-25T15:57:51+00:00",
+   "headline": "Canada Fires Back At Trump: Up to 50% Tariffs on $20 Billion of US Goods",
+   "source": "benzinga",
+   "summary": "Canada hit back at Trump with tariffs of up to 50% on $20B of U.S. goods, escalating the trade war ahead of Sept. 8.",
+   "symbols": [
+    "AA",
+    "CLF",
+    "DE",
+    "EWC",
+    "NUE",
+    "WHR"
+   ]
+  },
+  {
+   "created_at": "2026-08-24T17:18:46+00:00",
+   "headline": "Truist Securities Maintains Buy on Deere, Lowers Price Target to $804",
+   "source": "benzinga",
+   "summary": "",
+   "symbols": [
+    "DE"
+   ]
+  },
+  {
+   "created_at": "2026-08-24T15:10:15+00:00",
+   "headline": "DA Davidson Maintains Buy on Deere, Raises Price Target to $760",
+   "source": "benzinga",
+   "summary": "",
+   "symbols": [
+    "DE"
+   ]
+  },
+  {
+   "created_at": "2026-08-24T14:16:07+00:00",
+   "headline": "Barclays Maintains Overweight on Deere, Raises Price Target to $675",
+   "source": "benzinga",
+   "summary": "",
+   "symbols": [
+    "DE"
+   ]
+  },
+  {
+   "created_at": "2026-08-24T13:26:13+00:00",
+   "headline": "RBC Capital Reiterates Outperform on Deere, Maintains $752 Price Target",
+   "source": "benzinga",
+   "summary": "",
+   "symbols": [
+    "DE"
+   ]
+  },
+  {
+   "created_at": "2026-08-24T09:46:07+00:00",
+   "headline": "5 Stock Picks Last Week From Wall Street's Most Accurate Analysts",
+   "source": "benzinga",
+   "summary": "US stocks rise on Friday, but overall market saw losses last week. Benzinga&#39;s Analyst Ratings API provides insights for stock trading.",
+   "symbols": [
+    "DE",
+    "GOOG",
+    "GOOGL",
+    "JBSS",
+    "MRVL",
+    "NWSA",
+    "TAYD"
+   ]
+  },
+  {
+   "created_at": "2026-08-24T08:17:25+00:00",
+   "headline": "UAW Members At John Deere Reject Company Proposal To Extend Current Collective Bargaining Agreement Through 2029",
+   "source": "benzinga",
+   "summary": "",
+   "symbols": [
+    "DE"
+   ]
+  },
+  {
+   "created_at": "2026-08-21T23:30:42+00:00",
+   "headline": "$1000 Invested In Deere 10 Years Ago Would Be Worth This Much Today",
+   "source": "benzinga",
+   "summary": "Deere (NYSE:DE) has outperformed the market over the past 10 years by 8.79% on an annualized basis producing an average annual return of 22.19%. Currently, Deere has a market capitalization of $174.85 billion. \nBuying",
+   "symbols": [
+    "DE"
+   ]
+  },
+  {
+   "created_at": "2026-08-21T19:46:32+00:00",
+   "headline": "Citigroup Maintains Neutral on Deere, Raises Price Target to $650",
+   "source": "benzinga",
+   "summary": "",
+   "symbols": [
+    "DE"
+   ]
+  },
+  {
+   "created_at": "2026-08-21T16:03:58+00:00",
+   "headline": "JP Morgan Maintains Neutral on Deere, Raises Price Target to $585",
+   "source": "benzinga",
+   "summary": "",
+   "symbols": [
+    "DE"
+   ]
+  }
+ ]
+}

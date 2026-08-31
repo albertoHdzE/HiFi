@@ -1,0 +1,18 @@
+{
+ "ticker": "AMT",
+ "as_of_date": "2026-08-30",
+ "cutoff_utc": "2026-08-30T20:00:00+00:00",
+ "lookback_days": 10,
+ "fetched_at": "2026-08-30T22:04:32.214976-06:00",
+ "articles": [
+  {
+   "created_at": "2026-08-20T14:10:19+00:00",
+   "headline": "Barclays Upgrades American Tower to Overweight, Raises Price Target to $198",
+   "source": "benzinga",
+   "summary": "",
+   "symbols": [
+    "AMT"
+   ]
+  }
+ ]
+}

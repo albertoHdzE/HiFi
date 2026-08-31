@@ -1,0 +1,157 @@
+{
+ "ticker": "JPM",
+ "as_of_date": "2026-08-30",
+ "cutoff_utc": "2026-08-30T20:00:00+00:00",
+ "lookback_days": 10,
+ "fetched_at": "2026-08-30T22:04:12.059551-06:00",
+ "articles": [
+  {
+   "created_at": "2026-08-30T08:32:39+00:00",
+   "headline": "Elizabeth Warren Says \u2018A Handful of CEOs\u2019 Dictate Americans\u2019 Choices: \u2018We Need to Block Mega-Mergers\u2019",
+   "source": "benzinga",
+   "summary": "Warren warns of corporate consolidation and its impact on daily consumer choices. Calls for regulators to block mega-mergers.",
+   "symbols": [
+    "CVS",
+    "JPM",
+    "UNH"
+   ]
+  },
+  {
+   "created_at": "2026-08-28T17:35:17+00:00",
+   "headline": "10 Financials Stocks Whale Activity In Today\u2019s Session",
+   "source": "benzinga",
+   "summary": "This whale alert can help traders discover the next big trading opportunities.\nWhales are entities with large sums of money and we track their transactions here at Benzinga on our options activity scanner.\nTraders will",
+   "symbols": [
+    "BNY",
+    "COIN",
+    "GS",
+    "HOOD",
+    "JPM",
+    "PYPL",
+    "SCHW",
+    "SOFI",
+    "STT",
+    "TOST"
+   ]
+  },
+  {
+   "created_at": "2026-08-27T15:05:16+00:00",
+   "headline": "'JPMorgan Leads $5 Billion Debt Package for Volta AI Buildout' - Bloomberg",
+   "source": "benzinga",
+   "summary": "",
+   "symbols": [
+    "JPM"
+   ]
+  },
+  {
+   "created_at": "2026-08-27T09:38:27+00:00",
+   "headline": "FBI, NSA Take Down China-Linked Hacking Network Targeting U.S. Critical Infrastructure: NASA, Fed Among Targets",
+   "source": "benzinga",
+   "summary": "FBI and NSA disrupted a China-linked hacking network targeting U.S. critical infrastructure and sensitive systems.",
+   "symbols": [
+    "CRWD",
+    "JPM"
+   ]
+  },
+  {
+   "created_at": "2026-08-26T19:16:14+00:00",
+   "headline": "Banks Fought Stablecoins For Years, JPMorgan Now Evaluates Its Own: 'We Would Evaluate All Options'",
+   "source": "benzinga",
+   "summary": "JPMorgan weighs a stablecoin as major banks shift from resisting the technology to building their own blockchain-based payment products.",
+   "symbols": [
+    "BAC",
+    "BLK",
+    "DASH",
+    "ETHUSD",
+    "GOOGL",
+    "JPM",
+    "SOLUSD",
+    "V",
+    "WFC"
+   ]
+  },
+  {
+   "created_at": "2026-08-25T10:29:44+00:00",
+   "headline": "Elon Musk's Tesla Hikes Cybertruck Prices by More Than 7% Despite Sluggish Sales",
+   "source": "benzinga",
+   "summary": "Tesla raised Cybertruck prices in the U.S. for some trim levels, with the entry-level trim now priced $15,000 higher than at launch.",
+   "symbols": [
+    "JPM",
+    "TSLA"
+   ]
+  },
+  {
+   "created_at": "2026-08-25T07:00:23+00:00",
+   "headline": "'JPMorgan Eases Approach On Lending Against Shares To Court AI\u2019s New Wealth' - FT",
+   "source": "benzinga",
+   "summary": "",
+   "symbols": [
+    "JPM"
+   ]
+  },
+  {
+   "created_at": "2026-08-24T21:19:51+00:00",
+   "headline": "'JPMorgan, Santander Lead Financing of up to $15B for Argentina LNG Project'- Bloomberg",
+   "source": "benzinga",
+   "summary": "",
+   "symbols": [
+    "JPM",
+    "SAN"
+   ]
+  },
+  {
+   "created_at": "2026-08-23T14:11:19+00:00",
+   "headline": "This Week in Tesla: Ross Gerber's Self-Driving Question, Cybercab Boost And More",
+   "source": "benzinga",
+   "summary": "Tesla and CEO Elon Musk make headlines as skepticism over FSD capabilities, focus on Cybercab take center stage.",
+   "symbols": [
+    "AMZN",
+    "ENRD",
+    "GOOG",
+    "GOOGL",
+    "JPM",
+    "TSLA"
+   ]
+  },
+  {
+   "created_at": "2026-08-23T10:01:11+00:00",
+   "headline": "JPMorgan Predicts Global Food Crisis, Scott Bessent's Budget Deficit Forecast and More: This Week in Economy",
+   "source": "benzinga",
+   "summary": "JPMorgan\u2019s food crisis warning, Treasury deficit outlook, bond buybacks and Jim Cramer\u2019s market concerns dominated this weekend\u2019s headlines.",
+   "symbols": [
+    " MU",
+    "JPM",
+    "MU"
+   ]
+  },
+  {
+   "created_at": "2026-08-21T17:35:18+00:00",
+   "headline": "10 Financials Stocks With Whale Alerts In Today\u2019s Session",
+   "source": "benzinga",
+   "summary": "This whale alert can help traders discover the next big trading opportunities.\nWhales are entities with large sums of money and we track their transactions here at Benzinga on our options activity scanner.\nTraders will",
+   "symbols": [
+    "BAC",
+    "BNY",
+    "BULL",
+    "C",
+    "COIN",
+    "FISV",
+    "HOOD",
+    "JPM",
+    "MRSH",
+    "WFC"
+   ]
+  },
+  {
+   "created_at": "2026-08-21T12:35:54+00:00",
+   "headline": "Tesla\u2019s FSD Dream Hits a Roadblock? Ross Gerber Says Current Hardware May Never Reach Level 3-5 Autonomy (UPDATED)",
+   "source": "benzinga",
+   "summary": "Ross Gerber doubts Tesla can achieve unsupervised FSD with existing chip as JPMorgan touts EV giant&#39;s roadmap.",
+   "symbols": [
+    "JPM",
+    "SPCX",
+    "TSLA"
+   ]
+  }
+ ]
+}

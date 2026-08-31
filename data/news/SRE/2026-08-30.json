@@ -1,0 +1,36 @@
+{
+ "ticker": "SRE",
+ "as_of_date": "2026-08-30",
+ "cutoff_utc": "2026-08-30T20:00:00+00:00",
+ "lookback_days": 10,
+ "fetched_at": "2026-08-30T22:04:35.502499-06:00",
+ "articles": [
+  {
+   "created_at": "2026-08-27T07:52:28+00:00",
+   "headline": "Sempra's Port Arthur LNG North Requests Federal Energy Regulatory Commission Pre-Filing Review For 27 Million Tonnes Per Annum Four-Train Expansion Of Existing Port Arthur, Texas LNG Facility, Targets Second Half 2034 Export Start",
+   "source": "benzinga",
+   "summary": "",
+   "symbols": [
+    "SRE"
+   ]
+  },
+  {
+   "created_at": "2026-08-21T16:46:39+00:00",
+   "headline": "Morgan Stanley Maintains Overweight on Sempra, Lowers Price Target to $104",
+   "source": "benzinga",
+   "summary": "",
+   "symbols": [
+    "SRE"
+   ]
+  },
+  {
+   "created_at": "2026-08-20T20:13:29+00:00",
+   "headline": "Sempra Announces Completion Of Sempra Infrastructure's Sale Of Mexican Natural Gas Distributor Ecogas M\u00e9xico For About $500M In US Dollar-Equivalent Proceeds",
+   "source": "benzinga",
+   "summary": "",
+   "symbols": [
+    "SRE"
+   ]
+  }
+ ]
+}

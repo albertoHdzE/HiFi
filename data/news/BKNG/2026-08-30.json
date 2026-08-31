@@ -1,0 +1,27 @@
+{
+ "ticker": "BKNG",
+ "as_of_date": "2026-08-30",
+ "cutoff_utc": "2026-08-30T20:00:00+00:00",
+ "lookback_days": 10,
+ "fetched_at": "2026-08-30T22:04:17.617043-06:00",
+ "articles": [
+  {
+   "created_at": "2026-08-27T12:09:21+00:00",
+   "headline": "BTIG Reiterates Buy on Booking Holdings, Maintains $250 Price Target",
+   "source": "benzinga",
+   "summary": "",
+   "symbols": [
+    "BKNG"
+   ]
+  },
+  {
+   "created_at": "2026-08-24T14:19:06+00:00",
+   "headline": "Evercore ISI Group Maintains Outperform on Booking Holdings, Raises Price Target to $270",
+   "source": "benzinga",
+   "summary": "",
+   "symbols": [
+    "BKNG"
+   ]
+  }
+ ]
+}

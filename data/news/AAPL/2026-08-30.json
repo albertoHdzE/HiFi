@@ -1,0 +1,168 @@
+{
+ "ticker": "AAPL",
+ "as_of_date": "2026-08-30",
+ "cutoff_utc": "2026-08-30T20:00:00+00:00",
+ "lookback_days": 10,
+ "fetched_at": "2026-08-30T22:04:05.916144-06:00",
+ "articles": [
+  {
+   "created_at": "2026-08-30T12:30:19+00:00",
+   "headline": "Weekend Tech Roundup: CXMT's 874% Revenue Surge, Apple's New Macs, Nvidia's Q2 Beat and More",
+   "source": "benzinga",
+   "summary": "CXMT\u2019s revenue surge, Apple\u2019s new Macs, and strong tech earnings led the weekend news, alongside CXMT\u2019s Pentagon lawsuit.",
+   "symbols": [
+    "AAPL",
+    "CRM",
+    "CRWD",
+    "NVDA"
+   ]
+  },
+  {
+   "created_at": "2026-08-30T11:31:52+00:00",
+   "headline": "Consumer Tech (Aug. 24-28): Nvidia Q2 Earnings, Salesforce Rally, Trump Tariff Fears Rise & More",
+   "source": "benzinga",
+   "summary": "Nvidia, Salesforce and CrowdStrike lead a busy tech week as AI demand, chip shortages, tariffs, Apple, SpaceX and semiconductor stocks drive markets.",
+   "symbols": [
+    "AAPL",
+    "ADSK",
+    "BABA",
+    "CRM",
+    "CRWD",
+    "DELL",
+    "HPQ",
+    "INTC",
+    "IREN",
+    "LI",
+    "META",
+    "MRVL",
+    "MU",
+    "NVDA",
+    "PDD",
+    "RBRK",
+    "RIVN",
+    "S",
+    "SMTC",
+    "SNPS",
+    "SPCX",
+    "TSLA",
+    "WDC",
+    "XPEV"
+   ]
+  },
+  {
+   "created_at": "2026-08-30T11:01:36+00:00",
+   "headline": "iPhone Shipments Rise, Mac's AI Struggle and a Pikachu Visit: This Week in Appleverse",
+   "source": "benzinga",
+   "summary": "Apple\u2019s eventful week featured iPhone shipment gains, iPhone 18 speculation, Mac concerns and a surprise Pikachu visit.",
+   "symbols": [
+    "AAPL"
+   ]
+  },
+  {
+   "created_at": "2026-08-28T18:04:40+00:00",
+   "headline": "Apple's Mac Is 'Hostile' to AI Agents, Legendary Coder Warns: Could It Hurt Apple's AI Future?",
+   "source": "benzinga",
+   "summary": "A legendary coder says Apple\u2019s locked-down Mac could become a liability in the AI-agent era as Linux gains a new advantage.",
+   "symbols": [
+    "AAPL"
+   ]
+  },
+  {
+   "created_at": "2026-08-28T13:13:19+00:00",
+   "headline": "China's CXMT Revenue Explodes 874% in H1 as AI Memory Boom Fuels DRAM Shortage",
+   "source": "benzinga",
+   "summary": "China&#39;s CXMT reports an 870% revenue surge to $22.4 billion and $10.8 billion profit as AI demand fuels memory chip sales.",
+   "symbols": [
+    "AAPL",
+    "HPQ",
+    "MU",
+    "SKHY",
+    "SSNLF"
+   ]
+  },
+  {
+   "created_at": "2026-08-28T12:50:50+00:00",
+   "headline": "Apple Defies Steepest-Ever Smartphone Slump, iOS Share On Track For Record High: IDC",
+   "source": "benzinga",
+   "summary": "Apple, Samsung and Huawei&#39;s pricing power give them more flexibility in the structurally higher-cost smartphone market.",
+   "symbols": [
+    "AAPL",
+    "SSNLF"
+   ]
+  },
+  {
+   "created_at": "2026-08-28T12:05:36+00:00",
+   "headline": "'I Don't Know John Ternus,' Jim Cramer Says \u2014 but He Trusts Tim Cook's Word on Apple's Next CEO",
+   "source": "benzinga",
+   "summary": "Jim Cramer recommends buying CSCO, notes its strong quarter. APPL still a good buy with Tim Cook&#39;s successor announced. Vale may hedge inflation. ERock not advised, go with CoreWeave. Cisco, Apple, ERock shares up, Vale down.",
+   "symbols": [
+    "AAPL",
+    "APPL",
+    "CRWV",
+    "CSCO",
+    "EROC",
+    "VALE"
+   ]
+  },
+  {
+   "created_at": "2026-08-28T10:46:41+00:00",
+   "headline": "Apple and New Klarna Leasing Strategy - What's Going On?",
+   "source": "benzinga",
+   "summary": "Apple stock edged higher premarket as analysts evaluate its new Klarna-backed device leasing program designed to sustain iPhone demand and offset rising chip costs.",
+   "symbols": [
+    "AAPL",
+    "KLAR",
+    "LRND",
+    "OEF",
+    "QQH"
+   ]
+  },
+  {
+   "created_at": "2026-08-28T09:58:34+00:00",
+   "headline": "Understanding Apple's Position In Technology Hardware, Storage &amp; Peripherals Industry Compared To Competitors",
+   "source": "benzinga",
+   "summary": "In the dynamic and cutthroat world of business, conducting thorough company analysis is essential for investors and industry experts. In this article, we will undertake a comprehensive industry comparison, evaluating",
+   "symbols": [
+    "AAPL"
+   ]
+  },
+  {
+   "created_at": "2026-08-28T08:29:56+00:00",
+   "headline": "Meta, Palantir, Paramount Skydance Hedge Trump Ties by Courting Democrats as Midterms Raise Prospect of House Flip: Report",
+   "source": "benzinga",
+   "summary": "Trump-aligned companies are reportedly courting Democrats, preparing for possible investigations if Republicans lose House in the midterms.",
+   "symbols": [
+    "AAPL",
+    "AMZN",
+    "META",
+    "PLTR",
+    "PSKY"
+   ]
+  },
+  {
+   "created_at": "2026-08-28T05:32:16+00:00",
+   "headline": "Pikachu Crashed Tim Cook's Last Apple Park Tour \u2014 Here's What the iPhone Maker and the Pok\u00e9mon Team Talked About",
+   "source": "benzinga",
+   "summary": "Tim Cook may have delivered one last meme as Apple CEO before handing over to John Ternus, welcoming Pok\u00e9mon team and Pikachu to Apple Park.",
+   "symbols": [
+    "AAPL",
+    "NCBDF",
+    "NCBDY",
+    "NTDOY"
+   ]
+  },
+  {
+   "created_at": "2026-08-28T03:41:57+00:00",
+   "headline": "Rivian Stock Slips After Hours as CFO Claire McDonough Steps Down After Nearly 6 Years",
+   "source": "benzinga",
+   "summary": "Rivian CFO Claire McDonough has departed the company and will be replaced by VP of Finance Derek Mulvey as the interim CFO.",
+   "symbols": [
+    "AAPL",
+    "AMZN",
+    "GEV",
+    "RIVN",
+    "UBER"
+   ]
+  }
+ ]
+}

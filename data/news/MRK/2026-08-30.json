@@ -1,0 +1,148 @@
+{
+ "ticker": "MRK",
+ "as_of_date": "2026-08-30",
+ "cutoff_utc": "2026-08-30T20:00:00+00:00",
+ "lookback_days": 10,
+ "fetched_at": "2026-08-30T22:04:10.496917-06:00",
+ "articles": [
+  {
+   "created_at": "2026-08-28T16:43:22+00:00",
+   "headline": "World Health Organization Director General Determined That The Ebola Epidemic In DRC Still Meets Criteria Of Public Health Emergency Of International Concern, But Not Those Of A Pandemic Emergency",
+   "source": "benzinga",
+   "summary": "",
+   "symbols": [
+    "CODX",
+    "EBS",
+    "GILD",
+    "GOVX",
+    "INO",
+    "JNJ",
+    "MRK",
+    "MRNA",
+    "NNVC",
+    "OSUR",
+    "REGN",
+    "SPY"
+   ]
+  },
+  {
+   "created_at": "2026-08-27T17:35:26+00:00",
+   "headline": "10 Health Care Stocks With Whale Alerts In Today\u2019s Session",
+   "source": "benzinga",
+   "summary": "This whale alert can help traders discover the next big trading opportunities.\nWhales are entities with large sums of money and we track their transactions here at Benzinga on our options activity scanner.\nTraders often",
+   "symbols": [
+    "A",
+    "ABVX",
+    "AMGN",
+    "CNC",
+    "DHR",
+    "IBRX",
+    "MRK",
+    "MRNA",
+    "NVO",
+    "SRPT"
+   ]
+  },
+  {
+   "created_at": "2026-08-27T13:31:01+00:00",
+   "headline": "Moderna Borrows $2 Billion To Expand Oncology Business",
+   "source": "benzinga",
+   "summary": "Moderna announces a $2 billion convertible senior note offering to fund its oncology business growth and strategically manage debt.",
+   "symbols": [
+    "MRK",
+    "MRNA"
+   ]
+  },
+  {
+   "created_at": "2026-08-26T12:31:09+00:00",
+   "headline": "EXCLUSIVE: Sunshine Biopharma Advances Vaccine Strategy for Lung Cancer",
+   "source": "benzinga",
+   "summary": "Sunshine Biopharma outlines K1.1 mRNA pipeline updates, advancing dual oncology therapy to target cold tumors in liver and lung cancer.",
+   "symbols": [
+    "MRK",
+    "MRNA",
+    "SBFM"
+   ]
+  },
+  {
+   "created_at": "2026-08-26T07:56:40+00:00",
+   "headline": "Mike Johnson Says Prescription Drug Prices Are at 'Lowest Levels' in 60 Years, Credits Trump and Republicans for Lower Costs",
+   "source": "benzinga",
+   "summary": "Johnson credits Trump and Republicans for record low drug prices, stating Americans are seeing lower costs and more money in their pockets.",
+   "symbols": [
+    "MRK"
+   ]
+  },
+  {
+   "created_at": "2026-08-25T19:31:08+00:00",
+   "headline": "Measles Kills 2 in Pennsylvania: What Do Prediction Markets Say About the Disease?",
+   "source": "benzinga",
+   "summary": "Two unvaccinated Pennsylvania residents died of measles, the state\u2019s first deaths in 35 years, as traders see 89% odds of 4,000 U.S. cases.",
+   "symbols": [
+    "GSK",
+    "MRK"
+   ]
+  },
+  {
+   "created_at": "2026-08-25T16:39:57+00:00",
+   "headline": "Live On CNBC, Josh Brown Host Segment Titled \u201cJosh\u2019s Best Stocks In The Market: Merck\"",
+   "source": "benzinga",
+   "summary": "",
+   "symbols": [
+    "MRK"
+   ]
+  },
+  {
+   "created_at": "2026-08-25T15:27:34+00:00",
+   "headline": "Wolfe Research Maintains Outperform on Merck & Co, Raises Price Target to $180",
+   "source": "benzinga",
+   "summary": "",
+   "symbols": [
+    "MRK"
+   ]
+  },
+  {
+   "created_at": "2026-08-25T13:18:48+00:00",
+   "headline": "Moderna Stock Edges Higher Tuesday: What's Happening?",
+   "source": "benzinga",
+   "summary": "Shares of Moderna are trading higher Tuesday morning, as Wall Street analysts upgrade their ratings following landmark Phase 3 oncology data.",
+   "symbols": [
+    "MRK",
+    "MRNA"
+   ]
+  },
+  {
+   "created_at": "2026-08-25T12:58:02+00:00",
+   "headline": "Argus Research Maintains Buy on Merck & Co, Raises Price Target to $170",
+   "source": "benzinga",
+   "summary": "",
+   "symbols": [
+    "MRK"
+   ]
+  },
+  {
+   "created_at": "2026-08-25T12:52:57+00:00",
+   "headline": "Court Rejects Merck\u2019s Challenge to Medicare Drug Price Negotiation Program",
+   "source": "benzinga",
+   "summary": "Court rejects Merck&#39;s lawsuit against Medicare drug price negotiations. Penalties for noncompliance include steep excise taxes.",
+   "symbols": [
+    "MRK"
+   ]
+  },
+  {
+   "created_at": "2026-08-24T18:02:51+00:00",
+   "headline": "What\u2019s Going On With Tempus AI Stock on Monday?",
+   "source": "benzinga",
+   "summary": "Tempus AI stock pulls back after a 20% surge as cancer data spotlights its Personalis deal, and FDA clears its pulmonary hypertension AI tool.",
+   "symbols": [
+    "ARKG",
+    "ARKK",
+    "MRK",
+    "MRNA",
+    "PSNL",
+    "TEM",
+    "WDNA"
+   ]
+  }
+ ]
+}

@@ -1,0 +1,196 @@
+{
+ "ticker": "ORCL",
+ "as_of_date": "2026-08-30",
+ "cutoff_utc": "2026-08-30T20:00:00+00:00",
+ "lookback_days": 10,
+ "fetched_at": "2026-08-30T22:04:07.436283-06:00",
+ "articles": [
+  {
+   "created_at": "2026-08-30T19:16:19+00:00",
+   "headline": "S&P 500 and Dow Jones Outlook: Top Three Catalysts This Week",
+   "source": "benzinga",
+   "summary": "This S&amp;P 500 and Dow Jones outlook explains the top three catalysts that will move US stocks this week.",
+   "symbols": [
+    "AVGO",
+    "DELL",
+    "FDS",
+    "GOOG",
+    "MSFT",
+    "NVDA",
+    "ORCL"
+   ]
+  },
+  {
+   "created_at": "2026-08-30T18:16:18+00:00",
+   "headline": "Oracle at a Crossroads: Big Earnings Could Trigger Massive Swing",
+   "source": "benzinga",
+   "summary": "Oracle stock has moved into a crossroads, and the upcoming earnings will likely trigger a big move in the near term.",
+   "symbols": [
+    "AMZN",
+    "MSFT",
+    "ORCL"
+   ]
+  },
+  {
+   "created_at": "2026-08-30T05:07:22+00:00",
+   "headline": "Greg Abbott Pushes Back on Foreign Influence Claims Over Data Centers: \u2018I Haven't Done It Because of Anything Said by China\u2019",
+   "source": "benzinga",
+   "summary": "Texas Gov. Greg Abbott says local concerns, not Chinese disinformation, drove his decision to pause new data center construction.",
+   "symbols": [
+    "BABA",
+    "BIDU",
+    "META",
+    "MSFT",
+    "ORCL"
+   ]
+  },
+  {
+   "created_at": "2026-08-28T16:11:24+00:00",
+   "headline": "Cathie Wood Trims AMD After a 120% Rally \u2014 Is the AI Trade Getting Too Crowded?",
+   "source": "benzinga",
+   "summary": "Cathie Wood is trimming AMD after a massive 2026 rally, but ARK ETFs still hold a sizable stake. Here\u2019s what the move means for AI-focused ETFs.",
+   "symbols": [
+    "AIQ",
+    "AMD",
+    "ARKK",
+    "AVGO",
+    "BAI",
+    "MSFT",
+    "MU",
+    "ORCL",
+    "PLTR",
+    "SOXX",
+    "SPCX",
+    "TSM"
+   ]
+  },
+  {
+   "created_at": "2026-08-28T14:16:35+00:00",
+   "headline": "Nvidia Warns Of AI Power Bottleneck \u2014 And Bloom Energy Could Benefit",
+   "source": "benzinga",
+   "summary": "Nvidia says AI power constraints can take years to solve. Evercore sees Bloom Energy benefiting as data-center demand keeps climbing.",
+   "symbols": [
+    "AEP",
+    "BE",
+    "CEG",
+    "ET",
+    "INTC",
+    "NRG",
+    "NVDA",
+    "ORCL",
+    "TLN"
+   ]
+  },
+  {
+   "created_at": "2026-08-27T17:00:02+00:00",
+   "headline": "Nvidia's Unusual Move Answers AI Trade\u2019s Key Question; $40 Trillion US Debt Bomb Ticks; Key Fed Speech Awaited",
+   "source": "benzinga",
+   "summary": "Nvidia\u2019s Unusual Move\n\n\n\nPlease click here for an enlarged chart of NVIDIA Corp (NASDAQ:NVDA).\n\n\n\nNote the following:\n\n\n\n\nThe chart shows that NVDA gapped up above the low band of Zone 1 (resistance).\n\n\n\nRSI on the",
+   "symbols": [
+    "AAPL",
+    "AMZN",
+    "BTCUSD",
+    "CRM",
+    "CRWV",
+    "GOOG",
+    "IREN",
+    "META",
+    "MSFT",
+    "NBIS",
+    "NVDA",
+    "ORCL",
+    "QQQ",
+    "SPCX",
+    "SPY",
+    "TSLA"
+   ]
+  },
+  {
+   "created_at": "2026-08-27T14:15:05+00:00",
+   "headline": "Live On CNBC, California Attorney General Rob Bonta Says \"We're Suing TikTok Now\"; Says We Have Communications With Snap About These Issues As Well, And We Are Very Interested In YouTube",
+   "source": "benzinga",
+   "summary": "",
+   "symbols": [
+    "GOOG",
+    "GOOGL",
+    "ORCL",
+    "SFTBY",
+    "SNAP",
+    "SPY"
+   ]
+  },
+  {
+   "created_at": "2026-08-26T17:45:29+00:00",
+   "headline": "Oracle Stock Is Rising Today: What's Going On?",
+   "source": "benzinga",
+   "summary": "Oracle Corp (NYSE:ORCL) shares are climbing Wednesday. Citigroup argued the stock could more than double from current levels, pointing to a reset in investor expectations following a sharp summer selloff. Here&#39;s what you should know.",
+   "symbols": [
+    "ORCL"
+   ]
+  },
+  {
+   "created_at": "2026-08-26T17:35:18+00:00",
+   "headline": "10 Information Technology Stocks With Whale Alerts In Today\u2019s Session",
+   "source": "benzinga",
+   "summary": "This whale alert can help traders discover the next big trading opportunities.\nWhales are entities with large sums of money and we track their transactions here at Benzinga on our options activity scanner.\nTraders often",
+   "symbols": [
+    "INTC",
+    "IREN",
+    "MSFT",
+    "MSTR",
+    "MU",
+    "NOK",
+    "NOW",
+    "ON",
+    "ORCL",
+    "TE"
+   ]
+  },
+  {
+   "created_at": "2026-08-25T19:21:03+00:00",
+   "headline": "'OpenAI\u2019s Head of Data Centers Has Left Company' - Wall Street Journal",
+   "source": "benzinga",
+   "summary": "",
+   "symbols": [
+    "AMD",
+    "AMZN",
+    "AVGO",
+    "CRWV",
+    "MSFT",
+    "NBIS",
+    "NVDA",
+    "ORCL"
+   ]
+  },
+  {
+   "created_at": "2026-08-25T17:35:16+00:00",
+   "headline": "10 Information Technology Stocks Whale Activity In Today\u2019s Session",
+   "source": "benzinga",
+   "summary": "This whale alert can help traders discover the next big trading opportunities.\nWhales are entities with large sums of money and we track their transactions here at Benzinga on our options activity scanner.\nTraders often",
+   "symbols": [
+    "AVGO",
+    "CIFR",
+    "CLSK",
+    "INTC",
+    "NVDA",
+    "ORCL",
+    "PLTR",
+    "QBTS",
+    "SMTC",
+    "SNDK"
+   ]
+  },
+  {
+   "created_at": "2026-08-25T16:50:20+00:00",
+   "headline": "What Is Going on With Oracle Stock on Tuesday?",
+   "source": "benzinga",
+   "summary": "Oracle stock gained over 2% as tech stocks rallied, though aggressive AI infrastructure spending and project delays keep investor focus on long-term cash flow.",
+   "symbols": [
+    "IGV",
+    "ORCL",
+    "TDIV",
+    "TDVI"
+   ]
+  }
+ ]
+}

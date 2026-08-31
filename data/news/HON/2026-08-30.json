@@ -1,0 +1,29 @@
+{
+ "ticker": "HON",
+ "as_of_date": "2026-08-30",
+ "cutoff_utc": "2026-08-30T20:00:00+00:00",
+ "lookback_days": 10,
+ "fetched_at": "2026-08-30T22:04:21.565785-06:00",
+ "articles": [
+  {
+   "created_at": "2026-08-27T16:11:38+00:00",
+   "headline": "Stock of the Day: Did Honeywell Just Reverse?",
+   "source": "benzinga",
+   "summary": "Honeywell may form a new uptrend after reversing off the support level. Seller remorse creates buyers and can convert resistance to support.",
+   "symbols": [
+    "HON"
+   ]
+  },
+  {
+   "created_at": "2026-08-20T10:23:06+00:00",
+   "headline": "Top 3 Industrials Stocks You'll Regret Missing This Quarter",
+   "source": "benzinga",
+   "summary": "The RSI shows oversold stocks in industrials sector, with potential to buy undervalued companies. Latest list includes Honeywell, Limbach, and Rentokil.",
+   "symbols": [
+    "HON",
+    "LMB",
+    "RTO"
+   ]
+  }
+ ]
+}

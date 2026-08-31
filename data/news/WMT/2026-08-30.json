@@ -1,0 +1,152 @@
+{
+ "ticker": "WMT",
+ "as_of_date": "2026-08-30",
+ "cutoff_utc": "2026-08-30T20:00:00+00:00",
+ "lookback_days": 10,
+ "fetched_at": "2026-08-30T22:04:24.918354-06:00",
+ "articles": [
+  {
+   "created_at": "2026-08-29T04:01:13+00:00",
+   "headline": "Walmart Agrees to $50 Million Settlement With DOJ Over Alleged Opioid Prescription Violations, Calls Payout \u2018Immaterial\u2019",
+   "source": "benzinga",
+   "summary": "Walmart agreed to pay $50 million to settle a DOJ lawsuit alleging its pharmacies unlawfully filled opioid prescriptions.",
+   "symbols": [
+    "COR",
+    "CVS",
+    "WMT"
+   ]
+  },
+  {
+   "created_at": "2026-08-28T20:20:05+00:00",
+   "headline": "Walmart Says Without Admitting Liability, Settled U.S. DOJ's Opioid Civil Litigation Matter For An Immaterial Amount, Which Was Accrued As Of July 31",
+   "source": "benzinga",
+   "summary": "",
+   "symbols": [
+    "WMT"
+   ]
+  },
+  {
+   "created_at": "2026-08-27T16:00:55+00:00",
+   "headline": "Walmart Stock Moves Lower Thursday: What's Going On?",
+   "source": "benzinga",
+   "summary": "Shares of Walmart Inc (NYSE: WMT) are trading lower Thursday as investors continue to weigh robust e-commerce expansion against broader margin concerns in its core retail operations.",
+   "symbols": [
+    "WMT"
+   ]
+  },
+  {
+   "created_at": "2026-08-26T15:45:21+00:00",
+   "headline": "$1000 Invested In Walmart 5 Years Ago Would Be Worth This Much Today",
+   "source": "benzinga",
+   "summary": "Walmart (NASDAQ:WMT) has outperformed the market over the past 5 years by 5.0% on an annualized basis producing an average annual return of 16.14%. Currently, Walmart has a market capitalization of $838.78 billion.",
+   "symbols": [
+    "WMT"
+   ]
+  },
+  {
+   "created_at": "2026-08-26T15:08:45+00:00",
+   "headline": "Hotter PCE Inflation: 5 Defensive ETFs Investors Can Turn to as Rate-Cut Hopes Fade",
+   "source": "benzinga",
+   "summary": "Hotter-than-expected inflation could keep rates higher. These ETFs offer potentially steadier exposure amid persistent price pressures.",
+   "symbols": [
+    "COST",
+    "PG",
+    "SPLV",
+    "VHT",
+    "WMT",
+    "XLP",
+    "XLU",
+    "XLV"
+   ]
+  },
+  {
+   "created_at": "2026-08-24T20:45:06+00:00",
+   "headline": "Walmart Heirs Lose $9.4 Billion in Wealth in 2026: Stock Drop Hurts Odds of Making Top 10 Richest",
+   "source": "benzinga",
+   "summary": "Walmart stock falling post earnings is bad news for the wealth of the heirs of Sam Walton and the retail company.",
+   "symbols": [
+    "WMT"
+   ]
+  },
+  {
+   "created_at": "2026-08-21T22:00:33+00:00",
+   "headline": "MRNA, SPCX, MSTR and More: 5 Stocks Investors Couldn't Stop Buzzing About This Week",
+   "source": "benzinga",
+   "summary": "Retail investors talked up 5 hot stocks during the week (Aug. 17 to Aug. 21) on X and Reddit&#39;s r/WallStreetBets: MRNA, WMT, MSTR, AVGO, SPCX",
+   "symbols": [
+    "BTCUSD",
+    "CRWV",
+    "GOOGL",
+    "MRK",
+    "MRNA",
+    "MRVL",
+    "MSTR",
+    "NVDA",
+    "SPCX",
+    "WMT"
+   ]
+  },
+  {
+   "created_at": "2026-08-21T20:09:17+00:00",
+   "headline": "Telsey Advisory Group Maintains Outperform on Walmart, Lowers Price Target to $130",
+   "source": "benzinga",
+   "summary": "",
+   "symbols": [
+    "WMT"
+   ]
+  },
+  {
+   "created_at": "2026-08-21T20:01:41+00:00",
+   "headline": "Bessent's Bond Band-Aid, Bitcoin's Best Week Since 2023: This Week on Wall Street",
+   "source": "benzinga",
+   "summary": "Moderna&#39;s biggest one-day rally ever, Bitcoin&#39;s best week since February 2023, and Walmart&#39;s 9% slide capped a volatile week driven by Bessent&#39;s bond rescue.",
+   "symbols": [
+    "BTCUSD",
+    "COIN",
+    "EL",
+    "MRNA",
+    "WMT"
+   ]
+  },
+  {
+   "created_at": "2026-08-21T19:50:42+00:00",
+   "headline": "Citigroup Maintains Buy on Walmart, Lowers Price Target to $132",
+   "source": "benzinga",
+   "summary": "",
+   "symbols": [
+    "WMT"
+   ]
+  },
+  {
+   "created_at": "2026-08-21T18:20:50+00:00",
+   "headline": "Centers For Disease Control And Prevention: Investigating A Multistate Outbreak Of E. Coli And Salmonella Infections Linked To Alfalfa Sprouts",
+   "source": "benzinga",
+   "summary": "",
+   "symbols": [
+    "ACI",
+    "BJ",
+    "CASY",
+    "CHEF",
+    "COST",
+    "GO",
+    "KR",
+    "PFGC",
+    "SFM",
+    "SYY",
+    "TGT",
+    "UNFI",
+    "USFD",
+    "WMT"
+   ]
+  },
+  {
+   "created_at": "2026-08-21T17:56:27+00:00",
+   "headline": "BNP Paribas Reiterates Outperform on Walmart, Lowers Price Target to $137",
+   "source": "benzinga",
+   "summary": "",
+   "symbols": [
+    "WMT"
+   ]
+  }
+ ]
+}
