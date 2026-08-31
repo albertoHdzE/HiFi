@@ -252,9 +252,30 @@ def run_agent_pass(
 
     if agent_type == "fundamental":
         from hifi.agents.fundamental_agent import run_analysis
-        from hifi.simulation.snapshot import build_minimal_snapshot
+        from hifi.simulation.snapshot import (
+            build_minimal_snapshot,
+            build_pointintime_snapshot,
+        )
 
-        _snap = snapshot_json or build_minimal_snapshot(ticker, date)
+        # DJ-133a: this line used to read
+        #     _snap = snapshot_json or build_minimal_snapshot(ticker, date)
+        # and no production caller passes snapshot_json, so the fundamental
+        # agent ran on an all-None snapshot on every ticker, every night, for
+        # the entire live record. Real statements were on disk the whole time.
+        _snap = snapshot_json
+        if _snap is None:
+            _snap = build_pointintime_snapshot(ticker, date, data_dir=data_dir)
+        if _snap is None:
+            # Fall back only when there is genuinely nothing filed, and say so
+            # at WARNING. A blind valuation agent must never again be
+            # indistinguishable from a working one in the run log.
+            logger.warning(
+                "FUNDAMENTALS BLIND %s %s: no point-in-time snapshot available; "
+                "falling back to an empty one. Ratios will be absent and this "
+                "agent's vote carries no valuation information (DJ-133a).",
+                ticker, date,
+            )
+            _snap = build_minimal_snapshot(ticker, date)
         analysis = run_analysis(
             ticker=ticker,
             as_of_date=date,

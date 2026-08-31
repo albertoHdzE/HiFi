@@ -1,20 +1,266 @@
 """
-Minimal FundamentalsSnapshot builder for Phase 15 walk-forward evaluation.
+FundamentalsSnapshot builders for the agent ensemble.
 
-In the walk-forward, fundamental insight comes primarily from EDGAR MD&A context
-retrieved from the hifi-eval namespace (populated by make eval-ingest-through DATE=D).
-The FundamentalsSnapshot passed to run_sequential_ensemble() is therefore minimal:
-all financial fields are None.  The Fundamental Agent's LLM fills in parametric
-knowledge; the RAG context provides the grounded MD&A excerpt.
+``build_pointintime_snapshot`` is the production path. ``build_minimal_snapshot``
+is the Phase 15 walk-forward scaffold, retained for that harness alone.
 
-This approach avoids the need to pre-fetch point-in-time financial statements
-for 98 tickers × 264 monthly dates (25,872 snapshots), which would require a
-separate financial data API beyond what Phase 1-2 acquired.
+DJ-133a -- the scaffold was the production path for the entire live record
+--------------------------------------------------------------------------
+``build_minimal_snapshot`` sets every financial field to None by design, and
+says so in its docstring. It was written for the walk-forward, where the
+reasoning below applies. But ``run_phase15_orchestrator`` calls
+``run_agent_pass`` without ``snapshot_json``, and ``agent_executor`` fell back
+to the minimal builder -- so the *live* fundamental agent received an empty
+snapshot on every ticker, every night.
+
+The measured consequence, 2026-08-24 to 08-27: ``pe``, ``pb``, ``ps``,
+``ev_ebitda``, ``roe`` and ``roa`` were absent on 97/97 tickers on all four
+days, and the agent whose sole remit is valuation voted Hold on 97/97 for three
+consecutive days. Real quarterly financials sat unread in
+``data/fundamentals/<TICKER>/quarterly.parquet`` the whole time.
+
+This is DJ-124's pattern one layer down: an artefact scoped to one purpose left
+wired into another, with nothing asserting the difference. The guard added here
+is that a snapshot now carries its own provenance in ``source`` -- a blind
+fundamental agent is visible in the stored record rather than being
+indistinguishable from a working one.
+
+Point-in-time discipline
+------------------------
+Fundamentals are gated on the actual EDGAR ``filingDate``, never on the fiscal
+``period_end``: a quarter ending 2026-03-31 is not knowable on 2026-04-01. See
+``hifi.data.filing_calendar``.
 """
 
 from __future__ import annotations
 
+import logging
 from datetime import UTC, datetime
+from pathlib import Path
+
+logger = logging.getLogger(__name__)
+
+# Parquet column -> FundamentalsSnapshot field. The parquet carries 183 raw
+# statement lines under yfinance's names; these are the six the ratio engine
+# consumes. Left explicit rather than fuzzy-matched so a renamed upstream
+# column fails loudly instead of silently reintroducing DJ-133a.
+_FIELD_MAP = {
+    "revenue": "Total Revenue",
+    "net_income": "Net Income",
+    "total_assets": "Total Assets",
+    "total_liabilities": "Total Debt",
+    "total_equity": "Stockholders Equity",
+    "eps": "Diluted EPS",
+}
+
+
+def _close_on_or_before(ticker: str, as_of_date: str, data_dir: str | Path) -> float | None:
+    """Unadjusted close on ``as_of_date``, or the last session before it."""
+    import pandas as pd
+
+    path = Path(data_dir) / "market" / ticker / "ohlcv.parquet"
+    if not path.exists():
+        return None
+    try:
+        bars = pd.read_parquet(path)
+        upto = bars[bars.index <= pd.Timestamp(as_of_date)]
+        if upto.empty:
+            return None
+        return float(upto["Close"].iloc[-1])
+    except Exception as exc:
+        logger.warning("Price lookup failed for %s @ %s: %s", ticker, as_of_date, exc)
+        return None
+
+
+#: Days a local statement period may differ from EDGAR's reportDate and still
+#: be the same fiscal quarter. The parquet normalises to the calendar quarter
+#: end; EDGAR carries the true fiscal close. Apple's 13-week quarter ended
+#: 2026-03-28 (3 days out) and PepsiCo's 4-4-5 retail quarter ended 2026-06-13
+#: (17 days out), so a tight tolerance silently drops exactly the companies
+#: with non-calendar fiscal years. Quarters are ~91 days apart, so anything
+#: below ~45 cannot confuse two adjacent periods; 25 leaves that margin
+#: intact while covering every 4-4-5 calendar in the universe.
+_PERIOD_MATCH_TOLERANCE_DAYS = 25
+
+
+def _match_periods(local_periods: list, published) -> dict:
+    """Map each local statement period to the filing date that made it public.
+
+    Returns only periods that were actually filed by the caller's cut-off, so
+    an unmatched period is dropped rather than assumed available.
+    """
+    import pandas as pd
+
+    out: dict = {}
+    if published.empty:
+        return out
+    for period in local_periods:
+        p = pd.Timestamp(period)
+        gap = (published["period_end"] - p).abs()
+        within = published[gap <= pd.Timedelta(days=_PERIOD_MATCH_TOLERANCE_DAYS)]
+        if within.empty:
+            continue
+        # Nearest period, not latest filing: with a wide tolerance an amended
+        # or adjacent filing could otherwise win and attach the wrong date.
+        nearest = within.loc[gap[within.index].idxmin()]
+        out[p] = pd.Timestamp(nearest["filing_date"])
+    return out
+
+
+def build_pointintime_snapshot(
+    ticker: str,
+    as_of_date: str,
+    data_dir: str | Path = "data",
+) -> str | None:
+    """Serialise a FundamentalsSnapshot from data public on ``as_of_date``.
+
+    Returns None when no filing had been published yet, or when the local
+    fundamentals or filing calendar are absent. None is deliberate: the caller
+    must decide what to do about a blind agent, loudly. Returning an
+    all-None snapshot instead is precisely the DJ-133a failure.
+
+    Accounting treatment
+    --------------------
+    Flow quantities (revenue, net income, EPS) are summed over the trailing
+    four filed quarters; stock quantities (assets, equity, debt) are taken from
+    the most recent filed quarter alone. Mixing the two conventions is the
+    usual way P/S comes out four times too high: one quarter of revenue against
+    a full market capitalisation.
+
+    ``market_cap`` uses the close on ``as_of_date`` and the share count from
+    the latest filed quarter, so it is a price the market actually printed.
+    """
+    import pandas as pd
+
+    from hifi.data.filing_calendar import load_filing_calendar
+    from hifi.data.schemas import FundamentalsSnapshot, ProvenanceRecord
+
+    root = Path(data_dir)
+    fundamentals = root / "fundamentals" / ticker / "quarterly.parquet"
+    if not fundamentals.exists():
+        logger.warning("No fundamentals parquet for %s", ticker)
+        return None
+
+    calendar = load_filing_calendar(data_dir=root)
+    if calendar is None or calendar.empty:
+        logger.warning(
+            "No filing calendar at %s; cannot establish what was public on %s. "
+            "Run hifi.data.filing_calendar.build_filing_calendar.",
+            root / "fundamentals" / "filing_calendar.parquet", as_of_date,
+        )
+        return None
+
+    try:
+        quarters = pd.read_parquet(fundamentals)
+    except Exception as exc:
+        logger.error("Unreadable fundamentals for %s: %s", ticker, exc)
+        return None
+
+    as_of = pd.Timestamp(as_of_date)
+    published = calendar[
+        (calendar["ticker"] == ticker.upper()) & (calendar["filing_date"] <= as_of)
+    ]
+    if published.empty:
+        logger.warning("No filing published for %s on or before %s", ticker, as_of_date)
+        return None
+
+    # Join the two period conventions with a tolerance. yfinance normalises a
+    # fiscal period to the calendar quarter end; EDGAR reports the true one.
+    # Apple's Q2 2026 is 2026-03-28 at the SEC and 2026-03-31 in the parquet,
+    # so an exact-match join silently blinds every company whose fiscal
+    # calendar is not month-aligned -- reintroducing DJ-133a for a subset.
+    filed_dates = _match_periods(sorted(quarters.index), published)
+    available = sorted(filed_dates)
+    if not available:
+        logger.warning(
+            "%s: no local statement period had been filed by %s "
+            "(local periods end %s, latest filed period %s)",
+            ticker, as_of_date,
+            max(quarters.index).date() if len(quarters.index) else "none",
+            published["period_end"].max().date(),
+        )
+        return None
+
+    latest = available[-1]
+    newest_first = list(reversed(available))
+
+    # Select per field, not per row. The source emits a placeholder row for the
+    # most recent quarter with most columns NaN (Oracle's 2026-05-31 carries an
+    # EPS and nothing else), so taking "the latest row" wholesale discarded the
+    # balance sheet for ORCL and MDT and the TTM for PEP and COST. Walking back
+    # per field uses the most recent *reported* value, which is what a reader of
+    # the filings would have.
+    def _stock(field: str) -> float | None:
+        col = _FIELD_MAP[field]
+        if col not in quarters.columns:
+            return None
+        for period in newest_first:
+            val = quarters.at[period, col]
+            if val is not None and not pd.isna(val):
+                return float(val)
+        return None
+
+    def _flow(field: str) -> float | None:
+        """Sum the four most recent quarters that actually report the field."""
+        col = _FIELD_MAP[field]
+        if col not in quarters.columns:
+            return None
+        vals = []
+        for period in newest_first:
+            val = quarters.at[period, col]
+            if val is not None and not pd.isna(val):
+                vals.append(float(val))
+            if len(vals) == 4:
+                return float(sum(vals))
+        return None  # fewer than four reported quarters: no honest TTM
+
+    shares = None
+    if "Ordinary Shares Number" in quarters.columns:
+        for period in newest_first:
+            raw = quarters.at[period, "Ordinary Shares Number"]
+            if raw is not None and not pd.isna(raw):
+                shares = float(raw)
+                break
+
+    price = _close_on_or_before(ticker, as_of_date, root)
+    market_cap = price * shares if (price is not None and shares) else None
+
+    eps = _flow("eps")
+    if eps is None:
+        # EPS is sparsely reported in the source; derive it rather than lose
+        # P/E entirely, and only when both inputs are genuinely present.
+        ni_ttm = _flow("net_income")
+        if ni_ttm is not None and shares:
+            eps = ni_ttm / shares
+
+    fetched_at = datetime.now(UTC)
+    snap = FundamentalsSnapshot(
+        ticker=ticker,
+        period_end=latest.date(),
+        revenue=_flow("revenue"),
+        net_income=_flow("net_income"),
+        total_assets=_stock("total_assets"),
+        total_liabilities=_stock("total_liabilities"),
+        total_equity=_stock("total_equity"),
+        eps=eps,
+        pe_ratio=None,  # computed by the ratio engine from price and eps
+        market_cap=market_cap,
+        source="edgar_pointintime",
+        fetched_at=fetched_at,
+        provenance=ProvenanceRecord(
+            source="edgar_pointintime",
+            fetched_at=fetched_at,
+            parameters={
+                "ticker": ticker,
+                "as_of_date": as_of_date,
+                "period_end": str(latest.date()),
+                "filing_date": str(filed_dates[latest].date()),
+                "periods_considered": [str(p.date()) for p in available[-4:]],
+                "price_used": str(price),
+            },
+        ),
+    )
+    return snap.model_dump_json()
 
 
 def build_minimal_snapshot(ticker: str, as_of_date: str) -> str:
