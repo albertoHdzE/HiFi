@@ -5,20 +5,45 @@ Exposes one MCP tool: ``compose_portfolio``.  Pure deterministic math,
 no LLMs, no external data fetches.  The ensemble provides signals; this
 server decides position sizing subject to hard constraints.
 
-Algorithm (applied in order):
+Algorithm:
   1. Filter to Buy signals only (long-only mode).
-  2. Confidence-proportional initial weights (normalised to sum 1.0).
-  3. Per-stock cap: iteratively cap weights at max_single_stock and
-     redistribute excess to uncapped positions.  If all positions hit
-     the cap simultaneously, excess flows to cash (weights sum < 1.0).
-  4. Sector cap: scale down positions in sectors whose total exceeds
-     max_sector pro-rata.  Excess flows to cash.
-  5. Minimum position: remove positions below min_position, redistribute
-     their weight proportionally to remaining positions.
+  2. Confidence-proportional initial weights, scaled to ``target_deployment``.
+  3. Solve to a fixed point (``_solve_to_fixed_point``): per-stock cap,
+     per-sector cap, fill the residual toward the target using whatever
+     headroom remains, drop dust below ``min_position``, and repeat until
+     the weights stop moving.
+  4. Verify the post-conditions and raise ``PortfolioConstraintError`` if
+     any of them fails.
 
-Output: dict[str, float] mapping ticker -> portfolio weight.
-Weights sum to 1.0 when no caps bind.  When caps reduce investable
-capital, the remainder is implicitly held as cash.
+Output: dict[str, float] mapping ticker -> portfolio weight, summing to
+``target_deployment`` whenever the constraints admit it.  A shortfall is
+always attributable to a named binding constraint and is logged as such.
+
+DJ-132 -- why this is a fixed point and not a pipeline
+------------------------------------------------------
+Until 2026-08-30 the three constraints were applied exactly once each, in
+order, with no recheck.  Each step is individually correct; composing them
+once is not, because every step invalidates the ones before it.  Three
+distinct failures were reproduced on the real 2026-08-24 arm-A basket:
+
+* **The sector cap sent freed weight to cash instead of to names with
+  headroom.**  Seven names in one sector deployed 25.0% of the book and
+  discarded five of the seven picks entirely.  Worse, it inverted the
+  ensemble's ordering: scaling Information Technology down left the
+  highest-conviction name (0.6800) holding 12.66% while a 0.4459-conviction
+  name in an unconstrained sector held 12.68%.  The portfolio ranked the
+  book backwards relative to the signal that produced it.
+* **``_apply_min_position`` ran last and could breach the caps it had just
+  satisfied.**  Redistributing dust pushed one sector to 25.92% against a
+  25.00% cap -- a risk limit silently violated in the returned book.
+* **Nothing consumed ``target_deployment``.**  ``PortfolioPolicy`` emitted
+  it (DJ-131) and the composer never read it, so no layer was responsible
+  for the book actually being invested.
+
+The repair is the same principle as DJ-131 one layer up: a constraint may
+express *do not concentrate*; it may not also silently express *do not
+invest*.  Cash is now only ever the result of a constraint that genuinely
+binds, and the composer says which one.
 
 Transport: stdio MCP (DJ-009).  No SSE/HTTP until Phase 15.
 """
@@ -34,6 +59,25 @@ from mcp.server.fastmcp import FastMCP
 logger = logging.getLogger(__name__)
 
 mcp = FastMCP("hifi-portfolio-composer")
+
+# Tolerance for all constraint comparisons. Loose enough to absorb the float
+# error of repeated proportional redistribution, tight enough that a real
+# breach (the 0.92pp sector overshoot of DJ-132) can never hide inside it.
+TOL = 1e-9
+
+
+class PortfolioConstraintError(RuntimeError):
+    """The composed book violates a constraint, or the solver did not converge.
+
+    Raised rather than returned because there is no safe way to continue: the
+    weights on the table breach a risk limit, and executing them is strictly
+    worse than trading nothing. Callers are expected to catch this, log it,
+    and stand the arm down for the cycle -- not to fall back to a best effort.
+
+    Under the pre-DJ-132 one-pass composer this condition existed and was
+    silent: ``_apply_min_position`` could return a book 0.92pp over its sector
+    cap and nothing anywhere looked again.
+    """
 
 
 # ---------------------------------------------------------------------------
@@ -187,6 +231,248 @@ def _apply_min_position(
     return w
 
 
+def _sector_budgets(
+    sectors: dict[str, str],
+    max_sector: float,
+    existing_weights: dict[str, float] | None,
+    allocating: set[str],
+) -> dict[str, float]:
+    """Weight each sector may still receive, after already-held positions.
+
+    Held names that are not being reallocated consume sector budget (DJ-122),
+    so the budget is the cap less what the Holds already occupy, floored at
+    zero so a sector that is already full can never yield a negative target.
+    """
+    held_by_sector: dict[str, float] = {}
+    for ticker, weight in (existing_weights or {}).items():
+        if ticker in allocating:
+            continue  # already represented in the weights being solved
+        s = sectors.get(ticker, "Unknown")
+        held_by_sector[s] = held_by_sector.get(s, 0.0) + weight
+    return {
+        s: max(0.0, max_sector - held_by_sector.get(s, 0.0))
+        for s in set(sectors.values()) | set(held_by_sector)
+    }
+
+
+def _fill_toward_target(
+    weights: dict[str, float],
+    confidence: dict[str, float],
+    sectors: dict[str, str],
+    max_weight: float,
+    budgets: dict[str, float],
+    target: float,
+) -> dict[str, float]:
+    """Distribute the residual to names that still have headroom.
+
+    This step is what DJ-132 was missing. Capping is subtractive: every cap
+    frees weight, and if nothing puts that weight back the book drifts below
+    its target for reasons no one decided. Here the residual flows to names
+    with room under *both* their own cap and their sector's remaining budget,
+    in proportion to confidence -- so the ensemble's ordering survives the
+    constraints instead of being inverted by them.
+
+    Water-filling: each pass either closes the residual or saturates at least
+    one name, so it terminates in at most ``len(weights)`` effective passes.
+    """
+    w = dict(weights)
+    for _ in range(len(w) + 2):
+        residual = target - sum(w.values())
+        if residual <= TOL:
+            break
+
+        used: dict[str, float] = {}
+        for t, v in w.items():
+            s = sectors.get(t, "Unknown")
+            used[s] = used.get(s, 0.0) + v
+
+        room = {}
+        for t in w:
+            s = sectors.get(t, "Unknown")
+            headroom = min(
+                max_weight - w[t],
+                budgets.get(s, max_weight) - used.get(s, 0.0),
+            )
+            if headroom > TOL:
+                room[t] = headroom
+        if not room:
+            break  # genuinely constrained: the shortfall is real and reportable
+
+        total_conf = sum(confidence.get(t, 0.0) for t in room)
+        if total_conf <= 0:
+            break
+        added = 0.0
+        for t, headroom in room.items():
+            share = residual * confidence.get(t, 0.0) / total_conf
+            delta = min(headroom, share)
+            w[t] += delta
+            added += delta
+        if added <= TOL:
+            break
+    return w
+
+
+def _binding_constraint(
+    weights: dict[str, float],
+    sectors: dict[str, str],
+    max_weight: float,
+    budgets: dict[str, float],
+) -> str:
+    """Name the constraint responsible for a shortfall, for the run log.
+
+    Idle cash must always be attributable (DJ-131). This turns "the book is
+    87% invested" into "the book is 87% invested because Information
+    Technology is at its cap", which is the difference between a reported
+    constraint and a silent defect.
+    """
+    used: dict[str, float] = {}
+    for t, v in weights.items():
+        s = sectors.get(t, "Unknown")
+        used[s] = used.get(s, 0.0) + v
+    full = [s for s, v in used.items() if v >= budgets.get(s, max_weight) - TOL]
+    if full:
+        return f"sector cap reached: {', '.join(sorted(full))}"
+    capped = [t for t, v in weights.items() if v >= max_weight - TOL]
+    if capped:
+        return f"max_single_stock reached on all of: {', '.join(sorted(capped))}"
+    return "no candidate retained headroom"
+
+
+def _verify(
+    weights: dict[str, float],
+    sectors: dict[str, str],
+    max_weight: float,
+    budgets: dict[str, float],
+    min_position: float,
+    target: float,
+) -> None:
+    """Assert the post-conditions the one-pass composer could not guarantee.
+
+    Raises rather than logging: each of these is a risk limit, and a book that
+    breaches one must not reach the broker. The sector check is the one that
+    was live-violated (25.92% against a 25.00% cap, DJ-132).
+    """
+    over = {t: v for t, v in weights.items() if v > max_weight + TOL}
+    if over:
+        raise PortfolioConstraintError(
+            f"max_single_stock={max_weight:.6f} violated by {over}"
+        )
+
+    used: dict[str, float] = {}
+    for t, v in weights.items():
+        s = sectors.get(t, "Unknown")
+        used[s] = used.get(s, 0.0) + v
+    breached = {
+        s: v for s, v in used.items() if v > budgets.get(s, max_weight) + TOL
+    }
+    if breached:
+        detail = {
+            s: (round(v, 6), round(budgets.get(s, max_weight), 6))
+            for s, v in breached.items()
+        }
+        raise PortfolioConstraintError(f"sector budgets violated: {detail}")
+
+    dust = {t: v for t, v in weights.items() if v < min_position - TOL}
+    if dust:
+        raise PortfolioConstraintError(
+            f"min_position={min_position:.6f} violated by {dust}"
+        )
+
+    total = sum(weights.values())
+    if total > target + TOL:
+        raise PortfolioConstraintError(
+            f"deployed {total:.6f} exceeds target_deployment {target:.6f}"
+        )
+
+
+def _solve_to_fixed_point(
+    confidence: dict[str, float],
+    sectors: dict[str, str],
+    max_weight: float,
+    budgets: dict[str, float],
+    min_position: float,
+    target: float,
+) -> dict[str, float]:
+    """Apply every constraint repeatedly until the weights stop moving.
+
+    The four steps are each individually correct and each invalidates the
+    others: capping frees weight, filling can re-breach a cap, and dropping
+    dust redistributes into both. Iterating to a fixed point is what makes
+    "all constraints hold simultaneously" true rather than "each constraint
+    held at the moment it was applied" (DJ-132).
+
+    Termination: ``_apply_min_position`` only ever removes names, so the
+    candidate set is monotonically shrinking and the outer loop can run at
+    most ``n + 2`` times. Exhausting it means the constraint set has no fixed
+    point under this solver, which is a defect, not a market condition --
+    hence the raise rather than a best-effort return.
+    """
+    # Structural infeasibility, checked before any arithmetic: if the dust
+    # threshold sits above the per-name cap, no weight can satisfy both and
+    # every name is dropped. That returns an empty book -- safe, but silent,
+    # and a silent degenerate outcome is the DJ-131 failure mode. Say it
+    # instead. PortfolioPolicy already clamps this; direct callers do not.
+    if min_position > max_weight + TOL:
+        raise PortfolioConstraintError(
+            f"min_position={min_position:.6f} exceeds max_single_stock="
+            f"{max_weight:.6f}: no position can satisfy both"
+        )
+
+    n = len(confidence)
+    total_conf = sum(confidence.values())
+    if total_conf <= 0:
+        return {}
+    w = {t: target * c / total_conf for t, c in confidence.items()}
+
+    for _ in range(n + 2):
+        previous = dict(w)
+
+        w = _apply_stock_cap(w, max_weight)
+        w = _apply_sector_cap_to_budgets(w, sectors, budgets)
+        w = _fill_toward_target(w, confidence, sectors, max_weight, budgets, target)
+        w = _apply_min_position(w, min_position)
+        w = {t: v for t, v in w.items() if v > TOL}
+
+        if set(w) == set(previous) and all(
+            abs(w[t] - previous[t]) <= TOL for t in w
+        ):
+            _verify(w, sectors, max_weight, budgets, min_position, target)
+            return w
+
+    raise PortfolioConstraintError(
+        f"constraint solver did not converge in {n + 2} passes "
+        f"(n={n}, max_single={max_weight:.6f}, min_position={min_position:.6f}, "
+        f"target={target:.6f})"
+    )
+
+
+def _apply_sector_cap_to_budgets(
+    weights: dict[str, float],
+    sectors: dict[str, str],
+    budgets: dict[str, float],
+) -> dict[str, float]:
+    """Scale each sector down to its pre-computed remaining budget.
+
+    Separate from ``_apply_sector_cap`` so the budget is derived once, outside
+    the loop, instead of being recomputed from held positions on every pass.
+    """
+    w = dict(weights)
+    totals: dict[str, float] = {}
+    for t, v in w.items():
+        s = sectors.get(t, "Unknown")
+        totals[s] = totals.get(s, 0.0) + v
+
+    for sector, total in totals.items():
+        budget = budgets.get(sector, 0.0)
+        if total <= budget + TOL:
+            continue
+        scale = (budget / total) if total > 0 else 0.0
+        for t in w:
+            if sectors.get(t, "Unknown") == sector:
+                w[t] *= scale
+    return w
+
+
 # ---------------------------------------------------------------------------
 # MCP tool
 # ---------------------------------------------------------------------------
@@ -201,6 +487,7 @@ def compose_portfolio(
     long_only: bool = True,
     existing_weights: dict[str, float] | None = None,
     existing_sectors: dict[str, str] | None = None,
+    target_deployment: float = 1.0,
 ) -> dict[str, Any]:
     """
     Compose a portfolio from agent signals with constraint enforcement.
@@ -236,13 +523,26 @@ def compose_portfolio(
     existing_sectors : dict[str, str] | None
         Ticker -> sector for ``existing_weights``, since those tickers are not
         in the signal list being allocated.
+    target_deployment : float, default 1.0
+        Fraction of capital to invest. The composer solves *toward* this
+        number and any shortfall is logged with the constraint that caused
+        it. Before DJ-132 nothing here read this field, so no layer owned the
+        question of whether the book was actually invested.
 
     Returns
     -------
     dict
-        ``{"weights": {ticker: weight, ...}}`` on success.
-        ``{}`` (empty weights key) when no actionable signals exist.
-        ``{"error": ..., "detail": ...}`` on parse failure.
+        ``{ticker: weight, ...}`` on success, summing to ``target_deployment``
+        unless a constraint genuinely binds.
+        ``{}`` when no actionable signals exist.
+        ``{"error": ..., "detail": ...}`` on parse failure or on a constraint
+        violation the solver could not resolve.
+
+    Raises
+    ------
+    Never propagates ``PortfolioConstraintError``: it is converted to an
+    ``error`` dict so a single arm's infeasible book stands that arm down for
+    the cycle instead of aborting every other arm's run (DJ-123).
     """
     try:
         raw = json.loads(signals_json)
@@ -276,25 +576,37 @@ def compose_portfolio(
     if not buy_signals:
         return {}
 
-    # Step 2: confidence-proportional initial weights
-    total_conf = sum(s["confidence"] for s in buy_signals)
-    weights: dict[str, float] = {
-        s["ticker"]: s["confidence"] / total_conf for s in buy_signals
-    }
+    confidence: dict[str, float] = {s["ticker"]: s["confidence"] for s in buy_signals}
     sectors: dict[str, str] = {s["ticker"]: s["sector"] for s in buy_signals}
-
-    # Step 3: per-stock cap
-    weights = _apply_stock_cap(weights, max_single_stock)
-
-    # Step 4: sector cap, against the combined book (new + already held)
     if existing_weights:
         for ticker, sector in (existing_sectors or {}).items():
             sectors.setdefault(ticker, sector)
-    weights = _apply_sector_cap(weights, sectors, max_sector, existing_weights)
-    weights = {t: v for t, v in weights.items() if v > 1e-9}
 
-    # Step 5: minimum position
-    weights = _apply_min_position(weights, min_position)
+    budgets = _sector_budgets(
+        sectors, max_sector, existing_weights, allocating=set(confidence)
+    )
+
+    try:
+        weights = _solve_to_fixed_point(
+            confidence=confidence,
+            sectors=sectors,
+            max_weight=max_single_stock,
+            budgets=budgets,
+            min_position=min_position,
+            target=target_deployment,
+        )
+    except PortfolioConstraintError as exc:
+        logger.error("compose_portfolio failed closed: %s", exc)
+        return {"error": "CONSTRAINTS_UNSATISFIABLE", "detail": str(exc)}
+
+    # Idle cash is only ever a reported constraint, never an accident (DJ-131).
+    deployed = sum(weights.values())
+    if deployed < target_deployment - 1e-4:
+        logger.warning(
+            "Deployed %.2f%% of a %.2f%% target across %d name(s): %s",
+            deployed * 100, target_deployment * 100, len(weights),
+            _binding_constraint(weights, sectors, max_single_stock, budgets),
+        )
 
     return weights
 

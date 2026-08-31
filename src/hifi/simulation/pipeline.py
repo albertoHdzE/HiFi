@@ -160,6 +160,9 @@ def run_pipeline(
     max_single_stock = float(constraints.get("max_single_stock", 0.05))
     max_sector = float(constraints.get("max_sector", 0.20))
     min_position = float(constraints.get("min_position", 0.01))
+    # DJ-132: PortfolioPolicy has emitted this since DJ-131 and nothing read
+    # it, so no layer owned whether the book was actually invested.
+    target_deployment = float(constraints.get("target_deployment", 1.0))
     capital = float(constraints.get("capital", 100_000.0))
     current_capital = float(constraints.get("current_capital", 0.0))
 
@@ -193,8 +196,11 @@ def run_pipeline(
         long_only=True,
         existing_weights=existing_weights,
         existing_sectors=existing_sectors,
+        target_deployment=target_deployment,
     )
     if "error" in weights:
+        # Fail closed: an infeasible book stands this arm down for the cycle
+        # rather than executing weights that breach a risk limit (DJ-132).
         logger.error("compose_portfolio error: %s", weights)
         weights = {}
 
