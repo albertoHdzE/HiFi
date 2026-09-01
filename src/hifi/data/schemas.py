@@ -176,6 +176,38 @@ class FundamentalsSnapshot(BaseModel):
     eps: float | None = None
     pe_ratio: float | None = None
     market_cap: float | None = None
+
+    # DJ-134 additions. Every field below was already in the source statements
+    # and was simply never carried into the snapshot, so compute_financial_ratios
+    # and compute_growth_metrics returned None for ev_ebitda, current_ratio,
+    # revenue_growth_yoy, earnings_growth_yoy, gross_margin and operating_margin
+    # on every pass, for every ticker, since Phase 2. Measured 2026-08-31:
+    # ev_ebitda, current_ratio and revenue_growth_yoy absent on 194/194.
+    #
+    # All default to None so existing snapshots (and the walk-forward scaffold)
+    # remain valid; a missing input still yields a missing ratio, never a zero.
+    ebitda: float | None = None
+    cash_and_equivalents: float | None = None
+    current_assets: float | None = None
+    current_liabilities: float | None = None
+    cost_of_revenue: float | None = None
+    operating_income: float | None = None
+    #: Single-quarter figures for the latest reported quarter and the same
+    #: quarter one year earlier. Year-on-year growth is computed from this pair.
+    #:
+    #: Same-quarter comparison is used rather than TTM-against-TTM for two
+    #: reasons. It handles seasonality correctly (a retailer's December against
+    #: the previous December, not against a rolling average), and it needs five
+    #: reported quarters rather than eight. The source serves only about eight
+    #: quarters and the oldest routinely carry NaNs, so on 2026-08-31 a
+    #: TTM-against-TTM definition was computable for 0 of 97 tickers while this
+    #: one is computable for nearly all. One definition applied uniformly beats
+    #: a better definition that silently applies to a subset.
+    revenue_latest_q: float | None = None
+    revenue_year_ago_q: float | None = None
+    net_income_latest_q: float | None = None
+    net_income_year_ago_q: float | None = None
+
     source: str
     fetched_at: datetime
     provenance: ProvenanceRecord

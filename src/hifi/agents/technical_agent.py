@@ -39,6 +39,10 @@ from hifi.observability.tracing import AbstractTracer, get_tracer, trace_context
 logger = logging.getLogger(__name__)
 
 _PROMPT_VERSION = "technical_v1"
+#: CAPM benchmark for beta. SPY is maintained alongside the universe by
+#: run_phase16_live --update-data, so it is always as fresh as the tickers.
+_BENCHMARK = "SPY"
+
 _PROMPT_V2_VERSION = "technical_v2"
 _PROMPT_PATH = Path(__file__).parent / "prompts" / f"{_PROMPT_VERSION}.md"
 _PROMPT_V2_PATH = Path(__file__).parent / "prompts" / f"{_PROMPT_V2_VERSION}.md"
@@ -188,7 +192,9 @@ def call_mcp_tools_node(state: TechnicalAnalystState) -> dict:
     )
     risk_metrics = _call(
         "get_risk_metrics",
-        {"ticker": ticker, "date": as_of_date},
+        # DJ-134: without benchmark_ticker the server returns beta=None, and
+        # beta was missing on 194/194 passes on 2026-08-31 for this reason.
+        {"ticker": ticker, "date": as_of_date, "benchmark_ticker": _BENCHMARK},
     )
 
     return {

@@ -189,12 +189,32 @@ def _load_all_macro() -> dict:
     pattern = str(_data_dir() / "macro" / "*.parquet")
     files = glob.glob(pattern)
     datasets = {}
+    failed: list[str] = []
     for f in files:
         try:
             ds = read_macro(Path(f))
             datasets[ds.series_id] = ds
-        except Exception:
-            logger.warning("Failed to load macro file: %s", f)
+        except Exception as exc:
+            failed.append(f"{Path(f).name}: {exc}")
+
+    # Escalate when files are present but none of them parse. A per-file
+    # warning was not enough: on 2026-08-31 a refresh script rewrote all seven
+    # series with a plain df.to_parquet(), stripping the schema metadata that
+    # read_macro requires. Every file failed, this returned {}, and the macro
+    # agent reported NO_MACRO_DATA and voted Hold on 193 of 194 passes -- a
+    # blind agent presenting as a decisive one, which is the DJ-120 pattern.
+    # "Files exist but none are readable" is a broken data path, not an absence.
+    if failed:
+        logger.error(
+            "Failed to load %d of %d macro file(s): %s",
+            len(failed), len(files), "; ".join(failed[:3]),
+        )
+    if files and not datasets:
+        raise RuntimeError(
+            f"All {len(files)} macro file(s) in {_data_dir() / 'macro'} are "
+            f"unreadable — the data path is broken, not empty. First errors: "
+            f"{'; '.join(failed[:3])}"
+        )
     return datasets
 
 

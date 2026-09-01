@@ -9,6 +9,14 @@
 #   nightly_live_execute.sh                     normal run
 #   nightly_live_execute.sh --check-window      print window verdict, exit 0/1, run nothing
 #   nightly_live_execute.sh --allow-market-hours  run anyway (also: ALLOW_MARKET_HOURS=1)
+#   nightly_live_execute.sh --no-execute          full cycle, agents run, NO orders placed
+#
+# --no-execute exists so a verification run is the production path minus the
+# single --execute flag, rather than something assembled by hand. Running
+# run_phase16_live.py directly skips this script's pre-flight -- notably the
+# LangFuse startup below -- and on 2026-08-31 that silently produced a run with
+# no telemetry at all: the tracer bound to a dead endpoint at import and never
+# recovered, even after the stack came up.
 
 set -uo pipefail
 
@@ -16,14 +24,17 @@ REPO="/Users/alberto/Documents/projects/HiFi"
 UV="/Users/alberto/.local/bin/uv"
 LOG_DIR="${REPO}/data/live/logs"
 LOG="${LOG_DIR}/nightly_$(date +%Y%m%d).log"
+VERIFY_LOG="${LOG_DIR}/verify_$(date +%Y%m%d).log"
 mkdir -p "${LOG_DIR}"
 
 ALLOW_MARKET_HOURS="${ALLOW_MARKET_HOURS:-0}"
 CHECK_ONLY=0
+NO_EXECUTE="${NO_EXECUTE:-0}"
 for arg in "$@"; do
     case "${arg}" in
         --allow-market-hours) ALLOW_MARKET_HOURS=1 ;;
         --check-window)       CHECK_ONLY=1 ;;
+        --no-execute)         NO_EXECUTE=1 ;;
         *) echo "unknown argument: ${arg}" >&2; exit 64 ;;
     esac
 done
@@ -85,6 +96,7 @@ if [ "${CHECK_ONLY}" -eq 1 ]; then
     exit $?
 fi
 
+if [ "${NO_EXECUTE}" = "1" ]; then LOG="${VERIFY_LOG}"; fi
 exec >> "${LOG}" 2>&1
 echo "=== nightly_live_execute $(date '+%Y-%m-%d %H:%M:%S') ==="
 
@@ -131,7 +143,12 @@ curl -s -m 5 http://localhost:3000/api/public/health >/dev/null \
     && echo "LangFuse up — tracing enabled" \
     || echo "WARNING: LangFuse still down; run proceeds, AI telemetry to sidecars only"
 
-"${UV}" run python scripts/run_phase16_live.py --account all --execute
+if [ "${NO_EXECUTE}" = "1" ]; then
+    echo "--no-execute: agents run, pipeline runs, NO orders will be placed."
+    "${UV}" run python scripts/run_phase16_live.py --account all
+else
+    "${UV}" run python scripts/run_phase16_live.py --account all --execute
+fi
 rc=$?
 
 # DJ-130 personality shadow replay (telemetry, not trading — fail-open).

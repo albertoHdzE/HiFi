@@ -18,7 +18,7 @@ DOCKER_ENV_FILE     := docker/langfuse/.env
 	walkforward-smoke walkforward-full walkforward-parallel walkforward-homogeneous \
 	walkforward-no-memory walkforward-held-out walkforward-status walkforward-ic \
 	walkforward-smoke-full walkforward-orchestrate walkforward-pipeline walkforward-report \
-	live-status live-update-data live-dry-run live-execute live-nightly live-snapshot personality-shadow
+	live-status live-update-data live-plan live-dry-run live-execute live-nightly live-snapshot personality-shadow
 
 FINETUNE_VENV := venvs/finetune/bin/python
 
@@ -403,8 +403,11 @@ live-snapshot: ## Capture equity + positions + Alpaca equity curve for all accou
 live-update-data: ## Refresh OHLCV parquets through today via Alpaca (98 tickers)
 	uv run python scripts/run_phase16_live.py --update-data
 
-live-dry-run: ## Nightly cycle for all accounts, no orders placed (requires LM Studio)
+live-plan: ## Print what a cycle WOULD do; runs no agents and no orders (seconds)
 	uv run python scripts/run_phase16_live.py --account all --dry-run
+
+live-dry-run: ## Full cycle, agents included, NO orders placed (hours, requires LM Studio)
+	uv run python scripts/run_phase16_live.py --account all
 
 live-execute: ## Full nightly batch: all accounts, real paper orders (requires LM Studio)
 	uv run python scripts/run_phase16_live.py --account all --execute

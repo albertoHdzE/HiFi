@@ -37,6 +37,10 @@ from hifi.observability.tracing import AbstractTracer, get_tracer, trace_context
 logger = logging.getLogger(__name__)
 
 _PROMPT_VERSION = "risk_v1"
+#: CAPM benchmark for beta. SPY is maintained alongside the universe by
+#: run_phase16_live --update-data, so it is always as fresh as the tickers.
+_BENCHMARK = "SPY"
+
 _PROMPT_PATH = Path(__file__).parent / "prompts" / f"{_PROMPT_VERSION}.md"
 _DEFAULT_RISK_MODEL = MISTRAL_SMALL_32
 _RETRY_MSG = (
@@ -167,7 +171,12 @@ def call_mcp_tools_node(state: RiskAnalystState) -> dict:
 
     risk_metrics = _call(
         "get_risk_metrics",
-        {"ticker": ticker, "date": as_of_date},
+        # DJ-134: benchmark_ticker defaults to None, which makes beta None.
+        # This agent's own contract promises "hist_vol, beta, max_drawdown,
+        # Sharpe, VaR", and beta was absent on 194/194 passes on 2026-08-31
+        # because nobody ever asked for it. compute_beta has existed since
+        # Phase 2; only the argument was missing.
+        {"ticker": ticker, "date": as_of_date, "benchmark_ticker": _BENCHMARK},
     )
 
     return {"tool_results": {"risk_metrics": risk_metrics}}

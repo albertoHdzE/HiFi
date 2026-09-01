@@ -51,7 +51,21 @@ _FIELD_MAP = {
     "total_liabilities": "Total Debt",
     "total_equity": "Stockholders Equity",
     "eps": "Diluted EPS",
+    # DJ-134: present in the statements all along, never carried through.
+    "ebitda": "EBITDA",
+    "cash_and_equivalents": "Cash And Cash Equivalents",
+    "current_assets": "Current Assets",
+    "current_liabilities": "Current Liabilities",
+    "cost_of_revenue": "Cost Of Revenue",
+    "operating_income": "Operating Income",
 }
+
+#: Fields that are flows (summed over four quarters) rather than stocks.
+#: Getting this wrong is how P/S comes out four times too high, and how an
+#: EV/EBITDA multiple silently quadruples.
+_FLOW_FIELDS = frozenset({
+    "revenue", "net_income", "eps", "ebitda", "cost_of_revenue", "operating_income",
+})
 
 
 def _close_on_or_before(ticker: str, as_of_date: str, data_dir: str | Path) -> float | None:
@@ -214,6 +228,26 @@ def build_pointintime_snapshot(
                 return float(sum(vals))
         return None  # fewer than four reported quarters: no honest TTM
 
+    def _nth_reported(field: str, n: int) -> float | None:
+        """The n-th most recent quarter that actually reports ``field`` (0-based).
+
+        Counting reported quarters rather than indexing by date keeps the
+        year-ago comparison aligned when the source omits a quarter, which it
+        routinely does for the oldest rows it serves.
+        """
+        col = _FIELD_MAP[field]
+        if col not in quarters.columns:
+            return None
+        seen = 0
+        for period in newest_first:
+            val = quarters.at[period, col]
+            if val is None or pd.isna(val):
+                continue
+            if seen == n:
+                return float(val)
+            seen += 1
+        return None
+
     shares = None
     if "Ordinary Shares Number" in quarters.columns:
         for period in newest_first:
@@ -245,6 +279,17 @@ def build_pointintime_snapshot(
         eps=eps,
         pe_ratio=None,  # computed by the ratio engine from price and eps
         market_cap=market_cap,
+        # DJ-134
+        ebitda=_flow("ebitda"),
+        cash_and_equivalents=_stock("cash_and_equivalents"),
+        current_assets=_stock("current_assets"),
+        current_liabilities=_stock("current_liabilities"),
+        cost_of_revenue=_flow("cost_of_revenue"),
+        operating_income=_flow("operating_income"),
+        revenue_latest_q=_nth_reported("revenue", 0),
+        revenue_year_ago_q=_nth_reported("revenue", 4),
+        net_income_latest_q=_nth_reported("net_income", 0),
+        net_income_year_ago_q=_nth_reported("net_income", 4),
         source="edgar_pointintime",
         fetched_at=fetched_at,
         provenance=ProvenanceRecord(

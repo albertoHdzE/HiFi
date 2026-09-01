@@ -15,6 +15,22 @@ track the calendar.
 Merge semantics match scripts/refresh_fundamentals.py: union of dates, fresh
 values win on overlap so revisions propagate, existing history never dropped.
 
+MUST use hifi.data.storage.write_macro, never df.to_parquet
+------------------------------------------------------------
+``write_macro`` embeds series_id, name, frequency, unit and provenance in the
+Parquet *schema metadata*, and ``read_macro`` raises without it. The first
+version of this script wrote the files with a plain ``df.to_parquet()``, which
+silently dropped that metadata and changed ``date`` from date32 to timestamp.
+All seven series became unreadable; ``financial_server._load_all_macro``
+swallows the per-file exception with a warning and returns ``{}``; and the
+macro agent then reported NO_MACRO_DATA and voted Hold on 193 of 194 passes on
+2026-08-31, up from 54% Hold on 2026-08-24.
+
+That is the DJ-120 / DJ-133a pattern reproduced by the very script written to
+prevent staleness: an agent blinded by a data-path change, rendering the
+blindness as a confident decision. Round-tripping through read_macro is
+verified below before anything is written.
+
 Usage
 -----
     uv run python scripts/refresh_macro.py [--quiet]
@@ -28,6 +44,7 @@ import argparse
 import logging
 import os
 import sys
+from datetime import UTC, datetime
 from pathlib import Path
 
 logger = logging.getLogger("refresh_macro")
@@ -60,11 +77,15 @@ def _load_env(root: Path) -> None:
 def refresh_series(series_id: str, data_dir: Path, fred, quiet: bool = False) -> dict:
     import pandas as pd
 
+    from hifi.data.macro import SERIES_METADATA
+    from hifi.data.schemas import MacroDataset, MacroIndicator, ProvenanceRecord
+    from hifi.data.storage import read_macro, write_macro
+
     path = data_dir / "macro" / f"{series_id}.parquet"
     existing = None
     if path.exists():
         try:
-            existing = pd.read_parquet(path)
+            existing = pd.read_parquet(path)[["date", "value"]]
         except Exception as exc:
             logger.error("%s: existing parquet unreadable (%s); refusing to clobber",
                          series_id, exc)
@@ -96,8 +117,45 @@ def refresh_series(series_id: str, data_dir: Path, fred, quiet: bool = False) ->
     before = 0 if existing is None else len(existing)
     prev_latest = None if existing is None or existing.empty else existing["date"].max()
 
+    meta = SERIES_METADATA.get(series_id, {})
+    fetched_at = datetime.now(UTC)
+    merged["date"] = pd.to_datetime(merged["date"])
+    dataset = MacroDataset(
+        series_id=series_id,
+        name=meta.get("name", series_id),
+        frequency=meta.get("frequency", "unknown"),
+        unit=meta.get("unit", "unknown"),
+        observations=[
+            MacroIndicator(series_id=series_id, date=r.date.date(), value=float(r.value))
+            for r in merged.itertuples()
+        ],
+        source="FRED",
+        fetched_at=fetched_at,
+        date_from=merged["date"].min().date(),
+        date_to=merged["date"].max().date(),
+        provenance=ProvenanceRecord(
+            source="FRED",
+            fetched_at=fetched_at,
+            parameters={"series_id": series_id},
+        ),
+    )
+
     path.parent.mkdir(parents=True, exist_ok=True)
-    merged.to_parquet(path, index=False)
+    write_macro(dataset, path)
+
+    # Round-trip before declaring success. The defect this guards against was
+    # invisible at write time and only surfaced as an agent voting Hold on
+    # everything three days later.
+    try:
+        back = read_macro(path)
+        if back.series_id != series_id or len(back.observations) != len(merged):
+            raise ValueError(
+                f"round trip mismatch: {back.series_id} "
+                f"{len(back.observations)} vs {len(merged)}"
+            )
+    except Exception as exc:
+        logger.error("%s: WROTE AN UNREADABLE FILE (%s)", series_id, exc)
+        return {"series": series_id, "status": "unreadable_after_write"}
 
     report = {
         "series": series_id,

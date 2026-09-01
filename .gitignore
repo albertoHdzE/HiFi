@@ -238,6 +238,10 @@ data/fundamentals/
 data/knowledge.lance/
 data/runs/
 data/walkforward/
+# DJ-133b news cache. Reproducibility lives in the cache on disk, exactly as it
+# does for data/market and data/macro; committing ~97 files per trading day
+# would add tens of thousands of blobs a year for no gain.
+data/news/
 data/live/
 
 # MCP / tooling caches

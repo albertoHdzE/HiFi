@@ -97,17 +97,39 @@ def compute_financial_ratios(
         pb=_div(snapshot.market_cap, snapshot.total_equity),
         # Price / Sales — requires positive revenue
         ps=_positive_div(snapshot.market_cap, snapshot.revenue),
-        # EV/EBITDA — EBITDA not in Phase 1 snapshot; deferred to Phase 7+
-        ev_ebitda=None,
+        # EV/EBITDA (DJ-134). Enterprise value = market cap + total debt - cash;
+        # it prices the whole business rather than just the equity, which is why
+        # it is the multiple that survives differences in leverage.
+        # Requires positive EBITDA: a negative denominator yields a negative
+        # multiple that reads as "cheap" and is meaningless.
+        ev_ebitda=_positive_div(
+            _enterprise_value(snapshot), snapshot.ebitda
+        ),
         # Return on Equity = net_income / total_equity
         roe=_div(snapshot.net_income, snapshot.total_equity),
         # Return on Assets = net_income / total_assets (assets always positive)
         roa=_positive_div(snapshot.net_income, snapshot.total_assets),
         # Debt / Equity = total_liabilities / total_equity
         debt_equity=_div(snapshot.total_liabilities, snapshot.total_equity),
-        # Current Ratio — current_assets/current_liabilities not in Phase 1
-        current_ratio=None,
+        # Current Ratio (DJ-134) = current assets / current liabilities.
+        current_ratio=_positive_div(
+            snapshot.current_assets, snapshot.current_liabilities
+        ),
     )
+
+
+def _enterprise_value(snapshot: FundamentalsSnapshot) -> float | None:
+    """Market cap + total debt - cash, or None when market cap is unknown.
+
+    Debt and cash are treated as zero when absent rather than voiding the whole
+    figure: a company that reports no debt line genuinely has none to add. Market
+    cap is different -- without it there is no enterprise value at all.
+    """
+    if snapshot.market_cap is None:
+        return None
+    debt = snapshot.total_liabilities or 0.0
+    cash = snapshot.cash_and_equivalents or 0.0
+    return snapshot.market_cap + debt - cash
 
 
 # ---------------------------------------------------------------------------
@@ -131,17 +153,40 @@ def compute_growth_metrics(snapshot: FundamentalsSnapshot) -> GrowthMetricsResul
     -------
     GrowthMetricsResult
     """
+    gross_profit = (
+        snapshot.revenue - snapshot.cost_of_revenue
+        if snapshot.revenue is not None and snapshot.cost_of_revenue is not None
+        else None
+    )
     return GrowthMetricsResult(
-        # Requires two periods — None in Phase 2
-        revenue_growth_yoy=None,
-        earnings_growth_yoy=None,
-        # Gross margin = (revenue - COGS) / revenue — COGS not in snapshot
-        gross_margin=None,
-        # Operating margin = operating_income / revenue — not in snapshot
-        operating_margin=None,
-        # Net margin = net_income / revenue
+        # DJ-134. Same fiscal quarter against the same quarter a year earlier,
+        # which handles seasonality and needs five reported quarters rather than
+        # the eight a TTM-against-TTM comparison would require. Mixing a TTM
+        # numerator with a single-quarter base is the standard way to
+        # manufacture a 300% growth rate; both sides here are single quarters.
+        revenue_growth_yoy=_growth(
+            snapshot.revenue_latest_q, snapshot.revenue_year_ago_q
+        ),
+        earnings_growth_yoy=_growth(
+            snapshot.net_income_latest_q, snapshot.net_income_year_ago_q
+        ),
+        gross_margin=_positive_div(gross_profit, snapshot.revenue),
+        operating_margin=_positive_div(snapshot.operating_income, snapshot.revenue),
         net_margin=_positive_div(snapshot.net_income, snapshot.revenue),
     )
+
+
+def _growth(current: float | None, prior: float | None) -> float | None:
+    """Year-on-year growth rate, or None when it would not be meaningful.
+
+    A non-positive base is rejected rather than divided through. Earnings that
+    move from -100 to +50 do not have a "-150% growth rate"; the sign flip makes
+    the ratio uninterpretable, and feeding one to an LLM invites a confident
+    reading of a number that means nothing.
+    """
+    if current is None or prior is None or prior <= 0:
+        return None
+    return (current - prior) / prior
 
 
 # ---------------------------------------------------------------------------
