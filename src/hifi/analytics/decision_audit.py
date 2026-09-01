@@ -28,9 +28,12 @@ from typing import Any
 
 import pandas as pd
 
+from hifi.agents.roster import VOTING_AGENTS as AGENTS
+
 # Agents that emit a signal, in canonical ensemble order. The contrarian pass
-# reviews the others and contributes no standalone decision.
-AGENTS = ["fundamental", "technical", "risk", "macro", "sentiment"]
+# reviews the others and contributes no standalone decision, so it is excluded
+# here — counting it would bias every diversity statistic in the report.
+# Single definition: hifi.agents.roster (DJ-135).
 
 __all__ = [
     "AGENTS",

@@ -33,6 +33,7 @@ import time
 from datetime import UTC, datetime
 
 from hifi.agents.fundamental_agent import run_analysis
+from hifi.agents.roster import CANONICAL_ORDER as _ALL_AGENTS
 from hifi.agents.technical_agent import run_technical_analysis
 from hifi.collective.performance_store import get_weights
 from hifi.collective.schemas import EnsembleOutput
@@ -121,7 +122,6 @@ def _store_agent_result(
             "Failed to store context for run_id=%s agent=%s: %s", run_id, agent_type, exc
         )
 
-_ALL_AGENTS = ["fundamental", "technical", "risk", "macro", "sentiment", "contrarian"]
 
 
 def _build_graphrag_context(ticker: str, data_dir: str | None) -> str:

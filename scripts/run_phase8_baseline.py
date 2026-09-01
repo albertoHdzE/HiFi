@@ -62,6 +62,7 @@ logging.basicConfig(level=logging.WARNING, format="%(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
 
 from hifi.agents.ensemble_runner import run_ensemble  # noqa: E402
+from hifi.agents.roster import CANONICAL_ORDER  # noqa: E402
 from hifi.data.schemas import FundamentalsSnapshot  # noqa: E402
 
 _AS_OF = "2023-03-31"
@@ -69,17 +70,15 @@ _FETCHED_AT = datetime(2023, 4, 1)
 _BASELINE_DIR = _ROOT / "tests" / "fixtures" / "baseline"
 _OUTPUT_PATH = _BASELINE_DIR / "phase8_agent_population.json"
 
+# The ablation ladder is the roster's own prefixes: each config adds the next
+# agent in canonical order. Expressing it as slices rather than five copied
+# literals means the ladder cannot drift from the roster (DJ-135).
 _CONFIGS: list[tuple[str, list[str]]] = [
-    ("Config 1: fundamental+technical (Phase 6 baseline)",
-     ["fundamental", "technical"]),
-    ("Config 2: + risk",
-     ["fundamental", "technical", "risk"]),
-    ("Config 3: + macro",
-     ["fundamental", "technical", "risk", "macro"]),
-    ("Config 4: + sentiment",
-     ["fundamental", "technical", "risk", "macro", "sentiment"]),
-    ("Config 5: all 6 agents (+ contrarian)",
-     ["fundamental", "technical", "risk", "macro", "sentiment", "contrarian"]),
+    ("Config 1: fundamental+technical (Phase 6 baseline)", CANONICAL_ORDER[:2]),
+    ("Config 2: + risk",                                   CANONICAL_ORDER[:3]),
+    ("Config 3: + macro",                                  CANONICAL_ORDER[:4]),
+    ("Config 4: + sentiment",                              CANONICAL_ORDER[:5]),
+    ("Config 5: all 6 agents (+ contrarian)",              CANONICAL_ORDER[:6]),
 ]
 
 _REFERENCE_SNAPSHOTS: dict[str, dict] = {

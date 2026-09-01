@@ -27,7 +27,7 @@ import statistics
 import sys
 from pathlib import Path
 
-VOTING_AGENTS = ["fundamental", "technical", "risk", "macro", "sentiment"]
+from hifi.agents.roster import VOTING_AGENTS  # noqa: E402
 
 #: Sidecars are keyed by CONDITION, not by arm letter. Arm A runs the
 #: "parallel" ensemble and arm B the "full" sequential one; C and D bypass

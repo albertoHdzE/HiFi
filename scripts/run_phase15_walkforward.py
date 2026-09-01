@@ -91,7 +91,7 @@ _HOMOGENEOUS_ENV = {
 _DEFAULT_OUTPUT_DIR = "data/walkforward"
 _EVAL_CONTEXT_NAMESPACE = "hifi-eval-context"
 _EVAL_EPISODE_NAMESPACE = "hifi-eval"
-_AGENT_TYPES = ["fundamental", "technical", "risk", "macro", "sentiment"]
+from hifi.agents.roster import VOTING_AGENTS as _AGENT_TYPES  # noqa: E402
 
 # EDGAR MD&A namespace for each condition (Wave 2, DJ-097)
 # Dev namespace holds all history; eval namespace is temporally filtered.

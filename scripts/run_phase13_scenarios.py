@@ -33,6 +33,7 @@ logger = logging.getLogger(__name__)
 REPO_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(REPO_ROOT / "src"))
 
+from hifi.agents.roster import VOTING_AGENTS  # noqa: E402
 from hifi.collective.scenarios import PHASE13_SCENARIOS, ScenarioEvaluator  # noqa: E402
 from hifi.data.schemas import FundamentalsSnapshot  # noqa: E402
 
@@ -95,7 +96,7 @@ def main() -> None:
 
     # Contrarian (qwen3.5-35b) excluded — model fails to load in LM Studio (DJ-087).
     # 5-agent subset: fundamental, technical, risk, macro, sentiment.
-    agents = ["fundamental", "technical", "risk", "macro", "sentiment"]
+    agents = list(VOTING_AGENTS)
     print(f"Agents: {agents} (contrarian excluded — LM Studio load failure)")
     print()
 

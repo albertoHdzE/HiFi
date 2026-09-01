@@ -25,11 +25,22 @@ from pathlib import Path
 
 from filelock import FileLock
 
+from hifi.agents.roster import VOTING_AGENTS
 from hifi.collective.schemas import AgentPerformanceHistory, DecisionRecord
 
 _DEFAULT_FILENAME = "agent_performance_history.json"
-_INITIAL_AGENT_TYPES = ("fundamental", "technical", "risk", "macro")
-_INITIAL_WEIGHT = 0.25  # 1/4 uniform — four voting agent types in Phase 9
+
+#: Cold-start weighting, used when no labelled history exists yet.
+#:
+#: This was frozen at Phase 9's four agent types ("fundamental", "technical",
+#: "risk", "macro") at 0.25 each, and never grew when sentiment joined the vote
+#: (DJ-135). The omission was silent and inverted: ``performance_weighted_vote``
+#: falls back to ``weights.get(agent_type, 1.0)``, so an agent *missing* from
+#: this dict is scored at 1.0 — sentiment carried four times the weight of every
+#: other agent on any cold start. Deriving both values from the roster means the
+#: set can no longer drift away from who actually votes.
+_INITIAL_AGENT_TYPES = tuple(VOTING_AGENTS)
+_INITIAL_WEIGHT = 1.0 / len(_INITIAL_AGENT_TYPES)
 
 
 def _history_path(data_dir: str | None) -> Path:
@@ -79,7 +90,7 @@ def compute_weights(records: list[DecisionRecord]) -> dict[str, float]:
 
     Returns uniform weights (_INITIAL_WEIGHT per type) when no labeled records
     exist, or fills missing agent types with _INITIAL_WEIGHT so callers always
-    receive a complete dict for all four canonical agent types.
+    receive a complete dict covering every voting agent.
     """
     labeled = [r for r in records if r.outcome_correct is not None]
     if not labeled:

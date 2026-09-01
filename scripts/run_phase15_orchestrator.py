@@ -63,22 +63,23 @@ _CAPITAL = 500_000.0
 _EVAL_CONTEXT_NAMESPACE = "hifi-eval-context"
 _EDGAR_NAMESPACE = "hifi-dev-sec"
 
-_FINETUNE_MODEL = "qwen2.5-coder-32b"
-_TECHNICAL_FINETUNE_URL = "http://localhost:1235/v1"
-_FUNDAMENTAL_FINETUNE_URL = "http://localhost:1236/v1"
-_FINETUNE_HEALTH_1235 = "http://localhost:1235/health"
-_FINETUNE_HEALTH_1236 = "http://localhost:1236/health"
+# The LM Studio OpenAI-compatible endpoint every agent is served from. There is
+# no second base URL any more: the fine-tune servers on ports 1235 and 1236 were
+# retired with DJ-124 and their fallback branches removed (see _setup_agent_model).
+_LM_STUDIO_URL = "http://localhost:1234/v1"
 
 # Standard model config (full / parallel / no-memory conditions).
-# Tuples: (agent_type, lms_model_id | None, env_var | None, load_timeout_s, ctx_len | None)
+# Tuples: (agent_type, lms_model_id, env_var, load_timeout_s, ctx_len | None)
+# lms_model_id and env_var are REQUIRED. They were optional while a None meant
+# "route to the fine-tune server"; that route is gone (DJ-135).
 # ctx_len: override lms load -c <n>. Gemma 12B's default (~4096) is too small for
 # tickers with long EDGAR passages (prompt + output ≈ 4,357 tokens for AAPL).
-_AGENT_CONFIG: list[tuple[str, str | None, str | None, int, int | None]] = [
+_AGENT_CONFIG: list[tuple[str, str, str, int, int | None]] = [
     # fmt: (agent_type, lms_model_id, env_var, load_timeout_s, ctx_len_override)
     ("fundamental", "llama-3.3-70b-instruct",      "HIFI_FUNDAMENTAL_MODEL", 600, None),
     # Technical runs on the BASE model, not the technical_v2 LoRA (DJ-124).
-    # Setting lms_model_id to None routes this agent to the fine-tuned server on
-    # port 1235; that adapter collapses the agent to a constant.
+    # The adapter, and the fine-tune server that served it, are gone: there is no
+    # longer any value of this field that can reach them (DJ-135).
     #
     # Measured on 2026-08-18, same 15 tickers, same date, same indicators, same
     # prompt — the adapter is the only difference:
@@ -104,7 +105,7 @@ _AGENT_CONFIG: list[tuple[str, str | None, str | None, int, int | None]] = [
 ]
 
 # Homogeneous model config (Phase 13 qwen-dominant baseline, DJ-096).
-_HOMOGENEOUS_AGENT_CONFIG: list[tuple[str, str | None, str | None, int, int | None]] = [
+_HOMOGENEOUS_AGENT_CONFIG: list[tuple[str, str, str, int, int | None]] = [
     ("fundamental", "qwen2.5-coder-32b-instruct-mlx",  "HIFI_FUNDAMENTAL_MODEL", 300, None),
     ("technical",   "qwen2.5-coder-32b-instruct-mlx",  "HIFI_TECHNICAL_MODEL",   300, None),
     ("risk",        "google/gemma-3-4b",                "HIFI_RISK_MODEL",        120, None),
@@ -113,7 +114,9 @@ _HOMOGENEOUS_AGENT_CONFIG: list[tuple[str, str | None, str | None, int, int | No
     ("contrarian",  "mlx-qwen3.5-35b-a3b",             "HIFI_CONTRARIAN_MODEL",  600, None),
 ]
 
-CANONICAL_ORDER = ["fundamental", "technical", "risk", "macro", "sentiment", "contrarian"]
+# Re-exported for run_phase16_live, which imports CANONICAL_ORDER from here.
+# Single definition: hifi.agents.roster (DJ-135).
+from hifi.agents.roster import CANONICAL_ORDER  # noqa: E402
 
 
 # ---------------------------------------------------------------------------
@@ -174,7 +177,7 @@ def _resolve_dates(period: str, start_date: str | None, end_date: str | None) ->
 
 def _agent_config_for_condition(
     condition: str,
-) -> list[tuple[str, str | None, str | None, int, int | None]]:
+) -> list[tuple[str, str, str, int, int | None]]:
     return _HOMOGENEOUS_AGENT_CONFIG if condition == "homogeneous" else _AGENT_CONFIG
 
 
@@ -201,56 +204,6 @@ def _fetch_edgar_context(ticker: str, date: str, db_path: str) -> str:
 # ---------------------------------------------------------------------------
 # Model management helpers
 # ---------------------------------------------------------------------------
-
-
-def _port_is_listening(url: str, timeout_s: int = 3) -> bool:
-    import urllib.request  # noqa: PLC0415
-
-    try:
-        with urllib.request.urlopen(url, timeout=timeout_s) as resp:
-            return resp.status == 200
-    except Exception:
-        return False
-
-
-def _select_served_model(model_ids: list[str], wanted: str) -> str:
-    """Pick the model mlx_lm actually loaded, from a /v1/models listing (DJ-120).
-
-    /v1/models enumerates every model in the shared ~/.cache/huggingface/hub, not
-    just the one this server loaded, so neither position nor name alone is
-    sufficient. Two disambiguating facts:
-
-      - mlx_lm registers the *loaded* model under the absolute local path passed
-        to --model; cache entries appear as "org/name". A local path is therefore
-        strong evidence of the served model.
-      - `wanted` is a short family name, so it can match several cache entries
-        (e.g. the HF original of the same model, which would NOT carry our
-        fine-tuned adapter and would silently produce plausible-but-wrong output).
-
-    Raises LookupError with a diagnostic listing whenever the choice is not
-    unambiguous. Failing loudly is required here: the failure this replaces was
-    silent for a whole night.
-    """
-    needle = wanted.lower()
-    matches = [m for m in model_ids if needle in m.lower()]
-    if not matches:
-        raise LookupError(
-            f"no served model matches {wanted!r}; available={model_ids}"
-        )
-
-    local = [m for m in matches if m.startswith("/")]
-    if len(local) == 1:
-        return local[0]
-    if len(local) > 1:
-        raise LookupError(
-            f"ambiguous: {len(local)} locally-pathed models match {wanted!r}: {local}"
-        )
-    if len(matches) == 1:
-        return matches[0]
-    raise LookupError(
-        f"ambiguous: {len(matches)} models match {wanted!r} and none is a local "
-        f"path (cannot tell which carries the fine-tuned adapter): {matches}"
-    )
 
 
 def _probe_chat_model(base_url: str, model_id: str, timeout: int = 60) -> tuple[str, str]:
@@ -306,85 +259,54 @@ def _probe_chat_model(base_url: str, model_id: str, timeout: int = 60) -> tuple[
 
 def _setup_agent_model(
     agent_type: str,
-    lms_model_id: str | None,
-    env_var: str | None,
+    lms_model_id: str,
+    env_var: str,
     load_timeout: int,
     context_length: int | None = None,
 ) -> bool:
     """
-    Load model and set env vars. Returns True if agent is ready to run.
-    """
-    import urllib.request as _ur  # noqa: PLC0415
+    Load the agent's model in LM Studio and set its env var.
 
+    Returns True if the agent is ready to run.
+
+    There is exactly one way for an agent to get a model: LM Studio serves the
+    name given in ``_AGENT_CONFIG`` on :1234. No fallback exists (DJ-135). If the
+    named model will not load, the pass fails.
+
+    That is a deliberate design constraint, not an omission. This function used
+    to carry two fallbacks to the mlx_lm fine-tune servers on ports 1235/1236,
+    and they were the shape of DJ-124: a substitution that succeeded, returned
+    True, and let the night proceed while the sidecars recorded a model nobody
+    had chosen. A pass that cannot run the model it declares must stop, because
+    an ensemble whose members are silently not the configured members answers a
+    different question than the experiment asked.
+    """
     from hifi.simulation.model_manager import load_model, model_is_loaded  # noqa: PLC0415
 
-    if agent_type == "technical" and lms_model_id is None:
-        ok = _port_is_listening(_FINETUNE_HEALTH_1235)
-        if ok:
-            # mlx_lm server registers the model under its full local path, not the
-            # short LM Studio name. Query /v1/models to get the actual registered ID
-            # so requests are routed to the loaded model instead of triggering a
-            # dynamic HuggingFace download (which would 404 for local-only models).
-            #
-            # Select by NAME, never by position (DJ-120). /v1/models enumerates
-            # every model in the shared ~/.cache/huggingface/hub, not just the one
-            # this server loaded, so data[0] silently changes the moment any other
-            # process downloads a model. On 2026-08-04 a `transformers` job pulled
-            # google/gemma-2-2b-it into that cache; it sorted first, every technical
-            # request was routed to a 2B model that rejects the system role, and the
-            # night died as 98x "404 System role not supported" -> 98x AGGREGATE
-            # FAIL -> no ensemble for arms A and B.
-            try:
-                with _ur.urlopen("http://localhost:1235/v1/models", timeout=5) as _r:
-                    _ids = [m.get("id", "") for m in json.loads(_r.read()).get("data", [])]
-            except Exception as exc:
-                logger.error("port 1235 /v1/models unreachable (%s); technical will fail", exc)
-                return False
-
-            try:
-                _registered_id = _select_served_model(_ids, _FINETUNE_MODEL)
-            except LookupError as exc:
-                logger.error("Technical model selection failed on port 1235: %s. "
-                             "Aborting the pass rather than routing 98 tickers to the "
-                             "wrong model.", exc)
-                return False
-
-            _status, _detail = _probe_chat_model(_TECHNICAL_FINETUNE_URL, _registered_id)
-            if _status == "unusable":
-                logger.error("Technical model %s is served but unusable: %s. "
-                             "Aborting the pass.", _registered_id, _detail)
-                return False
-            if _status == "inconclusive":
-                # Cold 32B weights or a busy GPU. Not evidence of a wrong model.
-                logger.warning("Technical model %s probe inconclusive (%s); proceeding.",
-                               _registered_id, _detail)
-
-            os.environ["HIFI_TECHNICAL_FINETUNE_URL"] = _TECHNICAL_FINETUNE_URL
-            os.environ["HIFI_TECHNICAL_MODEL"] = _registered_id
-            logger.info("Technical fine-tuned server ready (port 1235, model=%s, probe=%s)",
-                        _registered_id, _status)
-        else:
-            logger.warning("port 1235 not healthy; technical passes will fail")
-        return ok
-
-    assert lms_model_id is not None
+    assert lms_model_id is not None, (
+        f"{agent_type} names no model in _AGENT_CONFIG. Every agent must declare "
+        "the model it runs on; a None here used to mean 'route to the fine-tune "
+        "server', which is exactly the substitution DJ-124 recorded."
+    )
     assert env_var is not None
 
-    # An agent routed to a named LM Studio model must never also carry a
-    # fine-tune URL (DJ-124). technical_agent reads HIFI_TECHNICAL_FINETUNE_URL
-    # unconditionally, so a value left in the environment by an earlier pass, a
-    # shell export or a stale .env would silently send every request back to the
-    # rejected adapter while the logs claimed the base model was in use.
-    if agent_type == "technical":
-        stale = os.environ.pop("HIFI_TECHNICAL_FINETUNE_URL", None)
+    # No agent may carry a fine-tune URL (DJ-124, DJ-135). The agents read
+    # HIFI_{AGENT}_FINETUNE_URL unconditionally, so a value left by a shell
+    # export or a stale .env would silently send every request to a retired
+    # adapter while the logs claimed the configured model was in use. Nothing in
+    # this file sets these any more; the scrub defends against the environment.
+    for _stale_var in (f"HIFI_{agent_type.upper()}_FINETUNE_URL",
+                       f"HIFI_{agent_type.upper()}_FINETUNE_MODEL"):
+        stale = os.environ.pop(_stale_var, None)
         if stale:
-            logger.warning("Cleared HIFI_TECHNICAL_FINETUNE_URL=%s; technical runs on "
-                           "the base model (DJ-124)", stale)
+            logger.warning("Cleared %s=%s; %s runs on the configured LM Studio "
+                           "model %s (DJ-124)", _stale_var, stale, agent_type,
+                           lms_model_id)
 
     if model_is_loaded(lms_model_id):
         os.environ[env_var] = lms_model_id
         logger.info("Model already loaded: %s", lms_model_id)
-        return True
+        return _probe_or_fail(agent_type, lms_model_id)
 
     # Evict stale models before loading (handles variant IDs that substring-match
     # at detection but fail to unload, e.g. mlx-qwen3.5-35b-a3b-claude-4.6-opus-
@@ -400,27 +322,41 @@ def _setup_agent_model(
     if ok:
         os.environ[env_var] = lms_model_id
         logger.info("Loaded %s (%ds)", lms_model_id, elapsed)
-        return True
+        return _probe_or_fail(agent_type, lms_model_id)
 
-    # Fundamental-only fallback to fine-tuned server (port 1236)
-    if agent_type == "fundamental":
-        ft_ok = _port_is_listening(_FINETUNE_HEALTH_1236)
-        if ft_ok:
-            # Set BOTH env vars — old smoke test only set FINETUNE_URL (bug fix, DJ-109)
-            os.environ["HIFI_FUNDAMENTAL_FINETUNE_URL"] = _FUNDAMENTAL_FINETUNE_URL
-            os.environ["HIFI_FUNDAMENTAL_FINETUNE_MODEL"] = _FINETUNE_MODEL
-            os.environ["HIFI_FUNDAMENTAL_MODEL"] = _FINETUNE_MODEL
-            logger.info(
-                "Fundamental FALLBACK: using fine-tuned server port 1236 (%s)",
-                _FINETUNE_MODEL,
-            )
-            return True
-
-    logger.warning(
-        "Failed to load %s (%ds); passes for %s will fail",
+    logger.error(
+        "Failed to load %s (%ds); %s passes are ABORTED. No substitute model is "
+        "used: an ensemble member running an unchosen model is worse than a "
+        "missing one, because the sidecar would look valid.",
         lms_model_id, elapsed, agent_type,
     )
     return False
+
+
+def _probe_or_fail(agent_type: str, model_id: str) -> bool:
+    """Confirm the loaded model answers a system+user request before the sweep.
+
+    DJ-120's second lesson, generalised. The 2026-08-04 outage was a model that
+    was *served and healthy* but rejected the system role; we learned it 98
+    identical 404s later, after the night was already lost. One probe of
+    ``max_tokens=1`` costs under a second and converts that into an immediate
+    abort. Previously this guard ran only against the fine-tune servers — the
+    path that has since been retired — leaving the path that actually runs every
+    night unprotected.
+
+    Only positive evidence of wrongness aborts: an inconclusive probe (cold 32B
+    weights, busy GPU) warns and proceeds. See ``_probe_chat_model``.
+    """
+    status, detail = _probe_chat_model(_LM_STUDIO_URL, model_id)
+    if status == "unusable":
+        logger.error("%s model %s is served but unusable: %s. Aborting the pass "
+                     "rather than routing every ticker at a model that will "
+                     "refuse them.", agent_type, model_id, detail)
+        return False
+    if status == "inconclusive":
+        logger.warning("%s model %s probe inconclusive (%s); proceeding.",
+                       agent_type, model_id, detail)
+    return True
 
 
 # ---------------------------------------------------------------------------

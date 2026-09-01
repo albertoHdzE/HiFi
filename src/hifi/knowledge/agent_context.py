@@ -27,18 +27,14 @@ from pathlib import Path
 import pyarrow as pa
 from pydantic import BaseModel
 
+from hifi.agents.roster import CANONICAL_ORDER
 from hifi.knowledge.namespaced_store import NamespacedLanceDB
 
 logger = logging.getLogger(__name__)
 
-CANONICAL_ORDER: list[str] = [
-    "fundamental",
-    "technical",
-    "risk",
-    "macro",
-    "sentiment",
-    "contrarian",
-]
+# CANONICAL_ORDER is imported, not defined, above: it is re-exported here so that
+# existing callers of ``agent_context.CANONICAL_ORDER`` keep working. The single
+# definition lives in hifi.agents.roster (DJ-135).
 
 _SCHEMA = pa.schema(
     [
