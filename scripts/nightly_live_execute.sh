@@ -10,6 +10,7 @@
 #   nightly_live_execute.sh --check-window      print window verdict, exit 0/1, run nothing
 #   nightly_live_execute.sh --allow-market-hours  run anyway (also: ALLOW_MARKET_HOURS=1)
 #   nightly_live_execute.sh --no-execute          full cycle, agents run, NO orders placed
+#   nightly_live_execute.sh --smoke               22-ticker universe instead of 97
 #
 # --no-execute exists so a verification run is the production path minus the
 # single --execute flag, rather than something assembled by hand. Running
@@ -30,11 +31,15 @@ mkdir -p "${LOG_DIR}"
 ALLOW_MARKET_HOURS="${ALLOW_MARKET_HOURS:-0}"
 CHECK_ONLY=0
 NO_EXECUTE="${NO_EXECUTE:-0}"
+# Passed through to hifi_live.py. Kept as a variable rather than a second
+# invocation so the dry and real paths still differ only by --execute.
+SMOKE=""
 for arg in "$@"; do
     case "${arg}" in
         --allow-market-hours) ALLOW_MARKET_HOURS=1 ;;
         --check-window)       CHECK_ONLY=1 ;;
         --no-execute)         NO_EXECUTE=1 ;;
+        --smoke)              SMOKE="--smoke" ;;
         *) echo "unknown argument: ${arg}" >&2; exit 64 ;;
     esac
 done
@@ -145,9 +150,9 @@ curl -s -m 5 http://localhost:3000/api/public/health >/dev/null \
 
 if [ "${NO_EXECUTE}" = "1" ]; then
     echo "--no-execute: agents run, pipeline runs, NO orders will be placed."
-    "${UV}" run python scripts/hifi_live.py --account all
+    "${UV}" run python scripts/hifi_live.py --account all ${SMOKE}
 else
-    "${UV}" run python scripts/hifi_live.py --account all --execute
+    "${UV}" run python scripts/hifi_live.py --account all ${SMOKE} --execute
 fi
 rc=$?
 
