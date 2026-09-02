@@ -27,6 +27,30 @@ import pytest
 from hifi.data import refresh
 
 
+@pytest.fixture(autouse=True)
+def _isolated_registry(tmp_path, monkeypatch):
+    """Keep the dataset registry out of the real data/ tree.
+
+    ``_register`` constructs ``DatasetRegistry()`` with its default path, which
+    resolves to the repository's own data/registry.json. Without this, running
+    these tests writes provenance entries whose file_path points into
+    /tmp/pytest-of-... — polluting the reproducibility record with rows that
+    describe files no longer on disk.
+
+    Patching ``versioning._DEFAULT_REGISTRY_PATH`` does NOT work: it is bound
+    as a default argument at class-definition time. The redirection has to
+    happen where the class is used.
+    """
+    import functools
+
+    from hifi.data.versioning import DatasetRegistry
+
+    monkeypatch.setattr(
+        refresh, "DatasetRegistry",
+        functools.partial(DatasetRegistry, path=tmp_path / "registry.json"))
+    return tmp_path / "registry.json"
+
+
 def _quarterly(periods: list[str], revenue_base: float = 100.0) -> pd.DataFrame:
     idx = pd.to_datetime(periods)
     return pd.DataFrame(
@@ -267,16 +291,15 @@ class TestMacroMerge:
 
 
 class TestRegistryIsWrittenButNeverBlocking:
-    def test_a_refresh_records_a_content_hash(self, tmp_path, monkeypatch):
+    def test_a_refresh_records_a_content_hash(self, tmp_path, _isolated_registry):
         """§4.5 reproducibility: a hash says what is in a file, not when it was
         touched. FRED revises history in place, so two refreshes that "changed
         nothing" but hash differently are the only way to notice."""
-        monkeypatch.chdir(tmp_path)
         fred = _Fred(_fred_series(["2026-07-01"], [4.1]))
         refresh.refresh_series("GS10", tmp_path, fred, quiet=True)
 
         from hifi.data.versioning import DatasetRegistry
-        entry = DatasetRegistry().lookup("macro/GS10")
+        entry = DatasetRegistry(path=_isolated_registry).lookup("macro/GS10")
         assert entry is not None and entry.content_hash
 
     def test_an_unwritable_registry_does_not_fail_the_refresh(self, tmp_path, caplog):

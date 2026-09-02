@@ -236,3 +236,37 @@ class TestEveryArmsDependenciesAreDeclared:
                 importlib.import_module("riskbudget.mcp_server")
             else:
                 pytest.fail(f"arm {arm} has an unrecognised condition {condition!r}")
+
+
+class TestTheSuiteDoesNotWriteIntoTheRealDataTree:
+    """A test that writes into data/ corrupts the thing it is verifying.
+
+    Found during DJ-136: hifi.data.refresh._register constructs
+    DatasetRegistry() with its default path, which resolves to the repository's
+    own data/registry.json. The refresh tests therefore wrote provenance rows
+    whose file_path pointed into /tmp/pytest-of-... — entries describing files
+    that no longer exist, in the artefact that backs the reproducibility claim.
+
+    Redirecting it needed the patch at the USE site: DatasetRegistry binds its
+    default path as a default argument at class-definition time, so patching
+    versioning._DEFAULT_REGISTRY_PATH has no effect. That is the kind of thing
+    a guard notices and a reader does not.
+    """
+
+    #: Files under data/ that a test run must never create or modify.
+    _PROTECTED = ("registry.json",)
+
+    def test_no_stray_registry_after_the_suite(self):
+        for name in self._PROTECTED:
+            path = _REPO / "data" / name
+            if not path.exists():
+                continue
+            import json
+            entries = json.loads(path.read_text())
+            rows = entries if isinstance(entries, list) else entries.values()
+            tmp_rows = [r for r in rows
+                        if "pytest-of-" in str(r.get("file_path", ""))]
+            assert not tmp_rows, (
+                f"data/{name} contains {len(tmp_rows)} entries pointing at "
+                "pytest temp directories; a test wrote into the real data tree"
+            )
