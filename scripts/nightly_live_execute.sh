@@ -13,7 +13,7 @@
 #
 # --no-execute exists so a verification run is the production path minus the
 # single --execute flag, rather than something assembled by hand. Running
-# run_phase16_live.py directly skips this script's pre-flight -- notably the
+# hifi_live.py directly skips this script's pre-flight -- notably the
 # LangFuse startup below -- and on 2026-08-31 that silently produced a run with
 # no telemetry at all: the tracer bound to a dead endpoint at import and never
 # recovered, even after the stack came up.
@@ -145,9 +145,9 @@ curl -s -m 5 http://localhost:3000/api/public/health >/dev/null \
 
 if [ "${NO_EXECUTE}" = "1" ]; then
     echo "--no-execute: agents run, pipeline runs, NO orders will be placed."
-    "${UV}" run python scripts/run_phase16_live.py --account all
+    "${UV}" run python scripts/hifi_live.py --account all
 else
-    "${UV}" run python scripts/run_phase16_live.py --account all --execute
+    "${UV}" run python scripts/hifi_live.py --account all --execute
 fi
 rc=$?
 

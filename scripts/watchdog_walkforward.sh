@@ -89,7 +89,7 @@ next_condition() {
 # ── orchestrator management ───────────────────────────────────────────────────
 
 orchestrator_running() {
-    pgrep -f "run_phase15_orchestrator" >/dev/null 2>&1
+    pgrep -f "hifi_walkforward" >/dev/null 2>&1
 }
 
 start_orchestrator() {
@@ -98,7 +98,7 @@ start_orchestrator() {
     lm_studio_alive || { log "ERROR: LM Studio (port 1234) not responding"; return 1; }
     start_finetune_server
     cd "$PROJECT"
-    nohup uv run python scripts/run_phase15_orchestrator.py \
+    nohup uv run python scripts/hifi_walkforward.py \
         --agent all --aggregate --pipeline \
         --condition "$cond" --period "$PERIOD" --quiet \
         >> "$logf" 2>&1 &
@@ -132,7 +132,7 @@ PROG=$(progress_summary "$NEXT")
 log "condition=${NEXT} | ${PROG}"
 
 if orchestrator_running; then
-    PIDS=$(pgrep -f "run_phase15_orchestrator" | tr '\n' ',' | sed 's/,$//')
+    PIDS=$(pgrep -f "hifi_walkforward" | tr '\n' ',' | sed 's/,$//')
     log "Orchestrator RUNNING (PIDs=${PIDS})"
 else
     log "Orchestrator NOT running — starting for condition=${NEXT}"

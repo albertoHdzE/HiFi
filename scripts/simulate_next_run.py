@@ -65,13 +65,10 @@ def _latest_signal_date(account: str, data_dir: str) -> str | None:
 
 def simulate(account: str, date: str | None, data_dir: str) -> dict | None:
     """Return a preview dict for one account, or None when not simulable."""
-    from run_phase16_live import (
-        _get_sectors,
-        _get_tickers,
-        get_executor,
-        load_ensemble_signals,
-        run_mcp_pipeline,
-    )
+    from hifi.live.accounts import get_executor
+    from hifi.live.cycle import run_mcp_pipeline
+    from hifi.live.ensemble import load_ensemble_signals
+    from hifi.live.paths import _get_sectors, _get_tickers
 
     condition = _CONDITION[account]
     tickers = _get_tickers(smoke=False)

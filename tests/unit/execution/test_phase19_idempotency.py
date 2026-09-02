@@ -15,16 +15,11 @@ DJ-129c  Breakers re-evaluate immediately before submission.
 from __future__ import annotations
 
 import json
-import sys
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-_SCRIPTS = Path(__file__).resolve().parents[3] / "scripts"
-sys.path.insert(0, str(_SCRIPTS))
-
-import run_phase16_live as live  # noqa: E402
+from hifi.live import accounts, cycle, guards, market, paths, strategies  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # DJ-129a: deterministic client_order_id
@@ -33,14 +28,14 @@ import run_phase16_live as live  # noqa: E402
 
 class TestClientId:
     def test_deterministic_and_side_aware(self):
-        a = live._client_order_id("A", "2026-08-21", "AAPL", "buy")
-        assert a == live._client_order_id("A", "2026-08-21", "AAPL", "buy")
-        assert a != live._client_order_id("A", "2026-08-21", "AAPL", "sell")
-        assert a != live._client_order_id("B", "2026-08-21", "AAPL", "buy")
-        assert a != live._client_order_id("A", "2026-08-22", "AAPL", "buy")
+        a = accounts._client_order_id("A", "2026-08-21", "AAPL", "buy")
+        assert a == accounts._client_order_id("A", "2026-08-21", "AAPL", "buy")
+        assert a != accounts._client_order_id("A", "2026-08-21", "AAPL", "sell")
+        assert a != accounts._client_order_id("B", "2026-08-21", "AAPL", "buy")
+        assert a != accounts._client_order_id("A", "2026-08-22", "AAPL", "buy")
 
     def test_alpaca_charset_and_length(self):
-        coid = live._client_order_id("D", "2026-08-21", "BRK-B", "sell")
+        coid = accounts._client_order_id("D", "2026-08-21", "BRK-B", "sell")
         assert len(coid) <= 48
         assert all(c.isalnum() or c in "-" for c in coid)
 
@@ -118,9 +113,9 @@ class TestExecuteOrdersIdempotency:
         ex.place_market_order.return_value = result
         # AAPL was already submitted by the crashed attempt.
         ex.get_client_order_ids.return_value = {
-            live._client_order_id("A", "2026-08-21", "AAPL", "buy")}
+            accounts._client_order_id("A", "2026-08-21", "AAPL", "buy")}
 
-        out = live.execute_orders(
+        out = cycle.execute_orders(
             self._snapshot(["AAPL", "MSFT"]), ex,
             dry_run=False, account="A", date="2026-08-21")
 
@@ -132,14 +127,14 @@ class TestExecuteOrdersIdempotency:
         call = submitted[0]
         assert call.args[:3] == ("MSFT", 1.0, "buy")
         assert call.kwargs["client_order_id"] == \
-            live._client_order_id("A", "2026-08-21", "MSFT", "buy")
+            accounts._client_order_id("A", "2026-08-21", "MSFT", "buy")
 
     def test_prefetch_failure_fails_closed_before_any_submit(self):
         ex = MagicMock()
         ex.get_client_order_ids.side_effect = RuntimeError("broker unreachable")
 
         with pytest.raises(RuntimeError):
-            live.execute_orders(
+            cycle.execute_orders(
                 self._snapshot(["AAPL"]), ex,
                 dry_run=False, account="A", date="2026-08-21")
 
@@ -151,7 +146,7 @@ class TestExecuteOrdersIdempotency:
         result = MagicMock(status="accepted", order_id="o", filled_avg_price=None)
         ex.place_market_order.return_value = result
 
-        out = live.execute_orders(self._snapshot(["JPM"]), ex, dry_run=False)
+        out = cycle.execute_orders(self._snapshot(["JPM"]), ex, dry_run=False)
 
         ex.get_client_order_ids.assert_not_called()
         call = ex.place_market_order.call_args
@@ -162,7 +157,7 @@ class TestExecuteOrdersIdempotency:
 
 
 class TestControlStrategyIdempotency:
-    @patch.object(live, "_latest_prices")
+    @patch.object(market, "_latest_prices")
     def test_duplicate_skipped_without_double_spend(self, mock_prices):
         mock_prices.return_value = {"AAPL": 100.0, "MSFT": 200.0}
         ex = MagicMock()
@@ -174,9 +169,9 @@ class TestControlStrategyIdempotency:
         result.filled_avg_price = None
         ex.place_market_order.return_value = result
         ex.get_client_order_ids.return_value = {
-            live._client_order_id("C", "2026-08-21", "AAPL", "buy")}
+            accounts._client_order_id("C", "2026-08-21", "AAPL", "buy")}
 
-        out = live.run_control_strategy(["AAPL", "MSFT"], ex, dry_run=False,
+        out = strategies.run_control_strategy(["AAPL", "MSFT"], ex, dry_run=False,
                                         account="C", date="2026-08-21")
 
         by_ticker = {o["ticker"]: o for o in out}
@@ -185,7 +180,7 @@ class TestControlStrategyIdempotency:
         # Only MSFT was actually submitted.
         assert ex.place_market_order.call_count == 1
 
-    @patch.object(live, "_latest_prices")
+    @patch.object(market, "_latest_prices")
     def test_dry_run_never_touches_id_lookup(self, mock_prices):
         mock_prices.return_value = {"AAPL": 100.0}
         ex = MagicMock()
@@ -193,7 +188,7 @@ class TestControlStrategyIdempotency:
         ex.get_account_cash.return_value = 10_000.0
         ex.get_positions.return_value = {}
 
-        live.run_control_strategy(["AAPL"], ex, dry_run=True)
+        strategies.run_control_strategy(["AAPL"], ex, dry_run=True)
 
         ex.get_client_order_ids.assert_not_called()
 
@@ -211,35 +206,35 @@ class TestHighWaterMark:
         (d / "equity.jsonl").write_text(rows)
 
     def test_ratchets_up_and_persists_across_restart(self, tmp_path, monkeypatch):
-        monkeypatch.setattr(live, "_account_dir", lambda a: tmp_path / a)
-        monkeypatch.setattr(live, "_DATA_DIR", str(tmp_path))
+        monkeypatch.setattr(paths, "_account_dir", lambda a: tmp_path / a)
+        monkeypatch.setattr(paths, "_DATA_DIR", str(tmp_path))
         self._equity_history(tmp_path, "A", [100_000.0])
 
-        h1 = live.update_hwm("A", current_equity=105_000.0)
+        h1 = accounts.update_hwm("A", current_equity=105_000.0)
         assert h1 == pytest.approx(105_000.0)
         # A "restart" is a fresh call reading only what was persisted.
-        h2 = live.update_hwm("A", current_equity=95_000.0)
+        h2 = accounts.update_hwm("A", current_equity=95_000.0)
         assert h2 == pytest.approx(105_000.0), "a falling market must not lower HWM"
 
         stored = json.loads((tmp_path / "A" / "hwm.json").read_text())
         assert stored["hwm"] == pytest.approx(105_000.0)
 
     def test_seeds_from_historical_max_when_file_missing(self, tmp_path, monkeypatch):
-        monkeypatch.setattr(live, "_account_dir", lambda a: tmp_path / a)
-        monkeypatch.setattr(live, "_DATA_DIR", str(tmp_path))
+        monkeypatch.setattr(paths, "_account_dir", lambda a: tmp_path / a)
+        monkeypatch.setattr(paths, "_DATA_DIR", str(tmp_path))
         self._equity_history(tmp_path, "A", [90_000.0, 110_000.0, 98_000.0])
 
         # First run after the fix, at today's depressed equity: the breaker
         # must still know about the old $110k peak, not reset to today.
-        hwm = live.update_hwm("A", current_equity=98_000.0)
+        hwm = accounts.update_hwm("A", current_equity=98_000.0)
         assert hwm == pytest.approx(110_000.0)
 
     def test_drawdown_breacher_now_reachable_end_to_end(self, tmp_path, monkeypatch):
         """The wire this phase exists to repair: real HWM vs today's equity."""
-        monkeypatch.setattr(live, "_account_dir", lambda a: tmp_path / a)
-        monkeypatch.setattr(live, "_DATA_DIR", str(tmp_path))
+        monkeypatch.setattr(paths, "_account_dir", lambda a: tmp_path / a)
+        monkeypatch.setattr(paths, "_DATA_DIR", str(tmp_path))
         self._equity_history(tmp_path, "A", [100_000.0])
-        live.update_hwm("A", current_equity=100_000.0)
+        accounts.update_hwm("A", current_equity=100_000.0)
 
         from hifi.mcp.risk_manager import max_drawdown_breached
         # -16% from the peak must trip; the old caller passed hwm=pv so this
@@ -255,21 +250,21 @@ class TestHighWaterMark:
 
 class TestPreSubmitHalt:
     def test_trips_before_submission_and_records_account(self, tmp_path, monkeypatch):
-        monkeypatch.setattr(live, "_account_dir", lambda a: tmp_path / a)
+        monkeypatch.setattr(paths, "_account_dir", lambda a: tmp_path / a)
         ex = MagicMock()
-        with patch.object(live, "check_circuit_breakers", return_value=True), \
+        with patch.object(guards, "check_circuit_breakers", return_value=True), \
              patch("hifi.execution.portfolio_recorder.record_account") as rec:
-            halted = live._halt_before_submit("A", ex, is_dry=False,
+            halted = guards._halt_before_submit("A", ex, is_dry=False,
                                               date="2026-08-21")
         assert halted is True
         assert rec.called
         ex.disconnect.assert_called_once()
 
     def test_dry_run_never_halts(self):
-        with patch.object(live, "check_circuit_breakers") as chk:
-            assert live._halt_before_submit("A", MagicMock(), True, "d") is False
+        with patch.object(guards, "check_circuit_breakers") as chk:
+            assert guards._halt_before_submit("A", MagicMock(), True, "d") is False
         chk.assert_not_called()
 
     def test_healthy_book_proceeds(self):
-        with patch.object(live, "check_circuit_breakers", return_value=False):
-            assert live._halt_before_submit("A", MagicMock(), False, "d") is False
+        with patch.object(guards, "check_circuit_breakers", return_value=False):
+            assert guards._halt_before_submit("A", MagicMock(), False, "d") is False

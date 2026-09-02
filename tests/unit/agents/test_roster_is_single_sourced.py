@@ -37,7 +37,7 @@ class TestRosterContent:
         )
 
     def test_voting_agents_is_canonical_order_minus_the_reviewer(self):
-        assert VOTING_AGENTS == [a for a in CANONICAL_ORDER if a != NON_VOTING]
+        assert [a for a in CANONICAL_ORDER if a != NON_VOTING] == VOTING_AGENTS
         assert len(VOTING_AGENTS) == 5
 
     def test_roster_has_no_duplicates(self):
@@ -62,10 +62,10 @@ class TestEveryConsumerAgrees:
 
         assert decision_audit.AGENTS is VOTING_AGENTS
 
-    def test_orchestrator_runs_all_six_passes(self):
-        import run_phase15_orchestrator as orch
+    def test_live_ensemble_runs_all_six_passes(self):
+        from hifi.live import ensemble
 
-        assert orch.CANONICAL_ORDER is CANONICAL_ORDER
+        assert ensemble.CANONICAL_ORDER is CANONICAL_ORDER
 
     def test_walkforward_scores_only_voters(self):
         import run_phase15_walkforward as wf
@@ -77,11 +77,11 @@ class TestEveryConsumerAgrees:
 
         assert ver.VOTING_AGENTS is VOTING_AGENTS
 
-    def test_orchestrator_config_covers_every_agent_in_the_roster(self):
-        import run_phase15_orchestrator as orch
+    def test_model_config_covers_every_agent_in_the_roster(self):
+        from hifi.live import models
 
         for cfg_name in ("_AGENT_CONFIG", "_HOMOGENEOUS_AGENT_CONFIG"):
-            configured = [row[0] for row in getattr(orch, cfg_name)]
+            configured = [row[0] for row in getattr(models, cfg_name)]
             assert configured == CANONICAL_ORDER, (
                 f"{cfg_name} does not match the roster; an agent in the roster "
                 "with no model config would be skipped without comment"

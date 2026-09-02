@@ -21,16 +21,12 @@ path exists any more.
 
 from __future__ import annotations
 
-import sys
 from pathlib import Path
 from unittest.mock import patch
 
 import pytest
 
-_SCRIPTS = Path(__file__).resolve().parents[2] / "scripts"
-sys.path.insert(0, str(_SCRIPTS))
-
-import run_phase15_orchestrator as orch  # noqa: E402
+from hifi.live import models as orch
 
 LM = "http://localhost:1234/v1"
 MODEL = "qwen2.5-coder-32b-instruct-mlx"
@@ -149,7 +145,7 @@ class TestNoModelSubstitution:
         for var in ("HIFI_FUNDAMENTAL_FINETUNE_URL", "HIFI_TECHNICAL_FINETUNE_URL",
                     "HIFI_FUNDAMENTAL_FINETUNE_MODEL"):
             assert f'os.environ["{var}"] =' not in src, (
-                f"{var} is assigned somewhere in the orchestrator; the only "
+                f"{var} is assigned somewhere in hifi.live.models; the only "
                 "permitted operation on a fine-tune env var is os.environ.pop"
             )
 

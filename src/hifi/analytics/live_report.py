@@ -24,14 +24,24 @@ from pathlib import Path
 import pandas as pd
 
 from hifi.execution.portfolio_recorder import load_equity_curve, load_returns
+from hifi.live.accounts import _ACCOUNTS
 
-# Arm registry mirrors run_phase16_live._ACCOUNTS (kept local to avoid importing
-# the script). label + LLM flag + walk-forward condition for sidecar lookup.
+# Arm registry. ``condition`` is NOT restated here: it is the key used to locate
+# each arm's agent sidecars, so a copy that drifted from the runner would make
+# this report describe arm B's decisions under arm A's name — a silent, and
+# publishable, error. It is read from the runner's own account table (DJ-135).
+#
+# ``label`` and ``llm`` are display concerns of the report and stay local; the
+# runner's labels are written for operators reading a log, not for a figure.
+_LABELS: dict[str, tuple[str, bool]] = {
+    "A": ("parallel ensemble (champion)", True),
+    "B": ("full sequential (herding contrast)", True),
+    "C": ("equal-weight control (null model)", False),
+    "D": ("riskbudget calm_exposure (quant)", False),
+}
 ARMS: dict[str, dict] = {
-    "A": {"label": "parallel ensemble (champion)", "llm": True, "condition": "parallel"},
-    "B": {"label": "full sequential (herding contrast)", "llm": True, "condition": "full"},
-    "C": {"label": "equal-weight control (null model)", "llm": False, "condition": "control"},
-    "D": {"label": "riskbudget calm_exposure (quant)", "llm": False, "condition": "riskbudget"},
+    arm: {"label": label, "llm": llm, "condition": _ACCOUNTS[arm]["condition"]}
+    for arm, (label, llm) in _LABELS.items()
 }
 
 
@@ -193,33 +203,6 @@ def exposure_series(account: str, data_dir: str = "data") -> pd.DataFrame:
         return pd.DataFrame(columns=["decision_date", "equity", "cash", "invested",
                                      "n_positions", "exposure"])
     return pd.DataFrame(rows).drop_duplicates("decision_date", keep="last")
-
-
-def exposure_adjusted_returns(account: str, data_dir: str = "data") -> pd.Series:
-    """Daily returns divided by that day's exposure — the return the arm would
-    have earned fully invested (DJ-119).
-
-    This is the minimum correction that makes arms with different deployment
-    comparable at all. It is deliberately crude: it assumes the uninvested
-    remainder earns zero and that exposure is constant within the day. It is a
-    sanity overlay on the financial layer, NOT a substitute for IC — the
-    headline diversity claim rests on IC and herding, which never touch
-    position sizing. Days with exposure below 1% are dropped rather than
-    divided by a near-zero denominator.
-    """
-    returns = load_returns(account, data_dir)
-    if returns is None or len(returns) == 0:
-        return pd.Series(dtype=float)
-    exp = exposure_series(account, data_dir)
-    if exp.empty:
-        return pd.Series(dtype=float)
-    exp = exp.dropna(subset=["exposure"])
-    exp["decision_date"] = pd.to_datetime(exp["decision_date"])
-    lookup = exp.set_index("decision_date")["exposure"]
-    lookup = lookup[lookup >= 0.01]
-    aligned = lookup.reindex(pd.to_datetime(returns.index)).ffill()
-    out = returns / aligned.values
-    return out.dropna()
 
 
 def halted_days(account: str, data_dir: str = "data") -> pd.DataFrame:

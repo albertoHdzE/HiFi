@@ -378,16 +378,16 @@ walkforward-ic: ## Compute IC/IR metrics from completed walkforward JSONs (no LM
 		--period held-out-test --regime-breakdown
 
 walkforward-orchestrate: ## Phase 15 full orchestrated run: agent-first sweep + aggregate + pipeline (requires LM Studio)
-	uv run python scripts/run_phase15_orchestrator.py \
+	uv run python scripts/hifi_walkforward.py \
 		--agent all --aggregate --pipeline \
 		--condition full --period held-out-test
 
 walkforward-pipeline: ## Run MCP pipeline on existing ensemble JSONs (no LM Studio needed)
-	uv run python scripts/run_phase15_orchestrator.py \
+	uv run python scripts/hifi_walkforward.py \
 		--pipeline --condition full --period held-out-test
 
 walkforward-report: ## Show status + IC/IR summary for all conditions (no LM Studio needed)
-	uv run python scripts/run_phase15_orchestrator.py --status --period held-out-test
+	uv run python scripts/hifi_walkforward.py --status --period held-out-test
 	$(MAKE) walkforward-ic
 
 # ---------------------------------------------------------------------------
@@ -395,22 +395,22 @@ walkforward-report: ## Show status + IC/IR summary for all conditions (no LM Stu
 # ---------------------------------------------------------------------------
 
 live-status: ## Show portfolio status for all provisioned Alpaca accounts
-	uv run python scripts/run_phase16_live.py --status
+	uv run python scripts/hifi_live.py --status
 
 live-snapshot: ## Capture equity + positions + Alpaca equity curve for all accounts (no trading)
-	uv run python scripts/run_phase16_live.py --snapshot
+	uv run python scripts/hifi_live.py --snapshot
 
 live-update-data: ## Refresh OHLCV parquets through today via Alpaca (98 tickers)
-	uv run python scripts/run_phase16_live.py --update-data
+	uv run python scripts/hifi_live.py --update-data
 
 live-plan: ## Print what a cycle WOULD do; runs no agents and no orders (seconds)
-	uv run python scripts/run_phase16_live.py --account all --dry-run
+	uv run python scripts/hifi_live.py --account all --dry-run
 
 live-dry-run: ## Full cycle, agents included, NO orders placed (hours, requires LM Studio)
-	uv run python scripts/run_phase16_live.py --account all
+	uv run python scripts/hifi_live.py --account all
 
 live-execute: ## Full nightly batch: all accounts, real paper orders (requires LM Studio)
-	uv run python scripts/run_phase16_live.py --account all --execute
+	uv run python scripts/hifi_live.py --account all --execute
 
 live-nightly: ## Manual nightly run (daily ~19:00): pre-flight + weekend/market-hours guard + log, survives terminal close
 	@out=$$(bash scripts/nightly_live_execute.sh --check-window); rc=$$?; \
