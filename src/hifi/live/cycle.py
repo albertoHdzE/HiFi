@@ -207,8 +207,26 @@ def execute_orders(snapshot, executor, dry_run: bool,
 
 def log_episode(account: str, date: str, condition: str,
                 signals: list[dict], orders: list[dict], portfolio_value: float,
-                strategy_meta: dict | None = None) -> None:
-    log_path = paths._decisions_log(account)
+                strategy_meta: dict | None = None, is_dry: bool = False) -> None:
+    """Append one cycle's decision to the arm's record.
+
+    ``is_dry`` routes the row to ``dry_runs.jsonl`` instead of
+    ``decisions.jsonl`` (DJ-136). Before this, a verification run wrote into the
+    experimental record a row structurally indistinguishable from a day the arm
+    had actually traded — same signals, same shape, orders marked ``dry_run``.
+    Three consequences, all silent:
+
+    * ``already_decided`` then returned True for that date, so the next *real*
+      cycle skipped the arm. Arm C was blocked for 2026-09-01 by three rows that
+      three ``make live-plan`` invocations had appended.
+    * ``live_report.signal_distribution`` counted phantom decision days.
+    * The record claimed a decision that no capital stood behind.
+
+    The rows are kept rather than dropped because "a verification run happened
+    on this date" is worth knowing; they are simply not the experiment.
+    """
+    log_path = (paths._dry_run_log(account) if is_dry
+                else paths._decisions_log(account))
     log_path.parent.mkdir(parents=True, exist_ok=True)
     episode = {
         "timestamp": datetime.now().isoformat(),
@@ -224,10 +242,13 @@ def log_episode(account: str, date: str, condition: str,
     # for scientific traceability (which version produced which orders).
     if strategy_meta is not None:
         episode["strategy_meta"] = strategy_meta
+    if is_dry:
+        episode["dry_run"] = True
     with open(log_path, "a") as f:
         f.write(json.dumps(episode) + "\n")
-    logger.info("[%s] Episode logged: %d signals, %d orders, $%.2f portfolio",
-                account, len(signals), len(orders), portfolio_value)
+    logger.info("[%s] %s: %d signals, %d orders, $%.2f portfolio",
+                account, "Dry run logged" if is_dry else "Episode logged",
+                len(signals), len(orders), portfolio_value)
 
 
 def run_account_cycle(account: str, tickers: list[str], date: str,
@@ -349,15 +370,22 @@ def run_account_cycle(account: str, tickers: list[str], date: str,
     # independent of whatever else fails afterwards.
     try:
         log_episode(account, date, condition, signals, orders,
-                    executor.get_portfolio_value(), strategy_meta=strategy_meta)
+                    executor.get_portfolio_value(), strategy_meta=strategy_meta,
+                    is_dry=is_dry)
     except Exception:
         logger.exception("[%s] FAILED to log episode for %s — %d order(s) may be "
                          "at the broker with no decision record", account, date, len(orders))
         raise
     # Automatic financial-performance capture (DJ-114): equity + positions row
     # and Alpaca's authoritative equity curve. No human intervention.
-    from hifi.execution.portfolio_recorder import record_account
-    record_account(executor, account, paths._DATA_DIR, decision_date=date)
+    #
+    # Skipped on a dry run (DJ-136). A cycle that placed no orders did not move
+    # the book, so the snapshot would duplicate an existing mark rather than
+    # record a new one — and three back-to-back `make live-plan` invocations put
+    # three identical 2026-09-01 rows in arm C's equity.jsonl.
+    if not is_dry:
+        from hifi.execution.portfolio_recorder import record_account
+        record_account(executor, account, paths._DATA_DIR, decision_date=date)
     accounts.show_status(account, executor)
     executor.disconnect()
 

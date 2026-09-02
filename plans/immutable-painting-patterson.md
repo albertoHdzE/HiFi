@@ -1,240 +1,246 @@
-# Surgical cleaning of HiFi
+# Adversarial verification of the DJ-135 cleanup
 
 ## Context
 
-The repo reads as "dirty" and it is — but not where it looks. A full import-graph
-and dead-definition sweep of `src/` found **exactly one** unreferenced function in
-24,829 lines (`live_report.py:198 exposure_adjusted_returns`). The library layer is
-sound. The mess is concentrated in four places, one of which is armed on the live
-trading path:
+The DJ-135 cleanup (`02dccd9`, `45c5437`, `b1d3413`) moved 2,340 lines of the
+running experiment out of `scripts/` into `hifi.live`, deleted two orphan
+modules, archived 30 one-shot scripts, and removed two silent-substitution
+hazards. It was verified by 2,622 passing tests, clean lint, and a
+byte-identical `make live-plan`.
 
-1. **Production code lives in `scripts/`.** `run_phase16_live.py` (1,381 loc) and
-   `run_phase15_orchestrator.py` (959 loc) hold the entire nightly cycle. The live
-   script reaches the orchestrator through a `sys.path` insert
-   (`scripts/run_phase16_live.py:349`), so the production ensemble runs out of a
-   file named after a **retracted** evaluation phase. Three test files repeat the
-   same `sys.path` trick to reach them.
+That is weaker evidence than it looks, and reconnaissance for this plan found
+why. **Coverage has never been measured on this project** — `pytest-cov` is
+declared in `[project.optional-dependencies].dev` but the environment resolves
+`[dependency-groups].dev`, which omits it, so "2,622 tests pass" says nothing
+about what fraction of the code they execute. `mypy` is configured in
+`[tool.mypy]` and is likewise uninstalled and invoked by nothing. Seven modules
+have **zero tests naming any of their public symbols**. No test anywhere
+exercises `run_account_cycle` or `run_batch` — the 379-line spine of the
+nightly cycle. The shell wrapper that guards the experiment's timing protocol is
+untested.
 
-2. **Dead branches on the live path.** `_setup_agent_model`
-   (`run_phase15_orchestrator.py:406-418`) still silently reroutes the *fundamental*
-   agent to a fine-tune server if anything answers on port 1236, overwriting
-   `HIFI_FUNDAMENTAL_MODEL` and returning `True` so the run continues. That is
-   DJ-124's exact failure mode — a rejected adapter live while the logs claim the
-   base model — and it is still armed. A second branch (lines 321-366, port 1235)
-   is unreachable because `_AGENT_CONFIG` now names a model for `technical`.
+And probing turned up a live defect that pre-dates the cleanup and that my own
+verification runs made worse (below). The purpose of this pass is to replace
+"the tests pass" with "we know what is and is not exercised, and the gaps are
+either closed or named."
 
-3. **The agent roster is defined six times**: `knowledge/agent_context.py:34`,
-   `agents/ensemble_runner.py:124`, `analytics/decision_audit.py:33`,
-   `run_phase15_orchestrator.py:116`, `scripts/verify_agent_repair.py:30`,
-   `scripts/run_phase15_walkforward.py:94`. Adding a seventh agent makes five of
-   them silently disagree.
-
-4. **`scripts/` is 60 files / 16,523 loc**, of which ~26 are one-shot historical
-   phase runs, 4 are unreferenced by anything, and one (`refresh_macro_store.py`) is
-   superseded by `refresh_macro.py`. The Makefile carries ~60 targets, most of them
-   Phase 3-13 baselines that will never run again.
-
-Plus four orphan `src/` modules (1,170 loc) imported only by their own tests.
-
-**Outcome:** one obvious entry point, production logic in `src/` under production
-names, no armed dead branches, one definition per fact. Done **before** the
-Genesis III reset so no refactor lands mid-experiment.
-
-**Non-negotiable constraint:** this is behaviour-preserving. Genesis III must start
-from code that produces the same decisions as the code verified on 2026-08-31.
+**Outcome:** measured coverage with a floor on the live path, the seven blind
+modules tested, an integration test that runs a whole cycle against a mock
+broker, the nightly wrapper's guard tested, and a graduated end-to-end run
+ending in the full DRY nightly that gates Genesis III.
 
 ---
 
-## Step 1 — Disarm the live path (do this first, standalone commit)
+## Step 0 — DJ-136: dry runs contaminate the experimental record
 
-Smallest change, highest safety value. In `scripts/run_phase15_orchestrator.py`:
+**Found during reconnaissance. Fix before anything else; it currently blocks a
+correct Genesis III start.**
 
-- **Delete** the port-1236 fundamental fallback (lines ~406-418). Replace with a
-  hard failure: if the named LM Studio model will not load, the pass must fail, not
-  substitute a different model. Silent substitution is what DJ-124 was.
-- **Delete** the unreachable `agent_type == "technical" and lms_model_id is None`
-  branch (lines ~321-366) and the `_FINETUNE_*` constants it needs
-  (`_TECHNICAL_FINETUNE_URL`, `_FUNDAMENTAL_FINETUNE_URL`, `_FINETUNE_HEALTH_1235/6`,
-  `_FINETUNE_MODEL`). **Keep** the `HIFI_TECHNICAL_FINETUNE_URL` env-var *scrub* at
-  lines 374-382 — that one is a guard, not a fallback.
-- `tests/unit/test_served_model_selection.py` covers `_select_served_model` /
-  `_probe_chat_model`, which stay (still used to pick the LM Studio model). Add one
-  test asserting no code path can set `HIFI_FUNDAMENTAL_FINETUNE_URL`.
+`run_account_cycle` (`src/hifi/live/cycle.py:349-360`) calls `log_episode` and
+`record_account` unconditionally, after the `is_dry` branches. So a run that
+places no orders still appends a full decision row and an equity snapshot,
+structurally indistinguishable from a day the arm actually traded.
 
-`_HOMOGENEOUS_AGENT_CONFIG` stays — the Phase 15 re-run still needs that condition.
+Measured now:
 
-## Step 2 — One source of truth for the agent roster
+| Arm | `decisions.jsonl` rows | contaminated | dates |
+|---|---|---|---|
+| A | 5 | 1 | 2026-08-31 |
+| B | 5 | 1 | 2026-08-31 |
+| C | 8 | **3** | 2026-09-01 ×3 |
+| D | 5 | 1 | 2026-08-31 |
 
-Promote `hifi.knowledge.agent_context.CANONICAL_ORDER` to `hifi/agents/roster.py`
-exporting `CANONICAL_ORDER` (6, incl. contrarian) and `VOTING_AGENTS` (5, excl.
-contrarian). Re-export from `agent_context` for compatibility. Replace the five
-duplicate literals listed in Context §3 with imports. Add a test that asserts every
-module reports the same roster.
+Two distinct leaks. `--no-execute` (the `DRY=1` verification path) logs all four
+arms. `--dry-run` (`make live-plan`) logs **arm C only** — A/B/D return early at
+`cycle.py:333`, but the control arm falls through — and because
+`already_decided` is skipped when `is_dry`, every invocation appends another
+row. Arm C's three rows are the three times I ran `make live-plan` today.
 
-## Step 3 — Extract the live path into `src/hifi/live/`
+Consequences, in order of severity:
 
-Pure code movement — copy bodies, do not rewrite logic. New package:
+1. `already_decided("C", "2026-09-01")` is now **True**. A real cycle tonight
+   would silently skip arm C — the null model, the arm every other arm is
+   measured against.
+2. `already_decided(*, "2026-08-31")` is True for all four arms.
+3. `live_report.signal_distribution` counts phantom decision days.
+   `equity_curves` happens to survive this because it de-duplicates on index
+   (`live_report.py:71`), but the decision log has no such guard.
+
+**Fix:** a dry run must not write to the experimental record. Route dry episodes
+to `data/live/<ARM>/dry_runs.jsonl` instead — the audit value of "a verification
+run happened tonight" is real, so the answer is a separate file rather than
+silence. Skip `record_account` entirely when `is_dry`: the broker state it
+snapshots is unchanged by a run that placed no orders.
+
+Then remove the contaminated rows from `decisions.jsonl` and `equity.jsonl` for
+the four arms, so tonight's cycle is not blocked. Genesis III archives these
+files anyway; this is about not starting from a false state.
+
+Regression tests: a dry cycle writes zero rows to `decisions.jsonl` for every
+one of the four conditions; a non-dry cycle writes exactly one.
+
+## Step 1 — Make coverage measurable
+
+`pyproject.toml` has two `dev` groups. `[project.optional-dependencies].dev`
+(line 35) lists pytest-cov, ruff and mypy; `[dependency-groups].dev` (line 83)
+lists pytest, responses and vcrpy, and is what the environment actually has.
+Consolidate into `[dependency-groups].dev` so `uv sync` installs everything, and
+point `make install` at it.
+
+Add:
 
 ```
-src/hifi/live/
-  __init__.py     public surface: run_account_cycle, run_ensemble, guards
-  models.py       <- orchestrator: _AGENT_CONFIG, _HOMOGENEOUS_AGENT_CONFIG,
-                     _setup_agent_model, _select_served_model, _probe_chat_model,
-                     _port_is_listening, _agent_config_for_condition
-  paths.py        <- orchestrator: _run_id, _sidecar_path, _ensemble_path,
-                     _portfolio_path, _resolve_tickers, _resolve_dates
-                     + live: _account_dir, _decisions_log, _breaker_log, _hwm_path
-  ensemble.py     <- orchestrator: run_agent_mode, run_aggregate_mode,
-                     _fetch_edgar_context
-                     + live: run_ensemble, load_ensemble_signals
-  walkforward.py  <- orchestrator: run_pipeline_mode, run_status_mode, _load_ohlcv
-  accounts.py     <- live: ACCOUNTS map, get_executor, _client_order_id,
-                     _seed_hwm_from_history, update_hwm, already_decided, show_status
-  market.py       <- live: update_data, _last_completed_session, _latest_prices
-  guards.py       <- live: check_circuit_breakers, effective_halt_threshold,
-                     _halt_before_submit, check_data_coverage, check_tradability,
-                     _vanished_position_value, log_arm_invariance,
-                     _log_circuit_breaker, _start_thread_watchdog
-  strategies.py   <- live: run_control_strategy
-  cycle.py        <- live: run_mcp_pipeline, execute_orders, log_episode,
-                     run_account_cycle
+make coverage        # term-missing report, per-module, branch coverage on
+make typecheck       # mypy; reports, does not gate (Step 6)
 ```
 
-Reuse, do not reimplement: `hifi.simulation.pipeline.run_pipeline` (already the
-shared MCP chain — three call sites use it), `hifi.portfolio.PortfolioPolicy` for
-constraints, `hifi.data.market_store` for OHLCV resolution.
+Configure `[tool.coverage.run] branch = true, source = ["src/hifi"]`. Branch
+coverage matters more than line coverage here: the code is dense with
+`if not is_dry`, `if dry_run`, and fail-open `except` paths, and line coverage
+scores those as covered while never taking the branch that matters.
 
-Both scripts become thin CLIs that only parse args and dispatch:
+## Step 2 — Baseline the coverage, then set a floor where it counts
 
-- `scripts/run_phase16_live.py` → **`scripts/hifi_live.py`** (same flags:
-  `--account --execute --dry-run --status --update-data --snapshot --smoke --date --force`)
-- `scripts/run_phase15_orchestrator.py` → **`scripts/hifi_walkforward.py`** (same
-  flags; the Phase 15 re-run and `scripts/watchdog_walkforward.sh` still work)
+Run the suite under coverage and record per-module numbers as the starting
+point. Then set `fail_under` **only** on the modules whose failure corrupts the
+experiment rather than a report:
 
-Update `scripts/nightly_live_execute.sh` (2 call sites), `scripts/watchdog_walkforward.sh`
-(3 refs), and the Makefile `live-*` / `walkforward-*` targets. The three tests that
-do `sys.path.insert` — `tests/unit/execution/test_phase16_live.py`,
-`tests/unit/execution/test_phase19_idempotency.py`,
-`tests/unit/test_served_model_selection.py` — become plain `from hifi.live import ...`.
+- `hifi/live/**` — the nightly cycle
+- `hifi/mcp/portfolio_composer.py`, `hifi/portfolio/policy.py` — capital
+  allocation (DJ-122, DJ-132)
+- `hifi/collective/voting.py` — the collective decision itself
+- `hifi/data/filing_calendar.py`, `hifi/simulation/snapshot.py` —
+  point-in-time discipline
 
-## Step 4 — Orphan modules
+A global floor is the wrong instrument: it would be satisfied by testing
+whichever module is cheapest, which is never the one that matters. The number
+itself should be set from the measured baseline, not picked in advance — pick it
+after Step 2 reports, and state it in the commit.
 
-**Delete** (no runtime path, no paper claim):
-- `src/hifi/agents/graph.py` (367 loc) — an unused alternative to
-  `run_sequential_ensemble`; the live path uses the runner. Remove the four graph
-  tests in `tests/unit/test_sequential_ensemble.py:395-434`; keep the rest of that file.
-- `src/hifi/mcp/indicators_server.py` (258 loc) + `tests/unit/test_indicators_server.py`
-  + `scripts/setup_ta_venv.sh` + `venvs/ta/`. Nothing has ever launched it; it
-  duplicates `market_store` resolution logic (per `tests/unit/test_market_store.py:121`).
-  Remove `TestIndicatorsServerIntegration` from `test_market_store.py`.
+## Step 3 — Close the seven blind modules
 
-**Wire in** (they back reproducibility claims in `doc/01_EVAL_HIFI_DAVID.md` §4.5 —
-deleting them would remove a claim the paper needs):
-- `src/hifi/data/versioning.py` — call `DatasetRegistry.register()` + `content_hash()`
-  from `scripts/refresh_data.py` (Step 5) after each Parquet write, so every refresh
-  records a hash. This closes the §4.5 gap rather than papering over it.
-- `src/hifi/data/quality.py` — run `DataQualityChecker` inside the OHLCV refresh and
-  log the completeness score; fail the refresh below the existing 98% threshold.
-  Complements the 99% coverage gate already in `check_data_coverage`.
+Zero tests name any public symbol of these. Ordered by what a defect costs:
 
-## Step 5 — Consolidate `scripts/`
+| Module | loc | Untested surface | Why it matters |
+|---|---|---|---|
+| `data/filing_calendar.py` | 281 | `ticker_to_cik`, `build_filing_calendar`, `load_filing_calendar`, `latest_filed_period` | **Highest.** `latest_filed_period` decides which fundamentals an agent may see on a given date. A lookahead bug here silently invalidates every result, exactly as DJ-120 did |
+| `engines/macro.py` | 117 | `compute_macro_snapshot` | The macro agent's entire input. DJ-133c blinded this agent for a night and nothing failed |
+| `verification/metrics.py` | 96 | `compute_verification_metrics` | Grounding/hallucination rates — numbers that go in the paper |
+| `data/refresh.py` | 344 | `refresh_ticker`, `refresh_series`, `check_ohlcv_quality` | New in `b1d3413`; the merge semantics that prevent history loss are asserted nowhere |
+| `data/regime.py` | 188 | `classify_regime` | DJ-130 regime context fed to agents |
+| `live/walkforward.py` | 191 | `run_pipeline_mode`, `run_status_mode` | The Phase 15 re-run path, which is pending work |
+| `observability/langchain_callback.py` | 91 | `HiFiLangfuseCallbackHandler` | Telemetry; fail-open, so a break is invisible |
 
-**Delete:** `refresh_macro_store.py` (one-shot DJ-120 repair, superseded by the
-merging `refresh_macro.py`), `notebooks/phase11_finetune_replication.py` (stray
-export next to its `.ipynb`), `src/hifi/analytics/live_report.py:198`
-`exposure_adjusted_returns` (the one dead function).
+For `filing_calendar` the tests that matter are adversarial, not smoke tests:
+`latest_filed_period` must never return a period whose `filingDate` is after the
+as-of date; the `_CIK_SUCCESSIONS` path (XOM) must resolve; a ticker with fewer
+than `_MIN_PERIODIC_FILINGS` must fail loudly rather than return a partial
+calendar.
 
-**Merge:** `refresh_fundamentals.py` + `refresh_macro.py` → **`scripts/refresh_data.py`**
-with `--fundamentals --macro --ohlcv --all`. Preserve verbatim the `write_macro`
-round-trip verification (the DJ-133c lesson: `df.to_parquet()` strips the schema
-metadata `read_macro` requires) and the merge semantics (union of periods, fresh
-wins on overlap).
+For `data/refresh`, pin the two rules the module exists to enforce: the merge
+never drops a period present only locally, and a macro write round-trips through
+`read_macro` (the DJ-133c guard) — with a test that plants a bad write and
+confirms it is caught.
 
-**Move to `scripts/archive/`** the one-shot historical runs — every
-`run_phase{3,4,5,6,7,8,9,10,11,12,13,14}_*.py`, `acquire_phase{1,10}_data.py`,
-`acquire_macro_phase14.py`, `analyze_rank_sweep.py`, `calibrate_drift_monitors.py`,
-`diag_sentiment_signals.py`, `diagnose_sentiment_sgr.py`,
-`generate_compliance_examples.py` — with a `scripts/archive/README.md` mapping each
-old path to its new one and naming the phase it belongs to.
+## Step 4 — An integration test that runs a whole cycle
 
-**Stay in `scripts/`** (operational): `hifi_live.py`, `hifi_walkforward.py`,
-`nightly_live_execute.sh`, `watchdog_walkforward.sh`, `run_phase15_smoke.py`,
-`run_phase15_walkforward.py`, `compute_phase15_ic.py` (Phase 15 re-run is pending),
-`refresh_data.py`, `verify_agent_repair.py`, `build_phase16_report_notebook.py`,
-`run_personality_shadow.py`, `simulate_next_run.py`, `genesis2_reset.sh`,
-`check_env.py`, `manage_namespaces.py`, `ingest_edgar_mda.py`, `ingest_episodes.py`,
-`label_outcomes.py`, `run_label_outcomes.py`, `acquire_phase14_data.py`,
-`record_sec_fixtures.py`, and the fine-tune setup scripts.
+No test exercises `run_account_cycle` or `run_batch`. Add
+`tests/integration/test_live_cycle.py` using the mock-executor pattern already
+in `tests/unit/execution/test_phase16_live.py:18` (`_mock_executor`), with
+`tmp_path` redirection through `hifi.live.paths` (the module-qualified
+references from `45c5437` make one patch point sufficient).
 
-**Doc references:** 273 lines in `doc/` and `plans/` cite `scripts/…`. Rewrite paths
-only in *active* documents — `README.md`, `plans/STATUS.md`, `plans/PHASE_2*`,
-`doc/GENESIS_CHECKLIST.md`, `doc/PAPPERS/`. Leave `doc/bitacora/` and
-`plans/PHASE_0*`–`PHASE_1*` **untouched**: they are the dated historical record and
-rewriting them would falsify it. The archive README is what makes those paths
-resolvable.
+Cover, per condition:
 
-## Step 6 — Makefile and RUNBOOK
+- `control` — buys the universe once, holds thereafter
+- `riskbudget` — signals from the provider, through the pipeline, to orders
+- `parallel` / `full` — ensemble signals loaded from stored sidecars (fixtures,
+  no LLM), through the pipeline
 
-Collapse the Makefile to three sections — **Quality**, **Operations**, **Archive** —
-with the historical `baseline-phase*` / `bootstrap*` / `eval-*` targets moved under a
-single `archive-help` target that prints how to invoke them from `scripts/archive/`.
+And the interactions that only appear in the whole cycle:
 
-Live targets collapse to:
+- a tripped breaker suppresses orders but still records equity (DJ-119)
+- `_halt_before_submit` firing between signal generation and submission (DJ-129c)
+- HWM ratchets before anything trades, and never falls (DJ-129b)
+- one arm raising does not abort the others (DJ-117)
+- a rejected order is recorded, not raised (DJ-123)
+- **Step 0's property:** dry cycles leave `decisions.jsonl` untouched
 
-| target | meaning |
-|---|---|
-| `live-nightly` | the real thing (pre-flight, guards, orders) |
-| `live-nightly DRY=1` | identical path, `--no-execute`, no orders |
-| `live-plan` | prints the cycle, runs no agents (seconds) |
-| `live-status` / `live-snapshot` / `live-update-data` | unchanged |
+## Step 5 — Test the nightly wrapper's guard
 
-Delete `live-dry-run` and `live-execute` (both now reachable via `live-nightly`).
+`scripts/nightly_live_execute.sh` enforces the experiment's timing protocol —
+decisions on completed closes, fills at the next open — and nothing tests it.
 
-Write **`RUNBOOK.md`** at repo root: the nightly procedure, the pre-flight
-dependencies (LM Studio :1234, LangFuse :3000), where decisions and sidecars land,
-how to verify a run, how to reset for a Genesis, and a one-screen map of
-`src/hifi/live/`. This is the file that stops the next agent getting lost.
+`--check-window` is pure and exits 0/1, so it is testable by shimming `date` on
+`PATH` in a `tmp_path` bin directory. Assert: refuses inside 09:30–16:00 ET;
+allows evenings; allows weekends (DJ-121) with the "last completed session"
+message; warns but proceeds pre-market; `ALLOW_MARKET_HOURS=1` overrides.
+
+Add a static check that the wrapper's `--no-execute` path and its `--execute`
+path differ **only** by that flag — the invariant `make live-nightly DRY=1`
+depends on.
+
+## Step 6 — mypy: measure, report, do not gate
+
+Install mypy, run it across `src/`, and report the error count and where errors
+cluster. Do not fix and do not add to `make lint` in this pass. On 27,336 lines
+that have never been type-checked the count could be in the hundreds, and that
+is a separate decision to take with the number in hand.
+
+## Step 7 — Graduated end-to-end
+
+Each rung is only attempted if the previous one passed.
+
+1. **`make test` + `make coverage`** — full suite, coverage at or above the
+   Step 2 floor.
+2. **Every read-only Makefile target executes**: `live-plan`, `live-status`,
+   `live-snapshot`, `refresh-data --check`, `archive-help`, `walkforward-status`.
+   Plus an import-integrity check over every module in `src/` and `scripts/`
+   (including `scripts/archive/`, whose repo-root resolution changed in
+   `b1d3413`).
+3. **Smoke DRY nightly** — `--smoke` (22 tickers), all four arms, real agents,
+   no orders (~1.5 h). Then `verify_agent_repair.py` on that date. This is the
+   first rung where model routing, LangFuse binding and the data gate are
+   actually exercised.
+4. **Full DRY nightly** — 97 tickers, four arms, `make live-nightly DRY=1`
+   (~5–6.5 h), followed by `make live-verify DATE=<that date>` against the
+   pre-declared thresholds. This is the gate for Genesis III.
+
+Rungs 3 and 4 must run **after** Step 0, or they will contaminate the record
+again — which is itself the cleanest demonstration that Step 0's fix works.
+
+## Step 8 — Report
+
+`doc/VERIFICATION_DJ136.md`: coverage per module before and after, what each new
+test pins and which defect it descends from, the mypy count, the end-to-end
+results, and — explicitly — **what remains unverified and why**. A verification
+report that claims completeness is the same failure as a test suite that passes
+without executing anything.
 
 ---
 
-## Verification
+## Verification of this work
 
-Behaviour preservation is the acceptance criterion; each rung is stronger than the last.
+- `make test` — full suite green, no new skips. Any test that skips must state a
+  reason naming an absent external dependency, never a data condition that
+  silently makes it vacuous.
+- `make coverage` — meets the Step 2 floor; the seven modules in Step 3 move
+  from 0% to covered.
+- `make typecheck` — runs and reports (non-gating).
+- `make live-plan` — still byte-identical to the pre-cleanup capture.
+- **`decisions.jsonl` gains no row from any dry run**, checked before and after
+  rungs 3 and 4.
+- `make live-verify DATE=<full DRY date>` — PASS on the pre-declared thresholds
+  (`MAX_MODAL_SHARE 0.95`, `MIN_UNIQUE_CONFIDENCES 3`, `MIN_RATIO_COVERAGE 0.90`)
+  for both `parallel` and `full`.
 
-1. **`make test`** — 2,290 passing today. Expect ~2,270 after removing the graph and
-   indicators-server tests. **Zero failures, zero new skips.**
-2. **`make lint`** — clean on `src/` and `tests/` (pre-existing E501s in
-   `scripts/archive/generate_reference_strategies.py` are acceptable).
-3. **New characterization test** `tests/unit/live/test_extraction_is_behaviour_preserving.py`
-   pinning the values that moved, against literals captured *before* Step 3:
-   `_AGENT_CONFIG` (model ids, timeouts, the 8192 ctx for sentiment), the four path
-   builders, `_client_order_id` format, `effective_halt_threshold` at several
-   `(n_positions, exposure)` points, and the `ACCOUNTS` map.
-4. **`make live-plan`** — capture the output before Step 3 and diff after. Must be
-   byte-identical (no agents, no network, so any difference is a refactor bug).
-5. **`bash scripts/nightly_live_execute.sh --no-execute`** — the full production path
-   minus orders. Then `uv run python scripts/verify_agent_repair.py --date <run date>`
-   must **PASS** the pre-declared thresholds (`MAX_MODAL_SHARE 0.95`,
-   `MIN_UNIQUE_CONFIDENCES 3`, `MIN_RATIO_COVERAGE 0.90`) for both `parallel` and `full`.
-6. **Deterministic-sidecar diff** — the strongest check. Compare new sidecars against
-   the stored 2026-08-31 DJ-134 re-run for a 10-ticker sample. The **deterministic**
-   payloads (ratios, growth metrics, indicators, risk metrics incl. beta) must be
-   **byte-identical**; only LLM prose may differ. Any drift in a computed number means
-   the extraction changed behaviour and the step is reverted.
+## Scope boundaries
 
-Only after rung 6 passes: archive Genesis II, reset the four Alpaca accounts, run
-`make live-nightly`.
-
-## Git strategy
-
-One commit per numbered step on `phase21/remediation-and-paper`, each independently
-revertable, no co-author attribution. Steps 1 and 2 are safe to land immediately;
-Step 3 is the one that must not be squashed with anything else.
-
-## Explicitly out of scope
-
-- Renaming the four experimental arms or any data layout under `data/`.
-- Touching `doc/bitacora/` content.
-- The 96 `except Exception` handlers in `src/` — all 96 log; **zero** are silent
-  `pass`/`continue`. Not the emergency it looked like; leave for the T4 review.
-- OSF amendment 002 (only Alberto can file it).
+- **The four untracked paper modules** (`simulation/diversity.py`,
+  `simulation/synthetic_collective.py`, `scripts/analyze_paper1_diversity.py`,
+  `tests/unit/simulation/test_diversity.py`) are **measured and reported, never
+  modified.** Another process was writing them during the last session; a
+  concurrent edit is how work gets lost.
+- No changes to arm definitions, model configuration, risk limits or any
+  `data/` layout. This pass verifies the apparatus; it does not redesign it.
+- Genesis III itself, and OSF amendment 002, remain yours to trigger.

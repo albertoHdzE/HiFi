@@ -59,6 +59,16 @@ def _breaker_log(account: str) -> Path:
     return _account_dir(account) / "circuit_breakers.jsonl"
 
 
+def _dry_run_log(account: str) -> Path:
+    """Where verification cycles record what they would have done (DJ-136).
+
+    Deliberately not ``decisions.jsonl``. A dry run's row is the same shape as a
+    real one, so writing it to the record made ``already_decided`` skip the arm
+    on the next real cycle and made the report count a day nobody traded.
+    """
+    return _account_dir(account) / "dry_runs.jsonl"
+
+
 def _hwm_path(account: str) -> Path:
     return _account_dir(account) / "hwm.json"
 
