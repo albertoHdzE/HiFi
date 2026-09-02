@@ -196,3 +196,43 @@ class TestRunbookMatchesReality:
     def test_it_documents_the_dry_run_separation(self):
         # DJ-136: an operator must know a dry run does not enter the record.
         assert "DRY=1" in self._runbook()
+
+
+class TestEveryArmsDependenciesAreDeclared:
+    """An arm may not depend on something no manifest mentions (DJ-136).
+
+    Arm D's signal provider, ``riskbudget``, lived in the venv and in no
+    manifest: it had been installed by hand from a sibling repo. A routine
+    `uv sync` removed it, and the next cycle ran arms A, B and C normally while
+    D failed with ModuleNotFoundError — three arms of a four-arm ablation, which
+    is not the experiment.
+
+    The failure was loud in the log and silent in the result: nothing compares
+    the arms that ran against the arms that were supposed to.
+    """
+
+    def test_riskbudget_is_importable(self):
+        importlib.import_module("riskbudget.mcp_server")
+
+    def test_riskbudget_is_declared_in_pyproject(self):
+        pp = (_REPO / "pyproject.toml").read_text()
+        assert "riskbudget" in pp, (
+            "arm D's provider is not declared, so `uv sync` will remove it and "
+            "the arm will disappear from the next cycle"
+        )
+
+    def test_every_arms_signal_source_resolves(self):
+        """One check per arm, at the level of 'can this arm produce signals'."""
+        from hifi.live.accounts import _ACCOUNTS
+
+        for arm, cfg in _ACCOUNTS.items():
+            condition = cfg["condition"]
+            if condition in ("parallel", "full"):
+                importlib.import_module("hifi.live.ensemble")
+            elif condition == "control":
+                importlib.import_module("hifi.live.strategies")
+            elif condition == "riskbudget":
+                importlib.import_module("hifi.execution.riskbudget_strategy")
+                importlib.import_module("riskbudget.mcp_server")
+            else:
+                pytest.fail(f"arm {arm} has an unrecognised condition {condition!r}")

@@ -29,6 +29,11 @@ dependencies = [
     "networkx>=3.6.1",
     "scipy>=1.17.1",
     "alpaca-py>=0.43.5",
+    # Arm D's signal provider (DJ-113). Declared rather than installed by hand:
+    # it lives in a sibling repo, so before DJ-136 it was in the venv and in no
+    # manifest, and a routine `uv sync` removed it — silently disabling a live
+    # experimental arm while the other three kept running.
+    "riskbudget>=1.1.0",
 ]
 
 [build-system]
@@ -105,3 +110,10 @@ exclude_also = [
 ]
 show_missing = true
 skip_covered = false
+
+[tool.uv.sources]
+# riskbudget is a finished, versioned sibling project whose internals HiFi never
+# modifies (DJ-113). A path source keeps `uv sync` idempotent: without it the
+# package is present only because someone once installed it by hand, and the
+# next sync silently removes arm D from the experiment.
+riskbudget = { path = "../decon-fin/riskbudget", editable = true }
