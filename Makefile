@@ -1,7 +1,7 @@
 DOCKER_COMPOSE_FILE := docker/langfuse/docker-compose.yml
 DOCKER_ENV_FILE     := docker/langfuse/.env
 
-.PHONY: help install test lint lint-fix \
+.PHONY: help install test lint lint-fix coverage typecheck \
 	langfuse-setup langfuse-start langfuse-stop langfuse-restart \
 	langfuse-clean langfuse-status langfuse-logs langfuse-seed \
 	sec-fixtures acquire-data acquire-data-phase10 \
@@ -33,8 +33,8 @@ help: ## Show available targets
 # Dependencies
 # ---------------------------------------------------------------------------
 
-install: ## Install all dependencies including dev extras
-	uv sync --extra dev
+install: ## Install all dependencies including the dev group
+	uv sync
 
 # ---------------------------------------------------------------------------
 # Quality — deterministic tests only (no live deps)
@@ -45,6 +45,13 @@ test: ## Run the full deterministic test suite (no live services required)
 
 lint: ## Check code style with ruff
 	uv run ruff check src/ tests/ scripts/
+
+coverage: ## Full suite under branch coverage, per-module report
+	uv run pytest -q --tb=short --no-header -p no:cacheprovider \
+		--cov --cov-report=term-missing:skip-covered --cov-report=html
+
+typecheck: ## Run mypy over src/ (reports; does not gate — see doc/VERIFICATION_DJ136.md)
+	-uv run mypy src/hifi
 
 lint-fix: ## Fix auto-fixable style issues with ruff
 	uv run ruff check --fix src/ tests/ scripts/

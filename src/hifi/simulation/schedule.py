@@ -21,7 +21,11 @@ from datetime import date
 from enum import Enum
 
 
-class WalkForwardPeriod(str, Enum):
+# noqa comment, not a StrEnum: converting would change str() and every
+# f-string of a member from "WalkForwardPeriod.TRAINING" to "training".
+# Period names appear in log lines and CLI echoes on the walk-forward path, so
+# that is a behaviour change, not a modernisation.
+class WalkForwardPeriod(str, Enum):  # noqa: UP042
     TRAINING = "training"
     VALIDATION = "validation"
     HELD_OUT_TEST = "held_out_test"

@@ -31,14 +31,6 @@ dependencies = [
     "alpaca-py>=0.43.5",
 ]
 
-[project.optional-dependencies]
-dev = [
-    "pytest>=8.0",
-    "pytest-cov>=5.0",
-    "ruff>=0.4",
-    "mypy>=1.10",
-]
-
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
@@ -79,9 +71,37 @@ warn_unused_configs = true
 disallow_untyped_defs = false
 check_untyped_defs = true
 
+# One dev group, not two (DJ-136).
+#
+# pytest-cov, ruff and mypy used to live in [project.optional-dependencies].dev
+# while this group held pytest, responses and vcrpy. uv installs THIS group by
+# default, so the environment never had pytest-cov or mypy — coverage had never
+# been measured on this project and the [tool.mypy] block below had never been
+# executed, while both appeared, to a reader, to be part of the toolchain.
 [dependency-groups]
 dev = [
     "pytest>=9.0.3",
+    "pytest-cov>=5.0",
     "responses>=0.26.1",
     "vcrpy>=6.0",
+    "ruff>=0.4",
+    "mypy>=1.10",
 ]
+
+[tool.coverage.run]
+source = ["src/hifi"]
+# Branch coverage, not just line coverage. This code is dense with `if not
+# is_dry`, `if dry_run` and fail-open `except` handlers; line coverage marks
+# those executed while never taking the branch that matters. DJ-136 lived on
+# exactly such a branch.
+branch = true
+omit = ["*/__init__.py"]
+
+[tool.coverage.report]
+exclude_also = [
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+]
+show_missing = true
+skip_covered = false

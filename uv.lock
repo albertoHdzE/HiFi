@@ -726,18 +726,13 @@ dependencies = [
     { name = "yfinance" },
 ]
 
-[package.optional-dependencies]
+[package.dev-dependencies]
 dev = [
     { name = "mypy" },
     { name = "pytest" },
     { name = "pytest-cov" },
-    { name = "ruff" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "pytest" },
     { name = "responses" },
+    { name = "ruff" },
     { name = "vcrpy" },
 ]
 
@@ -752,27 +747,25 @@ requires-dist = [
     { name = "langfuse", specifier = ">=2.60,<3" },
     { name = "langgraph", specifier = ">=0.2" },
     { name = "mcp", specifier = ">=1.0" },
-    { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.10" },
     { name = "networkx", specifier = ">=3.6.1" },
     { name = "openai", specifier = ">=1.0" },
     { name = "pandas", specifier = ">=3.0.3" },
     { name = "pyarrow", specifier = ">=24.0.0" },
     { name = "pydantic", specifier = ">=2.0" },
     { name = "pylance", specifier = ">=7.0.0" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0" },
-    { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=5.0" },
     { name = "pyyaml", specifier = ">=6.0" },
     { name = "quantstats", specifier = ">=0.0.62" },
-    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.4" },
     { name = "scipy", specifier = ">=1.17.1" },
     { name = "yfinance", specifier = ">=1.4.1" },
 ]
-provides-extras = ["dev"]
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "mypy", specifier = ">=1.10" },
     { name = "pytest", specifier = ">=9.0.3" },
+    { name = "pytest-cov", specifier = ">=5.0" },
     { name = "responses", specifier = ">=0.26.1" },
+    { name = "ruff", specifier = ">=0.4" },
     { name = "vcrpy", specifier = ">=6.0" },
 ]
 

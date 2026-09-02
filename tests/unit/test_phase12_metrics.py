@@ -22,7 +22,8 @@ import pytest
 # Module loading (script, not package — imported via importlib)
 # ---------------------------------------------------------------------------
 
-_SCRIPT = Path(__file__).resolve().parent.parent.parent / "scripts" / "archive" / "run_phase12_evaluation.py"
+_SCRIPT = (Path(__file__).resolve().parents[2]
+           / "scripts" / "archive" / "run_phase12_evaluation.py")
 
 
 def _load_eval_module():
