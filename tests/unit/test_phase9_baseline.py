@@ -2,7 +2,7 @@
 Phase 9 collective engine baseline fixture tests (P9-E6).
 
 Skipped when tests/fixtures/baseline/phase9_collective.json is absent
-(before scripts/run_phase9_baseline.py has been executed). After the script
+(before scripts/archive/run_phase9_baseline.py has been executed). After the script
 runs, these tests assert structural correctness and quality gates on the
 method_comparison output.
 """
@@ -29,7 +29,7 @@ pytestmark = pytest.mark.skipif(
     not _FIXTURE_PATH.exists(),
     reason=(
         "phase9_collective.json not yet generated. "
-        "Run: uv run python scripts/run_phase9_baseline.py"
+        "Run: uv run python scripts/archive/run_phase9_baseline.py"
     ),
 )
 

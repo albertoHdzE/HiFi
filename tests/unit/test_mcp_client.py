@@ -82,3 +82,37 @@ def test_call_tool_macro_snapshot_returns_dict_with_call_id(fixtures_data_dir):
     )
     assert isinstance(result, dict)
     assert "call_id" in result
+
+
+# ---------------------------------------------------------------------------
+# Isolated-interpreter servers (DJ-035)
+# ---------------------------------------------------------------------------
+
+
+class TestPythonExecutable:
+    """A server may run under a different interpreter than the caller.
+
+    The MCP subprocess boundary is already a process boundary, so a server whose
+    dependency set conflicts with the main stack can be given its own venv while
+    the caller stays agnostic. Arm D depends on this: the riskbudget provider
+    runs from its own environment (execution/riskbudget_strategy.py:87).
+
+    These two tests moved here when the extended-indicators server — the
+    original consumer, which nothing ever launched — was deleted (DJ-135). The
+    mechanism outlived it and is load-bearing for a live arm.
+    """
+
+    def test_call_tool_accepts_python_executable(self):
+        import inspect
+
+        from hifi.agents.mcp_client import call_tool
+
+        assert "python_executable" in inspect.signature(call_tool).parameters
+
+    def test_default_is_none_meaning_the_current_interpreter(self):
+        import inspect
+
+        from hifi.agents.mcp_client import call_tool
+
+        sig = inspect.signature(call_tool)
+        assert sig.parameters["python_executable"].default is None

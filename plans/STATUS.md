@@ -262,7 +262,7 @@ into an orchestrated end-to-end pipeline:
 - `src/hifi/data/smoke_universe.py` — 22-ticker stratified universe (SMOKE_UNIVERSE)
 - `src/hifi/agents/ensemble_runner.py` — run_id: str | None = None param added
 - `scripts/run_phase15_smoke.py` — complete rewrite (agent-first + full pipeline)
-- `scripts/run_phase15_orchestrator.py` — production orchestrator (--agent/--aggregate/--pipeline/--status)
+- `scripts/hifi_walkforward.py` — production orchestrator (--agent/--aggregate/--pipeline/--status)
 - `notebooks/phase15_walkforward_replication.ipynb` — 10-section replication notebook
 
 ### Bug fix

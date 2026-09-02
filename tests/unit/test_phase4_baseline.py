@@ -2,11 +2,11 @@
 Unit tests for the Phase 4 ensemble baseline fixture (P4-E5-T2 through T6).
 
 These tests validate the structure and content of the baseline fixture produced
-by scripts/run_phase4_ensemble.py. They are skipped automatically when the
+by scripts/archive/run_phase4_ensemble.py. They are skipped automatically when the
 fixture does not exist.
 
 To generate the fixture:
-    uv run python scripts/run_phase4_ensemble.py
+    uv run python scripts/archive/run_phase4_ensemble.py
 """
 
 import json
@@ -21,7 +21,7 @@ _FIXTURE_PATH = (
 
 pytestmark = pytest.mark.skipif(
     not _FIXTURE_PATH.exists(),
-    reason="phase4_ensemble.json not generated yet -- run scripts/run_phase4_ensemble.py",
+    reason="phase4_ensemble.json not generated yet -- run scripts/archive/run_phase4_ensemble.py",
 )
 
 

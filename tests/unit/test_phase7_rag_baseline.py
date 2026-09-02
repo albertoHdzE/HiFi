@@ -2,12 +2,12 @@
 Phase 7 RAG baseline fixture tests (P7-E8).
 
 Skipped when tests/fixtures/baseline/phase7_rag_baseline.json is absent
-(before scripts/run_phase7_rag_baseline.py has been executed). After the
+(before scripts/archive/run_phase7_rag_baseline.py has been executed). After the
 script runs, these tests assert structural correctness and quality gates.
 
 To generate the fixture (requires LM Studio + SEC fixtures):
     uv run python scripts/record_sec_fixtures.py   # once, needs internet
-    uv run python scripts/run_phase7_rag_baseline.py
+    uv run python scripts/archive/run_phase7_rag_baseline.py
 """
 
 from __future__ import annotations
@@ -23,7 +23,7 @@ _FIXTURE_PATH = os.path.join(
 _FIXTURE_EXISTS = os.path.isfile(_FIXTURE_PATH)
 _SKIP_REASON = (
     "phase7_rag_baseline.json not yet generated. "
-    "Run: uv run python scripts/run_phase7_rag_baseline.py"
+    "Run: uv run python scripts/archive/run_phase7_rag_baseline.py"
 )
 
 pytestmark = pytest.mark.skipif(not _FIXTURE_EXISTS, reason=_SKIP_REASON)

@@ -114,18 +114,3 @@ class TestFinancialServerIntegration:
         ds = fs._load_ohlcv("AAPL")
         assert len(ds.bars) == 5
         assert ds.source == "fixture"
-
-
-class TestIndicatorsServerIntegration:
-    def test_load_ohlcv_df_prefers_nested(self, tmp_path, monkeypatch):
-        """indicators_server duplicates the resolution logic (pandas 1.5.3
-        constraint); it must stay in step with market_store."""
-        _write_nested(tmp_path, "NVDA", last="2026-08-13", rows=6)
-        _write_flat(tmp_path, "NVDA")
-        monkeypatch.setenv("HIFI_DATA_DIR", str(tmp_path))
-
-        from hifi.mcp import indicators_server as ind
-
-        df = ind._load_ohlcv_df("NVDA")
-        assert len(df) == 6
-        assert str(df["date"].max().date()) == "2026-08-13"

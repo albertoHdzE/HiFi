@@ -1,6 +1,6 @@
 """
 Unit tests for compute_factorial_summary() and _herding_coefficient() from
-scripts/run_phase12_evaluation.py (P12-E4-T2).
+scripts/archive/run_phase12_evaluation.py (P12-E4-T2).
 
 No LLM calls. All inputs are synthetic, analytically derived.
 
@@ -22,7 +22,7 @@ import pytest
 # Module loading (script, not package — imported via importlib)
 # ---------------------------------------------------------------------------
 
-_SCRIPT = Path(__file__).resolve().parent.parent.parent / "scripts" / "run_phase12_evaluation.py"
+_SCRIPT = Path(__file__).resolve().parent.parent.parent / "scripts" / "archive" / "run_phase12_evaluation.py"
 
 
 def _load_eval_module():

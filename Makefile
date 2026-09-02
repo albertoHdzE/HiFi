@@ -18,7 +18,8 @@ DOCKER_ENV_FILE     := docker/langfuse/.env
 	walkforward-smoke walkforward-full walkforward-parallel walkforward-homogeneous \
 	walkforward-no-memory walkforward-held-out walkforward-status walkforward-ic \
 	walkforward-smoke-full walkforward-orchestrate walkforward-pipeline walkforward-report \
-	live-status live-update-data live-plan live-dry-run live-execute live-nightly live-snapshot personality-shadow
+	live-status live-update-data live-plan live-nightly live-verify live-snapshot \
+	refresh-data personality-shadow archive-help
 
 FINETUNE_VENV := venvs/finetune/bin/python
 
@@ -84,7 +85,7 @@ langfuse-logs: ## Follow LangFuse web service logs
 
 langfuse-seed: ## Seed LangFuse with Phase 6 baseline traces (requires live instance)
 	uv run python scripts/check_env.py --check langfuse
-	uv run python scripts/run_phase6_tracing.py
+	uv run python scripts/archive/run_phase6_tracing.py
 
 # ---------------------------------------------------------------------------
 # SEC fixtures
@@ -94,10 +95,10 @@ sec-fixtures: ## Record SEC EDGAR fixtures for Phase 7 tests (requires internet,
 	uv run python scripts/record_sec_fixtures.py
 
 acquire-data: ## Acquire Phase 1 market + macro Parquet files (idempotent, skips existing)
-	uv run python scripts/acquire_phase1_data.py
+	uv run python scripts/archive/acquire_phase1_data.py
 
 acquire-data-phase10: ## Acquire Phase 10 market Parquet files for 12 new tickers (idempotent)
-	uv run python scripts/acquire_phase10_data.py
+	uv run python scripts/archive/acquire_phase10_data.py
 
 # ---------------------------------------------------------------------------
 # Baseline generation + closed-loop validation
@@ -115,53 +116,53 @@ acquire-data-phase10: ## Acquire Phase 10 market Parquet files for 12 new ticker
 
 baseline-phase3: ## Phase 3 fundamental agent: generate + validate (requires LM Studio)
 	uv run python scripts/check_env.py --check lm-studio
-	uv run python scripts/run_phase3_baseline.py
+	uv run python scripts/archive/run_phase3_baseline.py
 	uv run pytest tests/unit/test_phase3_baseline.py \
 	             tests/holistic/test_phase3_agent_pipeline.py \
 	             -q --tb=short
 
 baseline-phase4: ## Phase 4 ensemble: generate + validate (requires LM Studio)
 	uv run python scripts/check_env.py --check lm-studio
-	uv run python scripts/run_phase4_ensemble.py
+	uv run python scripts/archive/run_phase4_ensemble.py
 	uv run pytest tests/unit/test_phase4_baseline.py \
 	             tests/holistic/test_phase4_ensemble_pipeline.py \
 	             -q --tb=short
 
 baseline-phase5: ## Phase 5 verification: generate + validate (no live deps)
-	uv run python scripts/run_phase5_verification.py
+	uv run python scripts/archive/run_phase5_verification.py
 	uv run pytest tests/unit/test_phase5_baseline.py \
 	             tests/holistic/test_phase5_verification_pipeline.py \
 	             -q --tb=short
 
 baseline-phase6: ## Phase 6 tracing: seed LangFuse + validate (requires LangFuse)
 	uv run python scripts/check_env.py --check langfuse
-	uv run python scripts/run_phase6_tracing.py
+	uv run python scripts/archive/run_phase6_tracing.py
 	uv run pytest tests/holistic/test_phase6_observability_pipeline.py \
 	             -q --tb=short
 
 baseline-phase7: ## Phase 7 RAG: generate + validate (requires internet + LM Studio)
 	uv run python scripts/check_env.py --check sec-fixtures || $(MAKE) sec-fixtures
 	uv run python scripts/check_env.py --check lm-studio
-	uv run python scripts/run_phase7_rag_baseline.py
+	uv run python scripts/archive/run_phase7_rag_baseline.py
 	uv run pytest tests/unit/test_phase7_rag_baseline.py \
 	             tests/holistic/test_phase7_rag_pipeline.py \
 	             -q --tb=short
 
 baseline-phase8: ## Phase 8 agent population: generate + validate (requires LM Studio)
 	uv run python scripts/check_env.py --check lm-studio
-	uv run python scripts/run_phase8_baseline.py
+	uv run python scripts/archive/run_phase8_baseline.py
 	uv run pytest tests/holistic/test_phase8_agent_population.py \
 	             -q --tb=short
 
 bootstrap-phase9: ## Phase 9 performance bootstrap: seed history from 20 quarter-ends (no LM Studio)
 	uv run python scripts/check_env.py --check market-data || $(MAKE) acquire-data
-	uv run python scripts/run_phase9_bootstrap.py
+	uv run python scripts/archive/run_phase9_bootstrap.py
 	uv run python scripts/check_env.py --check phase9-bootstrap
 
 baseline-phase9: ## Phase 9 collective engine: generate + validate (requires LM Studio + bootstrap)
 	uv run python scripts/check_env.py --check lm-studio
 	uv run python scripts/check_env.py --check phase9-bootstrap || $(MAKE) bootstrap-phase9
-	uv run python scripts/run_phase9_baseline.py
+	uv run python scripts/archive/run_phase9_baseline.py
 	uv run pytest tests/unit/test_phase9_baseline.py \
 	             tests/holistic/test_phase9_collective_engine.py \
 	             -q --tb=short
@@ -169,14 +170,14 @@ baseline-phase9: ## Phase 9 collective engine: generate + validate (requires LM 
 bootstrap: ## Phase 10 bootstrap: 15-ticker performance history seed (no LM Studio required)
 	uv run python scripts/check_env.py --check market-data || $(MAKE) acquire-data
 	uv run python scripts/check_env.py --check phase10-data || $(MAKE) acquire-data-phase10
-	uv run python scripts/run_phase10_bootstrap.py
+	uv run python scripts/archive/run_phase10_bootstrap.py
 	uv run python scripts/check_env.py --check phase10-bootstrap
 
 baseline-phase10: ## Phase 10 accuracy labeling + tear sheets: generate + validate (no LM Studio)
 	uv run python scripts/check_env.py --check phase9-fixture || { \
 		echo "Phase 9 fixture required. Run: make baseline-phase9"; exit 1; }
 	uv run python scripts/check_env.py --check market-data || $(MAKE) acquire-data
-	uv run python scripts/run_phase10_baseline.py
+	uv run python scripts/archive/run_phase10_baseline.py
 	uv run pytest tests/unit/test_phase10_baseline.py \
 	             tests/holistic/test_phase10_evaluation.py \
 	             -q --tb=short
@@ -214,7 +215,7 @@ finetune-train: ## Run LoRA fine-tuning for both agents (requires finetune-setup
 	uv run python scripts/check_env.py --check finetune-venv
 	uv run python scripts/check_env.py --check phase11-data || { \
 		echo "Generate training data first: make generate-reference-strategies"; exit 1; }
-	uv run python scripts/run_phase11_finetune.py
+	uv run python scripts/archive/run_phase11_finetune.py
 
 finetune-serve: ## Start mlx_lm.server for fine-tuned models on ports 1235/1236 (background)
 	uv run python scripts/check_env.py --check phase11-adapters || { \
@@ -240,7 +241,7 @@ baseline-phase11: ## Phase 11 fine-tuning eval: generate + validate (requires LM
 	uv run python scripts/check_env.py --check phase11-adapters || $(MAKE) finetune-train
 	$(MAKE) finetune-serve
 	sleep 15
-	uv run python scripts/run_phase11_evaluation.py
+	uv run python scripts/archive/run_phase11_evaluation.py
 	$(MAKE) finetune-stop
 	uv run pytest tests/unit/test_phase11_baseline.py \
 	             tests/holistic/test_phase11_evaluation.py \
@@ -256,17 +257,17 @@ build-graph: ## Build financial knowledge graph for GraphRAG (Phase 12, no LM St
 
 graphrag-eval: ## Precision@k: plain RAG vs graph-expanded retrieval (requires LM Studio + built graph)
 	uv run python scripts/check_env.py --check lm-studio
-	uv run python scripts/run_phase12_graphrag_eval.py
+	uv run python scripts/archive/run_phase12_graphrag_eval.py
 
 eval-phase12: ## Full 2x2 factorial evaluation: 10 dates x 3 tickers x 4 conditions (requires LM Studio)
 	uv run python scripts/check_env.py --check lm-studio
 	$(MAKE) build-graph
-	uv run python scripts/run_phase12_evaluation.py
+	uv run python scripts/archive/run_phase12_evaluation.py
 
 baseline-phase12: ## Phase 12 baseline: build graph + 1-date pilot run + unit tests (requires LM Studio)
 	uv run python scripts/check_env.py --check lm-studio
 	$(MAKE) build-graph
-	uv run python scripts/run_phase12_baseline.py
+	uv run python scripts/archive/run_phase12_baseline.py
 	uv run pytest tests/unit/test_graph_store.py \
 	             tests/unit/test_graph_construction.py \
 	             tests/unit/test_graph_retrieval.py \
@@ -281,30 +282,30 @@ baseline-phase12: ## Phase 12 baseline: build graph + 1-date pilot run + unit te
 
 calibrate-drift: ## E5-T5: Calibrate drift monitors on 2022 rate-shock regime (no LM Studio)
 	uv run python scripts/check_env.py --check market-data || $(MAKE) acquire-data
-	uv run python scripts/calibrate_drift_monitors.py
+	uv run python scripts/archive/calibrate_drift_monitors.py
 
 verification-baseline-p13: ## E0-T6: Run Phase 13 verification baseline for Risk/Macro/Sentiment (requires LM Studio)
 	uv run python scripts/check_env.py --check lm-studio
-	uv run python scripts/run_phase13_verification_baseline.py
+	uv run python scripts/archive/run_phase13_verification_baseline.py
 
 diagnose-sentiment-sgr: ## DJ-086: Diagnose Gemma 4 E4B / 12B-it SGR failure (requires LM Studio)
 	uv run python scripts/check_env.py --check lm-studio
-	uv run python scripts/diagnose_sentiment_sgr.py --all-tickers
+	uv run python scripts/archive/diagnose_sentiment_sgr.py --all-tickers
 
 validate-sentiment-corpus: ## E1-T1: Validate Phase 7 EDGAR corpus for Sentiment FT gate (requires LanceDB)
 	uv run python scripts/validate_sentiment_corpus.py
 
 eval-debate-multiround: ## E2-T4: Multi-round debate eval → OQ-D04 (requires LM Studio)
 	uv run python scripts/check_env.py --check lm-studio
-	uv run python scripts/run_phase13_debate_eval.py
+	uv run python scripts/archive/run_phase13_debate_eval.py
 
 eval-memory: ## E4-T4: Agent memory influence eval → OQ-M03 (requires LM Studio)
 	uv run python scripts/check_env.py --check lm-studio
-	uv run python scripts/run_phase13_memory_eval.py
+	uv run python scripts/archive/run_phase13_memory_eval.py
 
 run-scenarios: ## E6-T2: Run F-001/F-002/F-003 synthetic scenarios (requires LM Studio)
 	uv run python scripts/check_env.py --check lm-studio
-	uv run python scripts/run_phase13_scenarios.py
+	uv run python scripts/archive/run_phase13_scenarios.py
 
 # ---------------------------------------------------------------------------
 # Phase 14: Data acquisition, namespace management, episodic labeling (DJ-090–DJ-093)
@@ -317,7 +318,7 @@ ingest-edgar-mda: ## EDGAR MD&A Item 7/Item 2 targeted ingestion → LanceDB (in
 	uv run python scripts/ingest_edgar_mda.py
 
 acquire-macro-phase14: ## Extend FRED macro indicators 2004-2025 (internet, ~5min)
-	uv run python scripts/acquire_macro_phase14.py
+	uv run python scripts/archive/acquire_macro_phase14.py
 
 validate-sentiment-corpus-v2: ## Re-run OQ-S01 corpus gate on expanded EDGAR corpus (E1-T1)
 	uv run python scripts/validate_sentiment_corpus.py
@@ -406,13 +407,18 @@ live-update-data: ## Refresh OHLCV parquets through today via Alpaca (98 tickers
 live-plan: ## Print what a cycle WOULD do; runs no agents and no orders (seconds)
 	uv run python scripts/hifi_live.py --account all --dry-run
 
-live-dry-run: ## Full cycle, agents included, NO orders placed (hours, requires LM Studio)
-	uv run python scripts/hifi_live.py --account all
-
-live-execute: ## Full nightly batch: all accounts, real paper orders (requires LM Studio)
-	uv run python scripts/hifi_live.py --account all --execute
-
-live-nightly: ## Manual nightly run (daily ~19:00): pre-flight + weekend/market-hours guard + log, survives terminal close
+# The one entry point for a real cycle.
+#
+#   make live-nightly           places paper orders
+#   make live-nightly DRY=1     identical path, no orders placed
+#
+# DRY=1 is the ONLY difference between a verification run and a production run.
+# It exists because assembling a "just like the real thing but safe" invocation
+# by hand does not stay just like the real thing: calling hifi_live.py directly
+# skips this wrapper's pre-flight, and on 2026-08-31 that produced a full cycle
+# with no LangFuse telemetry at all — the tracer bound to a dead endpoint at
+# import and never recovered, even after the stack came up.
+live-nightly: ## Nightly cycle: pre-flight + market-hours guard + log, survives terminal close. DRY=1 for no orders.
 	@out=$$(bash scripts/nightly_live_execute.sh --check-window); rc=$$?; \
 	 if [ -n "$$out" ]; then echo "$$out"; fi; \
 	 if [ $$rc -ne 0 ]; then \
@@ -422,10 +428,33 @@ live-nightly: ## Manual nightly run (daily ~19:00): pre-flight + weekend/market-
 	         echo "Not started."; exit 1; \
 	     fi; \
 	 fi; \
-	 nohup bash scripts/nightly_live_execute.sh > /dev/null 2>&1 & \
-	 echo "Nightly cycle started in background."; \
-	 echo "Follow progress:  tail -f data/live/logs/nightly_$$(date +%Y%m%d).log"
+	 if [ "$(DRY)" = "1" ]; then \
+	     echo "DRY=1 — agents run, pipeline runs, NO orders will be placed."; \
+	     nohup bash scripts/nightly_live_execute.sh --no-execute > /dev/null 2>&1 & \
+	     echo "Follow progress:  tail -f data/live/logs/verify_$$(date +%Y%m%d).log"; \
+	 else \
+	     nohup bash scripts/nightly_live_execute.sh > /dev/null 2>&1 & \
+	     echo "Follow progress:  tail -f data/live/logs/nightly_$$(date +%Y%m%d).log"; \
+	 fi; \
+	 echo "Started in background."
+
+live-verify: ## Score the agents' inputs and spread for a date (DATE=YYYY-MM-DD)
+	@if [ -z "$(DATE)" ]; then echo "ERROR: DATE= required"; exit 1; fi
+	uv run python scripts/verify_agent_repair.py --date $(DATE)
+
+refresh-data: ## Merge-refresh fundamentals + FRED macro, then score OHLCV completeness
+	uv run python scripts/refresh_data.py --all
 
 personality-shadow: ## Replay tonight's stored ensembles through the 4 personality postures (DJ-130, shadow-only)
 	uv run python scripts/run_personality_shadow.py
 
+
+archive-help: ## How to run the archived one-shot phase scripts (Phases 1-14)
+	@echo "Historical phase scripts live in scripts/archive/ and are not on any"
+	@echo "running path. They are kept because doc/bitacora/ cites them as the"
+	@echo "provenance of published numbers. Invoke with archive/ inserted:"
+	@echo ""
+	@echo "    uv run python scripts/archive/run_phase9_baseline.py"
+	@echo ""
+	@echo "The baseline-phase*, bootstrap*, eval-* and finetune-* targets in this"
+	@echo "Makefile already point there. Full index: scripts/archive/README.md"

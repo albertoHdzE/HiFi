@@ -170,7 +170,7 @@ shakedown under Phase 19 hardening. Verified:
 ### Step 0 — confirm fills are terminal (~14:00 CT, after the open settles)
 
     # All PARTIALLY_FILLED from last night must now read FILLED (or cancelled):
-    uv run python scripts/run_phase16_live.py --status
+    uv run python scripts/hifi_live.py --status
 
 - [ ] Zero `PARTIALLY_FILLED` orders remain from the 08-21 cycle
 - [ ] Broker positions ↔ `portfolio_history.json` ↔ last `decisions.jsonl` row

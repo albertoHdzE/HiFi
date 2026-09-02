@@ -2,7 +2,7 @@
 Phase 5 baseline fixture tests (P5-E6-T4).
 
 Skipped when tests/fixtures/baseline/phase5_verification.json is absent
-(before scripts/run_phase5_verification.py has been executed). After the
+(before scripts/archive/run_phase5_verification.py has been executed). After the
 script runs, these tests assert structural correctness and quality gates.
 """
 
@@ -19,7 +19,7 @@ _FIXTURE_PATH = os.path.join(
 _FIXTURE_EXISTS = os.path.isfile(_FIXTURE_PATH)
 _SKIP_REASON = (
     "phase5_verification.json not yet generated. "
-    "Run: uv run python scripts/run_phase5_verification.py"
+    "Run: uv run python scripts/archive/run_phase5_verification.py"
 )
 
 pytestmark = pytest.mark.skipif(not _FIXTURE_EXISTS, reason=_SKIP_REASON)
