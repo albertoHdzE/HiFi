@@ -558,8 +558,11 @@ def compose_portfolio(
         try:
             decision = str(item["decision"])
             ticker = str(item["ticker"])
-            confidence = float(item["confidence"])
-            sector = str(item["sector"])
+            # `conf`, not `confidence`: below, `confidence` is the ticker -> value
+            # map the solver takes. One name for a scalar and then for a dict of
+            # those scalars, in one function, is how the wrong one gets passed.
+            conf = float(item["confidence"])
+            item_sector = str(item["sector"])
         except (KeyError, TypeError, ValueError) as exc:
             return {"error": "INVALID_SIGNAL", "detail": f"Malformed signal {item!r}: {exc}"}
 
@@ -567,10 +570,11 @@ def compose_portfolio(
             continue
         if not long_only and decision not in ("Buy", "Sell"):
             continue
-        if confidence <= 0:
+        if conf <= 0:
             continue
         buy_signals.append(
-            {"ticker": ticker, "decision": decision, "confidence": confidence, "sector": sector}
+            {"ticker": ticker, "decision": decision, "confidence": conf,
+             "sector": item_sector}
         )
 
     if not buy_signals:

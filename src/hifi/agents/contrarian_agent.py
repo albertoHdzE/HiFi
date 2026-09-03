@@ -27,6 +27,7 @@ from pathlib import Path
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
+from hifi.agents.json_parsing import extract_json
 from hifi.agents.lm_client import make_llm
 from hifi.agents.schemas import ContrarianAnalysis
 from hifi.observability.tracing import AbstractTracer, get_tracer, trace_context
@@ -62,24 +63,9 @@ def _load_prompt_template() -> tuple[str, str]:
     return system_block, user_block
 
 
-def _extract_json(text: str) -> dict | None:
-    text = text.strip()
-    if text.startswith("```"):
-        lines = text.splitlines()
-        inner = [line for line in lines if not line.startswith("```")]
-        text = "\n".join(inner).strip()
-    try:
-        return json.loads(text)
-    except json.JSONDecodeError:
-        pass
-    start = text.find("{")
-    end = text.rfind("}")
-    if start != -1 and end != -1 and end > start:
-        try:
-            return json.loads(text[start : end + 1])
-        except json.JSONDecodeError:
-            pass
-    return None
+#: One definition for every agent (DJ-140). Aliased rather than renamed
+#: at the call sites so this file's diff shows the removal, not a sweep.
+_extract_json = extract_json
 
 
 def _build_ensemble_context(

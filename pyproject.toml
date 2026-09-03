@@ -91,6 +91,9 @@ dev = [
     "vcrpy>=6.0",
     "ruff>=0.4",
     "mypy>=1.10",
+    "pandas-stubs>=3.0.5.260730",
+    "types-pyyaml>=6.0.12.20260815",
+    "networkx-stubs>=0.0.1",
 ]
 
 [tool.coverage.run]

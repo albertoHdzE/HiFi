@@ -8,15 +8,60 @@ from __future__ import annotations
 
 import logging
 import os
+from typing import Any, TypeVar
 
 from alpaca.trading.client import TradingClient
-from alpaca.trading.enums import OrderSide, TimeInForce
+from alpaca.trading.enums import OrderSide, QueryOrderStatus, TimeInForce
+from alpaca.trading.models import Position as AlpacaPosition
 from alpaca.trading.requests import MarketOrderRequest
 
 from hifi.execution.broker import OrderResult, Position
 from hifi.execution.retry import with_retry
 
 logger = logging.getLogger(__name__)
+
+_T = TypeVar("_T")
+
+
+def _model(value: _T | dict[str, Any]) -> _T:
+    """Narrow an alpaca-py response to its model, refusing the raw-dict branch.
+
+    Every ``TradingClient`` method is typed ``Model | dict[str, Any]`` because
+    the client can be constructed with ``raw_data=True``, in which case it hands
+    back parsed JSON instead. HiFi never does that, so the dict branch is
+    unreachable — but it is unreachable by convention, not by construction, and
+    the convention lives in one place only if it is written down.
+
+    Asserting it here rather than sprinkling ``# type: ignore`` at forty call
+    sites means that if anyone ever does pass ``raw_data=True``, this raises at
+    the boundary with a message naming the cause, instead of producing an
+    AttributeError deep inside a nightly cycle at 21:30.
+    """
+    if isinstance(value, dict):
+        raise TypeError(
+            "alpaca-py returned raw JSON rather than a model object; the "
+            "TradingClient must not be constructed with raw_data=True"
+        )
+    return value
+
+
+def _num(value: str | float | None, field: str) -> float:
+    """Convert a money field, refusing to invent a number when it is absent.
+
+    alpaca-py types equity, cash, buying_power and the rest as ``str | None``.
+    ``float(None)`` raises a TypeError naming neither the field nor the account,
+    and the tempting alternative — ``float(x or 0)`` — is worse: a funded
+    account reporting no equity would read as a total loss and trip the
+    drawdown guard (DJ-129b) into halting an arm that is perfectly healthy.
+
+    So: absent is an error, and the error says which field.
+    """
+    if value is None:
+        raise ValueError(
+            f"Alpaca returned no value for {field!r}; treating a missing "
+            "balance as a number would misreport the account"
+        )
+    return float(value)
 
 
 class AlpacaExecutor:
@@ -40,10 +85,10 @@ class AlpacaExecutor:
             secret_key=self._secret_key,
             paper=self._paper,
         )
-        acct = self._client.get_account()
+        acct = _model(self._client.get_account())
         logger.info(
             "Alpaca connected: paper=%s equity=$%.2f cash=$%.2f",
-            self._paper, float(acct.equity), float(acct.cash),
+            self._paper, _num(acct.equity, "equity"), _num(acct.cash, "cash"),
         )
 
     def disconnect(self) -> None:
@@ -57,21 +102,23 @@ class AlpacaExecutor:
 
     @with_retry()
     def get_account_cash(self) -> float:
-        return float(self.client.get_account().cash)
+        return _num(_model(self.client.get_account()).cash, "cash")
 
     @with_retry()
     def get_portfolio_value(self) -> float:
-        return float(self.client.get_account().equity)
+        return _num(_model(self.client.get_account()).equity, "equity")
 
     @with_retry()
     def get_account_snapshot(self) -> dict:
         """Full point-in-time account state for the equity/performance record."""
-        a = self.client.get_account()
+        a = _model(self.client.get_account())
         return {
-            "equity": float(a.equity),
-            "last_equity": float(a.last_equity),
-            "cash": float(a.cash),
-            "buying_power": float(a.buying_power),
+            "equity": _num(a.equity, "equity"),
+            "last_equity": _num(a.last_equity, "last_equity"),
+            "cash": _num(a.cash, "cash"),
+            "buying_power": _num(a.buying_power, "buying_power"),
+            # A flat account genuinely holds nothing, so None is 0.0 here
+            # and only here.
             "long_market_value": float(a.long_market_value or 0.0),
         }
 
@@ -86,7 +133,7 @@ class AlpacaExecutor:
         req = GetPortfolioHistoryRequest(
             period=period, timeframe=timeframe, intraday_reporting="market_hours"
         )
-        h = self.client.get_portfolio_history(req)
+        h = _model(self.client.get_portfolio_history(req))
         return {
             "timestamp": list(h.timestamp),
             "equity": [float(x) if x is not None else None for x in h.equity],
@@ -96,15 +143,15 @@ class AlpacaExecutor:
 
     @with_retry()
     def get_positions(self) -> dict[str, Position]:
-        positions = self.client.get_all_positions()
+        positions: list[AlpacaPosition] = _model(self.client.get_all_positions())
         result: dict[str, Position] = {}
         for p in positions:
             result[p.symbol] = Position(
                 ticker=p.symbol,
                 qty=float(p.qty),
-                market_value=float(p.market_value),
-                avg_entry_price=float(p.avg_entry_price),
-                unrealized_pnl=float(p.unrealized_pl),
+                market_value=_num(p.market_value, "market_value"),
+                avg_entry_price=_num(p.avg_entry_price, "avg_entry_price"),
+                unrealized_pnl=_num(p.unrealized_pl, "unrealized_pl"),
                 side=str(p.side).split(".")[-1].lower(),
             )
         return result
@@ -121,7 +168,7 @@ class AlpacaExecutor:
         overnight-gap margin problem for it alone.
         """
         try:
-            return bool(self.client.get_asset(ticker).fractionable)
+            return bool(_model(self.client.get_asset(ticker)).fractionable)
         except Exception as exc:
             logger.warning(
                 "is_fractionable(%s) failed (%s); assuming NOT fractionable, so this "
@@ -144,7 +191,7 @@ class AlpacaExecutor:
         from alpaca.trading.requests import GetOrdersRequest
 
         ids: set[str] = set()
-        for status in ("open", "closed"):
+        for status in (QueryOrderStatus.OPEN, QueryOrderStatus.CLOSED):
             req = GetOrdersRequest(status=status, limit=limit)
             for order in self.client.get_orders(req):
                 cid = getattr(order, "client_order_id", None)
@@ -199,7 +246,7 @@ class AlpacaExecutor:
                 side=order_side,
                 time_in_force=TimeInForce.DAY,
             )
-        order = self.client.submit_order(req)
+        order = _model(self.client.submit_order(req))
         logger.info(
             "Order submitted: %s %s %s → %s (id=%s%s)",
             side, ticker,
@@ -225,7 +272,7 @@ class AlpacaExecutor:
         )
 
     def close_position(self, ticker: str) -> OrderResult:
-        order = self.client.close_position(ticker)
+        order = _model(self.client.close_position(ticker))
         return OrderResult(
             ticker=ticker,
             side="sell",

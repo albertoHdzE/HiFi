@@ -23,7 +23,6 @@ without a live LM Studio instance.
 
 from __future__ import annotations
 
-import json
 import logging
 import os
 from pathlib import Path
@@ -31,6 +30,7 @@ from typing import TYPE_CHECKING
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
+from hifi.agents.json_parsing import extract_json
 from hifi.agents.lm_client import make_llm
 from hifi.agents.schemas import AgentSignal
 from hifi.collective.debate import DebateTurn
@@ -108,25 +108,9 @@ def _make_debate_llm(agent_type: str, max_tokens: int) -> ChatOpenAI:
 # ---------------------------------------------------------------------------
 
 
-def _extract_json(text: str) -> dict | None:
-    """Extract a JSON object from LLM response text."""
-    text = text.strip()
-    if text.startswith("```"):
-        lines = text.splitlines()
-        inner = [line for line in lines if not line.startswith("```")]
-        text = "\n".join(inner).strip()
-    try:
-        return json.loads(text)
-    except json.JSONDecodeError:
-        pass
-    start = text.find("{")
-    end = text.rfind("}")
-    if start != -1 and end != -1 and end > start:
-        try:
-            return json.loads(text[start : end + 1])
-        except json.JSONDecodeError:
-            pass
-    return None
+#: One definition for every agent (DJ-140). Aliased rather than renamed
+#: at the call sites so this file's diff shows the removal, not a sweep.
+_extract_json = extract_json
 
 
 # ---------------------------------------------------------------------------
