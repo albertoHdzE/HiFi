@@ -1,9 +1,10 @@
 # Adversarial verification of the DJ-135 cleanup
 
-**Date:** 2026-09-01 / 09-02
-**Commits:** `8a89672`, `d4ed914`, `b2aa316`, `ab81571`
+**Date:** 2026-09-01 / 09-02 / 09-03
+**Commits:** `8a89672`, `d4ed914`, `b2aa316`, `ab81571`, `379ace8`, `ec0b999`
 **Verdict:** the apparatus is sound and two live defects were found and fixed.
-Genesis III is not yet cleared — see *Remaining before Genesis III*.
+**Rung 4 — the full 97-ticker DRY nightly — ran on 2026-09-02 and passed.**
+Genesis III is cleared; see *Remaining before Genesis III*.
 
 ---
 
@@ -158,6 +159,74 @@ Ratio coverage 44/44 (100%). Ensemble unanimity 3/22 = **14%**, against 59% on
 
 ---
 
+## Rung 4 — the full 97-ticker DRY nightly
+
+`make live-nightly DRY=1`, started 2026-09-02 21:28:38 ET — after the close, as
+the market-hours guard requires — and finished **rc=0 at 04:41:12** on 09-03.
+7h12m. Log: `data/live/logs/verify_20260902.log`.
+
+What the smoke run could not exercise, and this one did:
+
+- **97/97 data coverage** and **97/97 tradability**. The DJ-120 gate ran against
+  the real universe, not a 22-ticker subset; every bar resolved through
+  2026-09-02.
+- **1,164 agent passes** — 97 tickers × 6 agents × 2 LLM arms — with
+  `done=97 skip=0 fail=0` for every agent in both arms, and `fail=0` on the
+  aggregate step. **Zero ERROR, CRITICAL or Traceback lines in the whole log.**
+- **The full sector-cap arithmetic** in the allocator, at 97 names rather than
+  22. It bound in all three trading arms and reported doing so:
+
+  | arm | BUY demand | buying power | scale | orders |
+  |---|---|---|---|---|
+  | A | $89,017.69 | $9,730.56 | 0.109 | 7 |
+  | B | $65,480.49 | **$9.94** | 0.000 | 1 (a sell) |
+  | D | $43,172.53 | $9,572.52 | 0.222 | 11 |
+
+  Arm B is fully invested and can currently only sell. That is the allocator
+  behaving as specified against a depleted cash balance, not a defect — and it
+  is exactly the state the Genesis III reset exists to clear. It is recorded
+  here because an arm that can only sell is not producing the same experiment as
+  one that can buy, and nothing in the log says so on its own.
+- **Arm invariance probe (DJ-119)** across the real universe: A 9 positions /
+  90.2% exposure / halt at 20%; B 12 / 100.0% / 24%; C 97 / 99.0% / 196%;
+  D 12 / 90.2% / 27%. The thresholds move with exposure, as DJ-122 requires.
+- **Shadow replay**: `[A]` and `[B]`, 97 tickers, **0 baseline mismatches**.
+- **DJ-136 confirmed at full scale.** `decisions.jsonl` stayed at exactly four
+  rows per arm (2026-08-24 … 08-27), `equity.jsonl` at four; `dry_runs.jsonl`
+  gained **exactly one row per arm** for `decision_date` 2026-09-02, every one
+  flagged `"dry_run": true`. Nothing about the seven-hour run entered the
+  experimental record.
+
+`make live-verify DATE=2026-09-02`: **PASS**
+
+| agent | n | modal share | was | unique conf | was |
+|---|---|---|---|---|---|
+| fundamental | 194 | 88% | 100% | 4 | 2 |
+| technical | 194 | 60% | 75% | 4 | 5 |
+| risk | 194 | 63% | 80% | 6 | 6 |
+| macro | 194 | 53% | 92% | 7 | 6 |
+| sentiment | 194 | 87% | 100% | 5 | 2 |
+
+Ratio coverage **192/194 (99%)**, against 0/97 on 2026-08-27; threshold 90%.
+Ensemble unanimity **8/97 (8%)**, against 59%.
+
+The two uncovered passes are both **APD**, one per arm, and both are correct.
+APD's TTM diluted EPS is 0.02 + 3.04 + 3.19 − 6.47 = **−0.22**: earnings are
+negative, so P/E is undefined and the agent is told so rather than shown a
+fabricated number. `pb` (4.96), `ps` (5.47) and `ev_ebitda` (51.2) were all
+delivered, and `roe` is −0.003, consistent with the same loss.
+
+This does expose a small imprecision in the *metric*, not the pipeline:
+`_ratio_coverage` (`scripts/verify_agent_repair.py:102`) counts a pass as blind
+whenever `pe`, `pb` or `ps` appears in `data_gaps`, which conflates *a ratio that
+was not delivered* with *a ratio that does not exist for this company*. At 99%
+it does not change the verdict. It would matter if the universe ever held enough
+loss-making names to push the measured coverage under the 90% floor, and the
+gate would then fail for the wrong reason. Left as-is: the plan's scope was to
+verify the apparatus, not to redesign the verifier.
+
+---
+
 ## Repo integrity
 
 202 checks, all passing: every one of the 100 `src` modules imports; every
@@ -213,16 +282,6 @@ suite that passes without executing anything.
 
 **Not done at all:**
 
-- **The full 97-ticker DRY nightly** (rung 4 of the plan). The smoke run covers
-  the same code path at 22 tickers; what it does *not* exercise is the
-  97-ticker data gate, the full sector-cap arithmetic in the allocator, and the
-  5–6.5h runtime. This is the remaining gate before Genesis III.
-
-  It was **not run** because the market-hours guard correctly refused: the
-  attempt was made at 09:49 ET on 2026-09-02, inside the cash session, when the
-  last OHLCV bar is a live partial. That refusal is itself a verification —
-  the guard tested in `test_nightly_wrapper.py` behaving as specified against
-  the real clock — but it means rung 4 must run after 16:00 ET.
 - **The four untracked paper modules** (`simulation/diversity.py`,
   `simulation/synthetic_collective.py`, `scripts/analyze_paper1_diversity.py`,
   `tests/unit/simulation/test_diversity.py`) were measured and left untouched,
@@ -247,12 +306,18 @@ which skips itself on missing data passes for the wrong reason:
 
 ## Remaining before Genesis III
 
-1. **Full 97-ticker DRY nightly, after 16:00 ET**: `make live-nightly DRY=1`,
-   then `make live-verify DATE=<date>`. ~5–6.5h. The guard will refuse before
-   16:00 ET, correctly.
-2. Confirm afterwards that `decisions.jsonl` gained no row and `dry_runs.jsonl`
-   gained four.
-3. Reset the four Alpaca accounts to $100,000 **together**.
+1. ~~Full 97-ticker DRY nightly~~ — **done 2026-09-02, PASS.** It ran at 21:28
+   ET; an earlier attempt at 09:49 ET was correctly refused by the market-hours
+   guard, which is itself a verification of `test_nightly_wrapper.py` against
+   the real clock.
+2. ~~Confirm `decisions.jsonl` gained no row and `dry_runs.jsonl` gained four~~
+   — **confirmed.** Four decision rows per arm before and after; one dry row per
+   arm added.
+
+Nothing technical now gates Genesis III. What remains is Alberto's to trigger:
+
+3. Reset the four Alpaca accounts to $100,000 **together**. Arm B in particular
+   has $9.94 of buying power and can only sell until this happens.
 4. Archive `data/live/<ARM>/` and `data/live/_dj136_backup/`.
 5. `make live-nightly`.
-6. OSF amendment 002 — only Alberto can file it.
+6. OSF amendment 002.
