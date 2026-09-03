@@ -40,7 +40,9 @@ import time
 import urllib.request
 from pathlib import Path
 
-_ROOT = Path(__file__).resolve().parent.parent
+# parents[2]: this script moved into scripts/archive/ when it was superseded,
+# and climbing only one level from there lands in scripts/ (DJ-139).
+_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(_ROOT / "src"))
 
 logging.basicConfig(level=logging.WARNING, format="%(levelname)s %(message)s")

@@ -15,9 +15,9 @@ DOCKER_ENV_FILE     := docker/langfuse/.env
 	eval-debate-multiround eval-memory run-scenarios validate-sentiment-corpus \
 	acquire-data-phase14 ingest-edgar-mda acquire-macro-phase14 \
 	validate-sentiment-corpus-v2 eval-reset eval-ingest-through live-reset \
-	walkforward-smoke walkforward-full walkforward-parallel walkforward-homogeneous \
+	walkforward-full walkforward-parallel walkforward-homogeneous \
 	walkforward-no-memory walkforward-held-out walkforward-status walkforward-ic \
-	walkforward-smoke-full walkforward-orchestrate walkforward-pipeline walkforward-report \
+	walkforward-orchestrate walkforward-pipeline walkforward-report \
 	live-status live-update-data live-plan live-nightly live-verify live-snapshot \
 	refresh-data personality-shadow archive-help
 
@@ -224,10 +224,13 @@ finetune-train: ## Run LoRA fine-tuning for both agents (requires finetune-setup
 		echo "Generate training data first: make generate-reference-strategies"; exit 1; }
 	uv run python scripts/archive/run_phase11_finetune.py
 
-finetune-serve: ## Start mlx_lm.server for fine-tuned models on ports 1235/1236 (background)
+# The adapters this serves are RETIRED (DJ-058, DJ-124). The target survives
+# only so `baseline-phase11` can reproduce the negative result the paper reports.
+# Nothing on the live path or the walk-forward sweep routes to 1235/1236.
+finetune-serve: ## Serve the RETIRED fine-tune adapters on 1235/1236 — Phase 11 reproduction only
 	uv run python scripts/check_env.py --check phase11-adapters || { \
 		echo "Train first: make finetune-train"; exit 1; }
-	bash scripts/serve_finetune_models.sh
+	bash scripts/archive/serve_finetune_models.sh
 
 finetune-stop: ## Stop mlx_lm.server instances
 	pkill -f "mlx_lm.server" 2>/dev/null || true
@@ -347,11 +350,17 @@ live-reset: ## Drop all hifi-live-* namespace tables in LanceDB
 # Phase 15: Walk-Forward Simulation (DJ-097, DJ-096)
 # ---------------------------------------------------------------------------
 
-walkforward-smoke: ## Phase 15 smoke: agent-first sweep, 22 tickers × 1 date, full pipeline (alias for smoke-full)
-	uv run python scripts/run_phase15_smoke.py
-
-walkforward-smoke-full: ## Phase 15 smoke: agent-first sweep, 22 tickers × 1 date, full pipeline (requires LM Studio)
-	uv run python scripts/run_phase15_smoke.py
+# walkforward-smoke and walkforward-smoke-full were retired at DJ-139. They were
+# two names for one script, scripts/archive/run_phase15_smoke.py, last touched
+# 2026-06-21 — before DJ-135 removed the fine-tune routes from every other
+# Phase 15 entry point. It alone still sent the technical agent to port 1235,
+# the retired technical_v2 adapter (DJ-124), and its health probe would have
+# found that port READY. Archived. For a subset run, give the current harness a
+# ticker list and a one-day window:
+#
+#   uv run python scripts/hifi_walkforward.py --agent all --aggregate --pipeline \
+#       --condition parallel --start-date 2022-01-31 --end-date 2022-01-31 \
+#       --tickers AAPL MSFT NVDA
 
 walkforward-full: ## Phase 15 Full: sequential 5-org + episodic RAG (requires LM Studio)
 	uv run python scripts/run_phase15_walkforward.py \

@@ -17,7 +17,9 @@
 
 set -euo pipefail
 
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# Two levels: this script moved into scripts/archive/ (DJ-139), and one level up
+# from there is scripts/, not the checkout.
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 VENV="${REPO_ROOT}/venvs/finetune"
 # Use local LM Studio copy (avoids re-downloading 32GB; DJ-056)
 MODEL_BASE="${HOME}/.lmstudio/models/lmstudio-community/Qwen2.5-Coder-32B-Instruct-MLX-8bit"

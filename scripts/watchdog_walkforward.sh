@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 # HiFi Walk-Forward Watchdog
 # Monitors the orchestrator, restarts on crash, advances through all 4 conditions.
-# Called by Claude's cron every 10 minutes.
+#
+# Invoked by hand or from a scheduler; it is idempotent and safe to re-run every
+# few minutes. It is NOT currently scheduled — `crontab -l` is empty — so a sweep
+# advances only while something is calling this.
 #
 # Conditions run in sequence (agent-first, checkpoint-resume):
 #   full → no-memory → parallel → homogeneous
@@ -9,7 +12,9 @@
 
 set -uo pipefail
 
-PROJECT="/Users/alberto/Documents/projects/HiFi"
+# Derived, not hard-coded: a second checkout would otherwise drive the sweep in
+# one tree while writing sidecars into the other.
+PROJECT="$(cd "$(dirname "$0")/.." && pwd)"
 DATA="$PROJECT/data"
 LOGFILE="/tmp/hifi_watchdog.log"
 PERIOD="held-out-test"
@@ -20,30 +25,20 @@ log() { echo "$(date '+%Y-%m-%d %H:%M:%S') [WATCHDOG] $*" | tee -a "$LOGFILE"; }
 
 # ── service checks ────────────────────────────────────────────────────────────
 
-port_alive() {
-    curl -s --max-time 3 "http://localhost:$1/health" >/dev/null 2>&1
-}
-
 lm_studio_alive() {
     curl -s --max-time 3 "http://localhost:1234/v1/models" >/dev/null 2>&1
 }
 
-start_finetune_server() {
-    port_alive 1235 && return 0
-    log "Starting mlx_lm finetune server (port 1235)..."
-    cd "$PROJECT"
-    nohup venvs/finetune/bin/python -m mlx_lm server \
-        --model "$HOME/.lmstudio/models/lmstudio-community/Qwen2.5-Coder-32B-Instruct-MLX-8bit" \
-        --adapter-path data/adapters/technical_v2 \
-        --port 1235 --log-level WARNING \
-        > /tmp/mlx_tech_1235.log 2>&1 &
-    local wait=0
-    while [ $wait -lt 30 ]; do
-        sleep 3; wait=$((wait + 3))
-        port_alive 1235 && { log "Finetune server UP (${wait}s)"; return 0; }
-    done
-    log "WARNING: finetune server did not respond after 30s"
-}
+# There is deliberately no start_finetune_server here (DJ-139).
+#
+# This script used to launch mlx_lm on port 1235 with
+# `--adapter-path data/adapters/technical_v2` before every orchestrator run.
+# That adapter was retired at DJ-124: the project's own measurement had it
+# emitting Buy @ 0.70 on 98/98 tickers and collapsing ensemble entropy from
+# 0.367 to 0.000. The sweep this watchdog drives goes through
+# hifi.live.models._AGENT_CONFIG, which has had no route to 1235 or 1236 since
+# DJ-135 — so the server was started, listened, and served nothing, while
+# standing ready for anything that still probed the port.
 
 # ── progress ──────────────────────────────────────────────────────────────────
 
@@ -96,7 +91,6 @@ start_orchestrator() {
     local cond="$1"
     local logf="/tmp/walkforward_${cond}.log"
     lm_studio_alive || { log "ERROR: LM Studio (port 1234) not responding"; return 1; }
-    start_finetune_server
     cd "$PROJECT"
     nohup uv run python scripts/hifi_walkforward.py \
         --agent all --aggregate --pipeline \

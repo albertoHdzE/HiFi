@@ -65,6 +65,8 @@ say something that was not true at the time. This file is the redirection.
 | `run_phase14_model_diagnostic.py` | 14 | Per-model diagnostic |
 | `analyze_rank_sweep.py` | 11 | LoRA rank sweep analysis |
 | `genesis2_reset.sh` | 16 | `data/live/_genesis1_archive` and the Genesis II clear (2026-08-24). Superseded by `scripts/genesis_reset.sh` |
+| `run_phase15_smoke.py` | 15 | 22-ticker × 1-date smoke. **Stale since 2026-06-21**: it never received DJ-135's fine-tune-route removal, so it alone still sent the technical agent to port 1235 — the retired `technical_v2` adapter (DJ-124) |
+| `serve_finetune_models.sh` | 11 | Serves the retired adapters on 1235/1236. Kept because `make baseline-phase11` reproduces the negative result the paper reports |
 
 ## What deliberately stayed in `scripts/`
 
@@ -72,9 +74,12 @@ Operational, or needed by work that is still open:
 
 - `hifi_live.py`, `hifi_walkforward.py`, `nightly_live_execute.sh`,
   `watchdog_walkforward.sh` — the running experiment.
-- `run_phase15_walkforward.py`, `run_phase15_smoke.py`, `compute_phase15_ic.py`
-  — Phase 15 must be **re-run** on repaired data before any Page-theorem claim
-  (the original result is retracted), so these are pending work, not history.
+- `run_phase15_walkforward.py`, `compute_phase15_ic.py`,
+  `watchdog_walkforward.sh` — Phase 15 must be **re-run** on repaired data
+  before any Page-theorem claim (the original result is retracted), so these are
+  pending work, not history. `run_phase15_smoke.py` was archived at DJ-139: it
+  had not been touched since 2026-06-21 and was the last entry point still
+  routing the technical agent to the retired adapter.
 - `refresh_data.py`, `verify_agent_repair.py`, `simulate_next_run.py`,
   `check_env.py`, `genesis_reset.sh` — operations.
 - `build_phase16_report_notebook.py`, `run_personality_shadow.py`,
@@ -85,6 +90,8 @@ Operational, or needed by work that is still open:
   `validate_sentiment_corpus.py`, `build_knowledge_graph.py` — data and index
   maintenance for the current universe.
 - `generate_reference_strategies.py`, `generate_training_jsonl.py`,
-  `setup_finetune_venv.sh`, `serve_finetune_models.sh` — fine-tuning
-  infrastructure. The adapters are retired (DJ-124) but the pipeline is intact
-  and the paper discusses the negative result.
+  `setup_finetune_venv.sh` — fine-tuning infrastructure. The adapters are
+  retired (DJ-058, DJ-124) but the training pipeline is intact and the paper
+  discusses the negative result. The *serving* half moved into this archive at
+  DJ-139, along with the two launchd jobs that had been starting it at login
+  (see `doc/retired/launchd/`).

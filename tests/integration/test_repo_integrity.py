@@ -87,7 +87,11 @@ class TestEveryScriptParsesAndResolvesTheRepoRoot:
         archived into scripts/data/live/ and reported success.
         """
         src = (_REPO / path).read_text()
-        m = re.search(r'ROOT="\$\(cd "\$\(dirname "\$0"\)((?:/\.\.)+)"', src)
+        # Both spellings in the tree: "$0" and "${BASH_SOURCE[0]}".
+        m = re.search(
+            r'ROOT="\$\(cd "\$\(dirname "(?:\$0|\$\{BASH_SOURCE\[0\]\})"\)'
+            r'((?:/\.\.)+)"',
+            src)
         if m is None:
             pytest.skip("script does not resolve a repo root this way")
         # Depth is counted, not string-matched, so reformatting cannot fool it.
@@ -269,6 +273,89 @@ class TestEveryArmsDependenciesAreDeclared:
                 importlib.import_module("riskbudget.mcp_server")
             else:
                 pytest.fail(f"arm {arm} has an unrecognised condition {condition!r}")
+
+
+class TestRetiredAdaptersStayRetired:
+    """DJ-124's failure mode was not the adapter. It was the wiring outliving it.
+
+    ``technical_v2`` was measured emitting Buy @ 0.70 on 98/98 tickers and
+    collapsing ensemble entropy 0.367 -> 0.000. It was rejected in a bitacora
+    while remaining the artifact the technical agent actually loaded.
+
+    DJ-135 removed the routes from ``hifi.live``. DJ-139 found the rest still
+    standing: ``run_phase15_smoke.py`` probed port 1235 and would have found it
+    READY, and ``watchdog_walkforward.sh`` started an mlx_lm server against the
+    adapter before every sweep. Both are ports of entry to the *Phase 15 re-run*,
+    the run whose entire purpose is to produce an uncontaminated result.
+
+    The exemption is deliberate and narrow: ``scripts/archive/`` may name them,
+    because reproducing the negative result the paper reports requires serving
+    the adapter that produced it.
+    """
+
+    #: Adapters the project's own evaluation rejected (DJ-058, DJ-124).
+    _RETIRED_ADAPTERS = ("technical_v1", "technical_v2", "fundamental_v1")
+
+    #: The ports those adapters were served on.
+    _RETIRED_PORTS = ("1235", "1236")
+
+    def _running_scripts(self) -> list[Path]:
+        """Everything under scripts/ that is not archived."""
+        return [p for p in (_REPO / "scripts").rglob("*")
+                if p.suffix in {".py", ".sh"} and "archive" not in p.parts]
+
+    @staticmethod
+    def _code_lines(path: Path) -> list[str]:
+        """Lines that execute. A comment explaining a retirement is not a load."""
+        return [line for line in path.read_text().splitlines()
+                if not line.lstrip().startswith(("#", "*"))]
+
+    def test_no_running_script_serves_a_retired_adapter(self):
+        offenders = []
+        for p in self._running_scripts():
+            for line in self._code_lines(p):
+                for adapter in self._RETIRED_ADAPTERS:
+                    if re.search(rf"--adapter-path\s+\S*{adapter}", line):
+                        offenders.append(f"{p.relative_to(_REPO)} -> {adapter}")
+        assert not offenders, (
+            f"a running script loads a retired adapter: {offenders}. DJ-124 is "
+            "how a rejected artifact keeps voting."
+        )
+
+    def test_no_running_script_routes_an_agent_to_the_retired_ports(self):
+        offenders = []
+        for p in self._running_scripts():
+            for line in self._code_lines(p):
+                for port in self._RETIRED_PORTS:
+                    if f"localhost:{port}" in line or f"--port {port}" in line:
+                        offenders.append(
+                            f"{p.relative_to(_REPO)}: {line.strip()[:70]}")
+        assert not offenders, (
+            f"a running script still talks to the retired fine-tune ports: "
+            f"{offenders}"
+        )
+
+    def test_the_live_agent_config_names_no_retired_adapter(self):
+        from hifi.live.models import _AGENT_CONFIG, _HOMOGENEOUS_AGENT_CONFIG
+
+        for config in (_AGENT_CONFIG, _HOMOGENEOUS_AGENT_CONFIG):
+            for entry in config:
+                model_id = entry[1]
+                for adapter in self._RETIRED_ADAPTERS:
+                    assert adapter not in model_id, (
+                        f"agent {entry[0]} is configured on {model_id}, which "
+                        f"names the retired {adapter}"
+                    )
+
+    def test_the_makefile_flags_the_reproduction_target_as_retired(self):
+        """`make finetune-serve` still exists, for Phase 11 reproduction only.
+        An operator reading `make help` must be told what it serves."""
+        mk = (_REPO / "Makefile").read_text()
+        line = next(x for x in mk.splitlines() if x.startswith("finetune-serve:"))
+        assert "RETIRED" in line, (
+            "finetune-serve advertises itself without saying the adapters were "
+            "rejected; that is how one gets started by mistake"
+        )
 
 
 class TestTheSuiteDoesNotWriteIntoTheRealDataTree:
