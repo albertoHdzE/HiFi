@@ -66,6 +66,39 @@ class TestEveryScriptParsesAndResolvesTheRepoRoot:
         # Depth check, independently of how the script spells it.
         assert (_REPO / path).resolve().parents[2] == _REPO
 
+    @pytest.mark.parametrize("path", sorted(
+        p.relative_to(_REPO).as_posix()
+        for p in (_REPO / "scripts").rglob("*.sh")))
+    def test_shell_script_parses(self, path):
+        # Same class of failure as an unparseable .py, and shell is where the
+        # operational entry points live: the nightly wrapper and the reset.
+        r = subprocess.run(["bash", "-n", str(_REPO / path)],
+                           capture_output=True, text=True, timeout=60)
+        assert r.returncode == 0, r.stderr
+
+    @pytest.mark.parametrize("path", sorted(
+        p.relative_to(_REPO).as_posix()
+        for p in (_REPO / "scripts").rglob("*.sh")))
+    def test_shell_script_resolves_the_repo_root(self, path):
+        """`dirname $0/..` has exactly the .py hazard, and was not guarded.
+
+        genesis2_reset.sh moved into scripts/archive/ carrying a one-level
+        `dirname/..`, which from there resolves to scripts/ — it would have
+        archived into scripts/data/live/ and reported success.
+        """
+        src = (_REPO / path).read_text()
+        m = re.search(r'ROOT="\$\(cd "\$\(dirname "\$0"\)((?:/\.\.)+)"', src)
+        if m is None:
+            pytest.skip("script does not resolve a repo root this way")
+        # Depth is counted, not string-matched, so reformatting cannot fool it.
+        levels = m.group(1).count("..")
+        depth = len((_REPO / path).relative_to(_REPO).parts) - 1
+        assert levels == depth, (
+            f"{path} climbs {levels} level(s) to find the repo root but sits "
+            f"{depth} deep; it would read and write into "
+            f"{(_REPO / path).parents[levels - 1]}"
+        )
+
 
 class TestMakefileTargetsResolve:
     def _makefile(self) -> str:

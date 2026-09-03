@@ -233,3 +233,40 @@ class TestPreflightIsPresent:
             "telemetry is not a precondition for trading; sidecars are the "
             "durable record"
         )
+
+
+class TestItOperatesOnItsOwnCheckout:
+    """The wrapper used to hard-code REPO=/Users/alberto/Documents/projects/HiFi.
+
+    Any other checkout — a clone, a worktree, a restored backup — would have read
+    the universe from itself and written decision records into the original tree.
+    That is the one failure this script cannot log, because the log would go to
+    the other tree too.
+    """
+
+    def test_the_repo_root_is_derived_not_hard_coded(self):
+        src = _SCRIPT.read_text()
+        assert 'REPO="$(cd "$(dirname "$0")/.." && pwd)"' in src, (
+            "REPO is not derived from the script's own location"
+        )
+
+    def test_no_absolute_path_into_this_checkout_survives(self):
+        offenders = [line.strip() for line in _SCRIPT.read_text().splitlines()
+                     if str(_REPO) in line and not line.lstrip().startswith("#")]
+        assert not offenders, (
+            f"the wrapper still names this checkout literally: {offenders}"
+        )
+
+    def test_it_resolves_to_this_repository_when_run_from_here(self):
+        r = subprocess.run(
+            ["bash", "-c",
+             f'REPO="$(cd "$(dirname {_SCRIPT})/.." && pwd)"; echo "$REPO"'],
+            capture_output=True, text=True, timeout=60,
+        )
+        assert r.stdout.strip() == str(_REPO)
+
+    def test_the_header_does_not_claim_a_schedule_it_does_not_have(self):
+        """`launchctl list` has no com.hifi.live-execute job. A wrapper that
+        says it runs itself at 19:00 is how a night goes unrun unnoticed."""
+        src = _SCRIPT.read_text()
+        assert "Launched by launchd (com.hifi.live-execute)" not in src

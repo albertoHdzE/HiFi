@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 # Nightly Phase 16 live paper trading cycle (DJ-111).
-# Launched by launchd (com.hifi.live-execute) every day at 19:00 local.
+#
+# Invoked by hand, through `make live-nightly`. It is NOT scheduled: the
+# com.hifi.live-execute launchd job this header used to claim does not exist and
+# `launchctl list` shows only the two MLX model servers. A wrapper that says it
+# runs itself is how a night goes unrun without anyone noticing.
 #
 # Pre-flight: verifies LM Studio, fine-tune servers, and Docker/LangFuse.
 # Skips weekends and refuses to start during the US cash session (see below).
@@ -21,8 +25,16 @@
 
 set -uo pipefail
 
-REPO="/Users/alberto/Documents/projects/HiFi"
+# Derived from this file's own location, not hard-coded. The absolute path that
+# used to sit here meant any other checkout — a clone, a worktree, a restored
+# backup — would read the universe from itself and write decision records into
+# the original tree, which is the one failure this script cannot log.
+REPO="$(cd "$(dirname "$0")/.." && pwd)"
+
+# uv by absolute path first: launchd and cron give a minimal PATH, and a
+# resolution failure here aborts the night before any log line is written.
 UV="/Users/alberto/.local/bin/uv"
+[ -x "$UV" ] || UV="$(command -v uv || echo uv)"
 LOG_DIR="${REPO}/data/live/logs"
 LOG="${LOG_DIR}/nightly_$(date +%Y%m%d).log"
 VERIFY_LOG="${LOG_DIR}/verify_$(date +%Y%m%d).log"

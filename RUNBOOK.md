@@ -152,10 +152,39 @@ A "Genesis" is a clean restart of all four arms from the same capital on the
 same date. Reset them **together** — an arm restarted alone is not comparable to
 the others, and comparability is the whole design.
 
-1. Reset all four Alpaca paper accounts to $100,000.
-2. Archive the previous run's `data/live/<ARM>/` directories.
-3. Clear decision logs for contaminated dates (see
-   `doc/bitacora/live-run-protocol-deviations` for which dates and why).
+`scripts/genesis_reset.sh` does steps 1 and 3. `N` is the generation being
+**retired**, not the one being opened.
+
+1. **Archive**, before anything moves:
+
+       scripts/genesis_reset.sh --archive --generation N
+
+   Copies every arm, the genesis marker, the DJ-136 repair backup and this
+   generation's nightly/verify logs into `data/live/_genesisN_archive`. Refuses
+   to overwrite an existing archive, and refuses a partial one.
+
+2. **Reset all four Alpaca paper accounts to $100,000 — together.**
+
+3. **Clear**, only after the accounts are actually reset:
+
+       scripts/genesis_reset.sh --clear --generation N --genesis-date YYYY-MM-DD
+
+   `--genesis-date` is the first decision date of the *new* generation. Refuses
+   without a complete archive, and refuses a date that is not after the current
+   marker.
+
+   Removes the state tied to the old capital — `hwm.json`, `decisions.jsonl`,
+   `equity.jsonl`, `portfolio_history.json`, `circuit_breakers.jsonl`,
+   `book_state.json`, `dry_runs.jsonl`. **Keeps** `walkforward/` and
+   `shadow_personality.jsonl`: those record what the ensemble said about a
+   security on a date, which no capital reset invalidates.
+
+   It also advances `data/live/genesis_date.txt`. Nothing else in the codebase
+   writes that file — `hifi.agents.context` only reads it, to tell each agent
+   how many sessions old the deployment is and whether it is in DEPLOYMENT or
+   STEADY phase. Left stale it does not error; it tells the agents they are
+   managing an established book on night one.
+
 4. `make live-nightly`.
 5. Record the amendment on OSF. Only Alberto can file this.
 

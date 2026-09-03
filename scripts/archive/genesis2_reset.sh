@@ -1,8 +1,15 @@
 #!/usr/bin/env bash
 # Genesis II reset — Steps 1 and 3 of doc/GENESIS_CHECKLIST.md (2026-08-24).
 #
-#   scripts/genesis2_reset.sh --archive   # Step 1: copy live records to evidence archive
-#   scripts/genesis2_reset.sh --clear     # Step 3: wipe state files (REQUIRES archive)
+# SUPERSEDED by scripts/genesis_reset.sh, which takes the generation as an
+# argument and covers the three state files that appeared after this script was
+# written: book_state.json (DJ-130), dry_runs.jsonl (DJ-136), and the genesis
+# marker, which nothing in the codebase writes. Kept because
+# doc/bitacora/PHASE_19_GENESIS.md cites it by name as the provenance of
+# data/live/_genesis1_archive.
+#
+#   scripts/archive/genesis2_reset.sh --archive   # Step 1: copy live records to evidence archive
+#   scripts/archive/genesis2_reset.sh --clear     # Step 3: wipe state files (REQUIRES archive)
 #
 # Order matters: archive BEFORE clear, and --clear only AFTER the Alpaca
 # dashboard account resets (Step 2). Both modes are guarded: --archive refuses
@@ -11,7 +18,10 @@
 # ceases to exist here).
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+# Two levels, not one: this script moved into scripts/archive/, and the
+# `dirname/..` it used to compute now resolves to scripts/ — it would have read
+# and written into scripts/data/live/ while appearing to work.
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 LIVE="$ROOT/data/live"
 ARCHIVE="$LIVE/_genesis1_archive"
 ACCOUNTS=(A B C D)

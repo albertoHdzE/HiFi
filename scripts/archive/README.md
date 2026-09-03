@@ -64,6 +64,7 @@ say something that was not true at the time. This file is the redirection.
 | `run_phase14_e0_full.py` | 14 | Full E0 sweep |
 | `run_phase14_model_diagnostic.py` | 14 | Per-model diagnostic |
 | `analyze_rank_sweep.py` | 11 | LoRA rank sweep analysis |
+| `genesis2_reset.sh` | 16 | `data/live/_genesis1_archive` and the Genesis II clear (2026-08-24). Superseded by `scripts/genesis_reset.sh` |
 
 ## What deliberately stayed in `scripts/`
 
@@ -75,7 +76,7 @@ Operational, or needed by work that is still open:
   — Phase 15 must be **re-run** on repaired data before any Page-theorem claim
   (the original result is retracted), so these are pending work, not history.
 - `refresh_data.py`, `verify_agent_repair.py`, `simulate_next_run.py`,
-  `check_env.py`, `genesis2_reset.sh` — operations.
+  `check_env.py`, `genesis_reset.sh` — operations.
 - `build_phase16_report_notebook.py`, `run_personality_shadow.py`,
   `label_outcomes.py`, `run_label_outcomes.py` — reporting and labelling that
   run against the live record.

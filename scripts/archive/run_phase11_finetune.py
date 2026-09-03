@@ -136,15 +136,15 @@ def run_agent_training(
 
     if combine_compliance and Path(compliance_file).exists():
         # Merge main + compliance JSONL into a temp file
-        tmpfile = tempfile.NamedTemporaryFile(
-            mode="w", suffix=".jsonl", delete=False, prefix=f"hifi_{agent}_combined_"
-        )
-        with open(train_file) as f:
-            tmpfile.write(f.read())
-        with open(compliance_file) as f:
-            tmpfile.write(f.read())
-        tmpfile.close()
-        effective_train_file = tmpfile.name
+        # delete=False: the trainer reads this path after the handle closes.
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".jsonl", delete=False,
+            prefix=f"hifi_{agent}_combined_",
+        ) as tmpfile:
+            for src in (train_file, compliance_file):
+                with open(src) as f:
+                    tmpfile.write(f.read())
+            effective_train_file = tmpfile.name
         logger.info("Combined training file: %s + %s", train_file, compliance_file)
     else:
         effective_train_file = train_file
