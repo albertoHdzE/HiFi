@@ -21,8 +21,32 @@ Usage
 from __future__ import annotations
 
 import os
+from typing import Any, Protocol, runtime_checkable
 
 from langchain_openai import ChatOpenAI
+from pydantic import SecretStr
+
+
+@runtime_checkable
+class ChatModel(Protocol):
+    """What an agent actually needs from a language model (DJ-142).
+
+    Every agent node accepted its model as ``_test_llm: object | None``, so the
+    ``if _test_llm is not None: llm = _test_llm`` branch joined with the
+    ``make_llm()`` branch to ``object`` — and each of the six agents then had
+    three type errors saying ``"object" has no attribute "invoke"``.
+
+    Annotating ``ChatOpenAI`` would have silenced them by claiming something
+    untrue: the injected doubles are fakes, not ChatOpenAI instances, and
+    requiring them to be would make the seam useless. What the nodes call is
+    ``invoke`` and ``model_name``, and this says exactly that. ``ChatOpenAI``
+    satisfies it structurally; so does any double the tests build.
+    """
+
+    model_name: str
+
+    def invoke(self, input: Any, **kwargs: Any) -> Any: ...
+
 
 _DEFAULT_URL = "http://localhost:1234/v1"
 _DEFAULT_MODEL = "qwen2.5-coder-32b-instruct-mlx"
@@ -67,10 +91,15 @@ def make_llm(
     ChatOpenAI
         Configured to call the local LM Studio endpoint.
     """
+    # max_tokens is a pydantic alias on ChatOpenAI, and api_key coerces to
+    # SecretStr; both were verified against the installed langchain-openai
+    # (max_tokens=1024 round-trips, api_key becomes SecretStr). The stubs are
+    # stricter than the library, and this is the factory every agent's model
+    # comes from — not somewhere to change kwargs to satisfy a type checker.
     return ChatOpenAI(
         model=model,
         base_url=base_url if base_url is not None else lm_studio_url(),
-        api_key="lm-studio",  # LM Studio ignores the key; required by openai client
+        api_key=SecretStr("lm-studio"),  # LM Studio ignores it; openai requires it
         temperature=temperature,
-        max_tokens=max_tokens,
+        max_tokens=max_tokens,  # type: ignore[call-arg]
     )

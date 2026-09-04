@@ -23,7 +23,7 @@ from __future__ import annotations
 
 import logging
 from datetime import UTC, date, datetime
-from typing import Any
+from typing import Any, cast
 
 import pandas as pd
 import yfinance as yf
@@ -121,7 +121,10 @@ class MarketDataFetcher:
     def _download(self, ticker: str, start: str, end: str) -> pd.DataFrame:
         """Issue the yfinance download. Isolated for patching in tests."""
         t = yf.Ticker(ticker)
-        return t.history(start=start, end=end, auto_adjust=False)
+        # yfinance ships no stubs, so this is Any at the boundary. cast rather
+        # than a blanket ignore: the declared return type is the contract the
+        # rest of this class relies on.
+        return cast("pd.DataFrame", t.history(start=start, end=end, auto_adjust=False))
 
     def _normalise(self, ticker: str, df: pd.DataFrame) -> list[OHLCVBar]:
         """
@@ -138,10 +141,15 @@ class MarketDataFetcher:
         present = {k: v for k, v in _YFINANCE_RENAME.items() if k in df.columns}
         df = df.rename(columns=present)
 
-        # Strip timezone from index and convert to date
-        if hasattr(df.index, "tz") and df.index.tz is not None:
-            df.index = df.index.tz_localize(None)
-        dates = df.index.date
+        # Strip timezone from index and convert to date. isinstance, not
+        # hasattr: it narrows for the reader and the type checker alike, and a
+        # non-datetime index here would otherwise reach .date and raise.
+        if isinstance(df.index, pd.DatetimeIndex):
+            if df.index.tz is not None:
+                df.index = df.index.tz_localize(None)
+            dates = df.index.date
+        else:
+            dates = pd.to_datetime(df.index).date
 
         bars: list[OHLCVBar] = []
         dropped = 0
@@ -240,7 +248,7 @@ class FundamentalsFetcher:
 
     def _get_info(self, ticker: str) -> dict[str, Any]:
         """Issue the yfinance info request. Isolated for patching in tests."""
-        return yf.Ticker(ticker).info
+        return cast("dict[str, Any]", yf.Ticker(ticker).info)
 
     def _extract_period_end(self, info: dict[str, Any]) -> date:
         """

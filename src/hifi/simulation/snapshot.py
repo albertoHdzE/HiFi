@@ -35,8 +35,9 @@ Fundamentals are gated on the actual EDGAR ``filingDate``, never on the fiscal
 from __future__ import annotations
 
 import logging
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -66,6 +67,24 @@ _FIELD_MAP = {
 _FLOW_FIELDS = frozenset({
     "revenue", "net_income", "eps", "ebitda", "cost_of_revenue", "operating_income",
 })
+
+
+def _cell_float(value: Any) -> float | None:
+    """A numeric cell as a float, or None when it is absent (DJ-142).
+
+    ``DataFrame.at[period, col]`` is typed as a union spanning str, bytes, date,
+    timedelta and more, because a frame can hold anything. These frames hold
+    reported financials, so the values are numeric or missing — but "or missing"
+    is the whole point: an unreported quarter must stay None and propagate as an
+    absence, never become 0.0. A zero here is a company that reported nothing
+    looking like a company that reported nothing *of value*, which is a
+    different claim and one the fundamental agent would act on.
+    """
+    import pandas as pd  # noqa: PLC0415
+
+    if value is None or pd.isna(value):
+        return None
+    return float(value)
 
 
 def _close_on_or_before(ticker: str, as_of_date: str, data_dir: str | Path) -> float | None:
@@ -209,9 +228,9 @@ def build_pointintime_snapshot(
         if col not in quarters.columns:
             return None
         for period in newest_first:
-            val = quarters.at[period, col]
-            if val is not None and not pd.isna(val):
-                return float(val)
+            got = _cell_float(quarters.at[period, col])
+            if got is not None:
+                return got
         return None
 
     def _flow(field: str) -> float | None:
@@ -221,9 +240,9 @@ def build_pointintime_snapshot(
             return None
         vals = []
         for period in newest_first:
-            val = quarters.at[period, col]
-            if val is not None and not pd.isna(val):
-                vals.append(float(val))
+            got = _cell_float(quarters.at[period, col])
+            if got is not None:
+                vals.append(got)
             if len(vals) == 4:
                 return float(sum(vals))
         return None  # fewer than four reported quarters: no honest TTM
@@ -240,20 +259,20 @@ def build_pointintime_snapshot(
             return None
         seen = 0
         for period in newest_first:
-            val = quarters.at[period, col]
-            if val is None or pd.isna(val):
+            got = _cell_float(quarters.at[period, col])
+            if got is None:
                 continue
             if seen == n:
-                return float(val)
+                return got
             seen += 1
         return None
 
     shares = None
     if "Ordinary Shares Number" in quarters.columns:
         for period in newest_first:
-            raw = quarters.at[period, "Ordinary Shares Number"]
-            if raw is not None and not pd.isna(raw):
-                shares = float(raw)
+            got = _cell_float(quarters.at[period, "Ordinary Shares Number"])
+            if got is not None:
+                shares = got
                 break
 
     price = _close_on_or_before(ticker, as_of_date, root)
@@ -329,7 +348,10 @@ def build_minimal_snapshot(ticker: str, as_of_date: str) -> str:
     fetched_at = datetime.now(UTC)
     snap = FundamentalsSnapshot(
         ticker=ticker,
-        period_end=as_of_date,
+        # Explicit, not left to Pydantic's ISO coercion: this is the field that
+        # decides which fundamentals an agent may see, so a malformed date must
+        # fail here and name itself rather than inside a validator (DJ-142).
+        period_end=date.fromisoformat(as_of_date),
         revenue=None,
         net_income=None,
         total_assets=None,

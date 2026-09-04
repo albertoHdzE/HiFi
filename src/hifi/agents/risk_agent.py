@@ -29,8 +29,8 @@ from pathlib import Path
 from langchain_core.messages import HumanMessage, SystemMessage
 from typing_extensions import TypedDict
 
-from hifi.agents.json_parsing import extract_json
-from hifi.agents.lm_client import MISTRAL_SMALL_32, make_llm
+from hifi.agents.json_parsing import extract_json, message_text
+from hifi.agents.lm_client import MISTRAL_SMALL_32, ChatModel, make_llm
 from hifi.agents.mcp_client import call_tool
 from hifi.agents.schemas import AgentSignal, RiskAnalysis
 from hifi.observability.tracing import AbstractTracer, get_tracer, trace_context
@@ -66,7 +66,7 @@ class RiskAnalystState(TypedDict, total=False):
     tool_results: dict
     llm_response: str
     model_id: str                 # set by generate_analysis_node; read by parse_output_node
-    _test_llm: object | None      # DI: injected by tests only; bypasses make_llm()
+    _test_llm: ChatModel | None      # DI: injected by tests only; bypasses make_llm()
     signal: AgentSignal | None
     risk_assessment: str | None
     recommended_position_size: float | None
@@ -196,7 +196,7 @@ def generate_analysis_node(state: RiskAnalystState) -> dict:
     llm = _test_llm if _test_llm is not None else make_llm(_risk_model(), max_tokens=1024)
     messages = [SystemMessage(content=system_text), HumanMessage(content=user_text)]
     response = llm.invoke(messages)
-    return {"llm_response": response.content, "model_id": llm.model_name}
+    return {"llm_response": message_text(response.content), "model_id": llm.model_name}
 
 
 def parse_output_node(state: RiskAnalystState) -> dict:
@@ -241,19 +241,19 @@ def parse_output_node(state: RiskAnalystState) -> dict:
         HumanMessage(content=llm_response),
         HumanMessage(content=_RETRY_MSG),
     ])
-    signal, risk_assessment, pos_size = _try_parse(retry_response.content)
+    signal, risk_assessment, pos_size = _try_parse(message_text(retry_response.content))
     if signal is not None:
         return {
             "signal": signal,
             "risk_assessment": risk_assessment,
             "recommended_position_size": pos_size,
-            "llm_response": retry_response.content,
+            "llm_response": message_text(retry_response.content),
         }
 
     return {
         "error": (
             f"Failed to parse RiskAnalysis after retry. "
-            f"Last response: {retry_response.content[:200]}"
+            f"Last response: {message_text(retry_response.content)[:200]}"
         )
     }
 
@@ -299,7 +299,7 @@ def run_risk_analysis(
     data_dir: str | None = None,
     tracer: AbstractTracer | None = None,
     memory_prefix: str = "",
-    _test_llm: object | None = None,
+    _test_llm: ChatModel | None = None,
 ) -> RiskAnalysis:
     """
     Run the Risk Analyst Agent for one ticker on one date.

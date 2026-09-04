@@ -30,7 +30,7 @@ from typing import TYPE_CHECKING
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from hifi.agents.json_parsing import extract_json
+from hifi.agents.json_parsing import extract_json, message_text
 from hifi.agents.lm_client import make_llm
 from hifi.agents.schemas import AgentSignal
 from hifi.collective.debate import DebateTurn
@@ -172,7 +172,7 @@ def challenge_node(
             HumanMessage(content=user_text),
         ])
         argument = (
-            response.content.strip()
+            message_text(response.content).strip()
             or f"Challenging {majority_decision}: {signal.key_concern}"
         )
     except Exception as exc:
@@ -245,7 +245,8 @@ def respond_node(
             SystemMessage(content=system_text),
             HumanMessage(content=user_text),
         ])
-        argument = response.content.strip() or f"{majority_decision} position maintained."
+        argument = (message_text(response.content).strip()
+                    or f"{majority_decision} position maintained.")
     except Exception as exc:
         logger.warning(
             "respond_node LLM failed for %s/%s: %s",
@@ -326,7 +327,7 @@ def revise_node(
             SystemMessage(content=system_text),
             HumanMessage(content=user_text),
         ])
-        parsed = _extract_json(response.content)
+        parsed = _extract_json(message_text(response.content))
     except Exception as exc:
         logger.warning(
             "revise_node LLM failed for %s/%s: %s",

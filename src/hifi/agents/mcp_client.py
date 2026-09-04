@@ -188,11 +188,17 @@ def _execute(
     if content and isinstance(content, list):
         text = content[0].get("text", "{}")
         try:
-            return json.loads(text)
+            loaded = json.loads(text)
         except json.JSONDecodeError as exc:
             raise RuntimeError(f"MCP tool result is not valid JSON: {exc}") from exc
+        if not isinstance(loaded, dict):
+            raise RuntimeError(
+                f"MCP tool result is a {type(loaded).__name__}, not an object; "
+                "every caller reads it with .get()"
+            )
+        return loaded
 
-    return result_obj
+    return result_obj if isinstance(result_obj, dict) else {}
 
 
 def _send(proc: subprocess.Popen, message: dict[str, Any]) -> None:
@@ -231,6 +237,9 @@ def _read_response(
         if "id" not in msg:
             continue
         if expected_id is None or str(msg.get("id")) == expected_id:
+            if not isinstance(msg, dict):
+                raise RuntimeError(
+                    f"MCP frame is a {type(msg).__name__}, not an object")
             return msg
         # Different id -- keep reading (could be an out-of-order message)
         logger.debug("Skipping MCP message with id %s (expected %s)", msg.get("id"), expected_id)

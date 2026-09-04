@@ -30,6 +30,9 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
+    from pydantic import BaseModel
+
+    from hifi.agents.lm_client import ChatModel
     from hifi.collective.schemas import EnsembleOutput
 
 logger = logging.getLogger(__name__)
@@ -71,7 +74,10 @@ def _load_analysis(
         path = _agent_json_path(data_dir, run_id, ticker, agent_type)
         if not path.exists():
             return None
-        return json.loads(path.read_text(encoding="utf-8"))
+        # Same guard as hifi.agents.json_parsing: a sidecar holding a list is
+        # valid JSON and still not an analysis, and every caller does .get().
+        loaded = json.loads(path.read_text(encoding="utf-8"))
+        return loaded if isinstance(loaded, dict) else None
     except Exception as exc:
         logger.warning(
             "Failed to load analysis JSON for %s/%s: %s", ticker, agent_type, exc
@@ -193,7 +199,7 @@ def run_agent_pass(
     snapshot_json: str | None = None,
     context_namespace: str = "hifi-dev-context",
     extra_memory_prefix: str = "",
-    _test_llm: object | None = None,
+    _test_llm: ChatModel | None = None,
     _test_store: object | None = None,
 ) -> Any:
     """
@@ -225,7 +231,7 @@ def run_agent_pass(
         Additional context prepended before the AgentContextStore prefix.
         Used by the smoke test and orchestrator to inject EDGAR MD&A context
         for the fundamental agent without modifying the store.
-    _test_llm : object | None
+    _test_llm : ChatModel | None
         Stub LLM for deterministic testing.
     _test_store : object | None
         Pre-built AgentContextStore for testing (skips LanceDB construction).
@@ -452,7 +458,7 @@ def aggregate_agent_outputs(
     data_dir = str(Path(db_path).parent)
     start = time.monotonic()
 
-    def _load(agent_type: str, cls: type) -> Any:
+    def _load(agent_type: str, cls: type[BaseModel]) -> Any:
         data = _load_analysis(data_dir, run_id, ticker, agent_type)
         if data is None:
             return None

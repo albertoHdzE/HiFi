@@ -27,11 +27,12 @@ import logging
 import os
 import time
 from pathlib import Path
+from typing import Any
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from hifi.agents.json_parsing import extract_json
-from hifi.agents.lm_client import GEMMA3_12B, make_llm
+from hifi.agents.json_parsing import extract_json, message_text
+from hifi.agents.lm_client import GEMMA3_12B, ChatModel, make_llm
 from hifi.agents.mcp_client import call_tool
 from hifi.agents.schemas import AgentSignal, SentimentAnalysis
 from hifi.observability.tracing import AbstractTracer, get_tracer, trace_context
@@ -195,7 +196,7 @@ def _call_llm_for_sentiment(
     as_of_date: str,
     retrieved_context: str,
     memory_prefix: str = "",
-    _test_llm: object | None = None,
+    _test_llm: ChatModel | None = None,
     callbacks: list | None = None,
 ) -> tuple[AgentSignal | None, str, list[str]]:
     """
@@ -217,7 +218,7 @@ def _call_llm_for_sentiment(
     llm = _test_llm if _test_llm is not None else make_llm(_sentiment_model(), max_tokens=1024)
     model_id = llm.model_name
 
-    def _try_parse(text: str):
+    def _try_parse(text: str) -> tuple[AgentSignal | None, str, list[str]]:
         parsed = _extract_json(text)
         if parsed is None:
             return None, "", []
@@ -246,19 +247,19 @@ def _call_llm_for_sentiment(
     # LangFuse tracing: attach the callback so this direct llm.invoke is traced
     # like the LangGraph agents (DJ-116). Only add config when tracing is active
     # so the untraced call signature is unchanged.
-    _kw = {"config": {"callbacks": callbacks}} if callbacks else {}
+    _kw: dict[str, Any] = {"config": {"callbacks": callbacks}} if callbacks else {}
     messages = [SystemMessage(content=system_text), HumanMessage(content=user_text)]
     response = llm.invoke(messages, **_kw)
-    signal, summary, notable = _try_parse(response.content)
+    signal, summary, notable = _try_parse(message_text(response.content))
     if signal is not None:
         return signal, summary, notable
 
     logger.warning("First sentiment parse attempt failed for %s. Retrying.", ticker)
     retry_response = llm.invoke([
-        HumanMessage(content=response.content),
+        HumanMessage(content=message_text(response.content)),
         HumanMessage(content=_RETRY_MSG),
     ], **_kw)
-    return _try_parse(retry_response.content)
+    return _try_parse(message_text(retry_response.content))
 
 
 # ---------------------------------------------------------------------------
@@ -272,7 +273,7 @@ def run_sentiment_analysis(
     data_dir: str | None = None,
     tracer: AbstractTracer | None = None,
     memory_prefix: str = "",
-    _test_llm: object | None = None,
+    _test_llm: ChatModel | None = None,
 ) -> SentimentAnalysis:
     """
     Run the Sentiment Analyst Agent for one ticker on one date.

@@ -24,11 +24,12 @@ import logging
 import os
 import time
 from pathlib import Path
+from typing import Any
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from hifi.agents.json_parsing import extract_json
-from hifi.agents.lm_client import make_llm
+from hifi.agents.json_parsing import extract_json, message_text
+from hifi.agents.lm_client import ChatModel, make_llm
 from hifi.agents.schemas import ContrarianAnalysis
 from hifi.observability.tracing import AbstractTracer, get_tracer, trace_context
 
@@ -101,7 +102,7 @@ def run_contrarian_analysis(
     as_of_date: str,
     ensemble_context: str,
     tracer: AbstractTracer | None = None,
-    _test_llm: object | None = None,
+    _test_llm: ChatModel | None = None,
 ) -> ContrarianAnalysis:
     """
     Run the Contrarian Agent for one ticker on one date.
@@ -130,7 +131,7 @@ def run_contrarian_analysis(
     )
     handler = _tracer.get_callback_handler(trace_id)
     # Only add config when tracing is active (keeps untraced call signature same).
-    _kw = {"config": {"callbacks": [handler]}} if handler is not None else {}
+    _kw: dict[str, Any] = {"config": {"callbacks": [handler]}} if handler is not None else {}
 
     start = time.monotonic()
     system_text, user_template = _load_prompt_template()
@@ -145,7 +146,7 @@ def run_contrarian_analysis(
 
     with trace_context(trace_id):
         response = llm.invoke(messages, **_kw)
-        raw = response.content
+        raw = message_text(response.content)
 
         parsed = _extract_json(raw)
         if parsed is None:
@@ -156,7 +157,7 @@ def run_contrarian_analysis(
                 HumanMessage(content=raw),
                 HumanMessage(content=_RETRY_MSG),
             ], **_kw)
-            raw = retry_response.content
+            raw = message_text(retry_response.content)
             parsed = _extract_json(raw)
 
     _tracer.flush()

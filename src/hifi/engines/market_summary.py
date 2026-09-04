@@ -183,7 +183,10 @@ def relative_strength(ticker: str, sector: str | None, as_of_date: str,
         peer = row["ticker"]
         if peer == ticker or row["sector"] != sector:
             continue
-        r = _n_session_return(_load_close(data_dir, peer), as_of, n)
+        closes = _load_close(data_dir, peer)
+        if closes is None:
+            continue
+        r = _n_session_return(closes, as_of, n)
         if r is not None:
             peer_rets.append(r)
 
@@ -254,7 +257,7 @@ def book_var_95(weights: dict[str, float], as_of_date: str, data_dir: str,
     for tkr, rets in series.items():
         port = port.add(rets.loc[common] * norm[tkr], fill_value=0.0)
 
-    var = float(-np.percentile(port.values, _VAR_LEVEL))
+    var = float(-np.percentile(port.to_numpy(), _VAR_LEVEL))
     return {
         "var_95_1d": round(max(var, 0.0), 4),
         "reason": None,

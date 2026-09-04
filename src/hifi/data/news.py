@@ -209,6 +209,8 @@ def fetch_news(
         from alpaca.data.historical.news import NewsClient
         from alpaca.data.requests import NewsRequest
 
+        from hifi.execution.alpaca_types import model
+
         cutoff = _cutoff(as_of_date)
         start = cutoff - timedelta(days=lookback_days + 1)
         client = NewsClient(api_key=creds[0], secret_key=creds[1])
@@ -226,7 +228,7 @@ def fetch_news(
                 exclude_contentless=False,
             )
         )
-        raw = response.data.get("news", [])
+        raw = model(response).data.get("news", [])
     except Exception as exc:
         logger.warning("News fetch failed for %s @ %s: %s", ticker, as_of_date, exc)
         return []

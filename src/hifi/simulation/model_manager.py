@@ -50,7 +50,10 @@ def _lm_api(
     headers = {"Content-Type": "application/json"} if data else {}
     req = urllib.request.Request(url, data=data, headers=headers, method=method)
     with urllib.request.urlopen(req, timeout=timeout_s) as resp:
-        return json.loads(resp.read())
+        loaded = json.loads(resp.read())
+    if not isinstance(loaded, dict):
+        raise ValueError(f"LM Studio returned {type(loaded).__name__}, not an object")
+    return loaded
 
 
 def _lms_run(*args: str, timeout_s: int = 900) -> tuple[int, str]:

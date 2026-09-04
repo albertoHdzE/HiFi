@@ -8,61 +8,18 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Any, TypeVar
 
 from alpaca.trading.client import TradingClient
 from alpaca.trading.enums import OrderSide, QueryOrderStatus, TimeInForce
 from alpaca.trading.models import Position as AlpacaPosition
 from alpaca.trading.requests import MarketOrderRequest
 
+from hifi.execution.alpaca_types import model as _model
+from hifi.execution.alpaca_types import num as _num
 from hifi.execution.broker import OrderResult, Position
 from hifi.execution.retry import with_retry
 
 logger = logging.getLogger(__name__)
-
-_T = TypeVar("_T")
-
-
-def _model(value: _T | dict[str, Any]) -> _T:
-    """Narrow an alpaca-py response to its model, refusing the raw-dict branch.
-
-    Every ``TradingClient`` method is typed ``Model | dict[str, Any]`` because
-    the client can be constructed with ``raw_data=True``, in which case it hands
-    back parsed JSON instead. HiFi never does that, so the dict branch is
-    unreachable — but it is unreachable by convention, not by construction, and
-    the convention lives in one place only if it is written down.
-
-    Asserting it here rather than sprinkling ``# type: ignore`` at forty call
-    sites means that if anyone ever does pass ``raw_data=True``, this raises at
-    the boundary with a message naming the cause, instead of producing an
-    AttributeError deep inside a nightly cycle at 21:30.
-    """
-    if isinstance(value, dict):
-        raise TypeError(
-            "alpaca-py returned raw JSON rather than a model object; the "
-            "TradingClient must not be constructed with raw_data=True"
-        )
-    return value
-
-
-def _num(value: str | float | None, field: str) -> float:
-    """Convert a money field, refusing to invent a number when it is absent.
-
-    alpaca-py types equity, cash, buying_power and the rest as ``str | None``.
-    ``float(None)`` raises a TypeError naming neither the field nor the account,
-    and the tempting alternative — ``float(x or 0)`` — is worse: a funded
-    account reporting no equity would read as a total loss and trip the
-    drawdown guard (DJ-129b) into halting an arm that is perfectly healthy.
-
-    So: absent is an error, and the error says which field.
-    """
-    if value is None:
-        raise ValueError(
-            f"Alpaca returned no value for {field!r}; treating a missing "
-            "balance as a number would misreport the account"
-        )
-    return float(value)
-
 
 class AlpacaExecutor:
     """BrokerExecutor implementation for Alpaca paper trading."""

@@ -102,9 +102,10 @@ def write_book_state(executor, account: str, data_dir: str) -> dict | None:
 def load_book_state(account: str, data_dir: str) -> dict | None:
     path = Path(data_dir) / "live" / account / "book_state.json"
     try:
-        return json.loads(path.read_text())
+        loaded = json.loads(path.read_text())
     except (OSError, json.JSONDecodeError):
         return None
+    return loaded if isinstance(loaded, dict) else None
 
 
 def _days_since_genesis(data_dir: str) -> int | None:

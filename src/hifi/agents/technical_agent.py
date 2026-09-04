@@ -31,8 +31,8 @@ from pathlib import Path
 from langchain_core.messages import HumanMessage, SystemMessage
 from typing_extensions import TypedDict
 
-from hifi.agents.json_parsing import extract_json
-from hifi.agents.lm_client import make_llm
+from hifi.agents.json_parsing import extract_json, message_text
+from hifi.agents.lm_client import ChatModel, make_llm
 from hifi.agents.mcp_client import call_tool
 from hifi.agents.schemas import AgentSignal, TechnicalAnalysis
 from hifi.observability.tracing import AbstractTracer, get_tracer, trace_context
@@ -70,7 +70,7 @@ class TechnicalAnalystState(TypedDict, total=False):
     retrieved_context: str     # SEC filing passages (empty if use_rag=False)
     llm_response: str          # raw LLM output (last attempt)
     model_id: str              # set by generate_analysis_node; read by parse_output_node
-    _test_llm: object | None   # DI: injected by tests only; bypasses make_llm()
+    _test_llm: ChatModel | None   # DI: injected by tests only; bypasses make_llm()
     signal: AgentSignal | None
     time_horizon: str | None   # "short-term" | "medium-term" | "long-term"
     error: str | None
@@ -271,7 +271,7 @@ def generate_analysis_node(state: TechnicalAnalystState) -> dict:
             else make_llm(_technical_model(), max_tokens=4096)
     messages = [SystemMessage(content=system_text), HumanMessage(content=user_text)]
     response = llm.invoke(messages)
-    return {"llm_response": response.content, "model_id": llm.model_name}
+    return {"llm_response": message_text(response.content), "model_id": llm.model_name}
 
 
 def parse_output_node(state: TechnicalAnalystState) -> dict:
@@ -327,18 +327,18 @@ def parse_output_node(state: TechnicalAnalystState) -> dict:
         HumanMessage(content=llm_response),
         HumanMessage(content=_RETRY_MSG),
     ])
-    signal, time_horizon = _try_parse(retry_response.content)
+    signal, time_horizon = _try_parse(message_text(retry_response.content))
     if signal is not None:
         return {
             "signal": signal,
             "time_horizon": time_horizon,
-            "llm_response": retry_response.content,
+            "llm_response": message_text(retry_response.content),
         }
 
     return {
         "error": (
             f"Failed to parse AgentSignal after retry. "
-            f"Last response: {retry_response.content[:200]}"
+            f"Last response: {message_text(retry_response.content)[:200]}"
         )
     }
 
@@ -400,7 +400,7 @@ def run_technical_analysis(
     use_rag: bool = False,
     retrieved_context: str = "",
     memory_prefix: str = "",
-    _test_llm: object | None = None,
+    _test_llm: ChatModel | None = None,
 ) -> TechnicalAnalysis:
     """
     Run the Technical Analyst Agent for one ticker on one date.

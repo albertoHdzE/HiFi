@@ -44,8 +44,8 @@ from pathlib import Path
 from langchain_core.messages import HumanMessage, SystemMessage
 from typing_extensions import TypedDict
 
-from hifi.agents.json_parsing import extract_json
-from hifi.agents.lm_client import LLAMA_33_70B, make_llm
+from hifi.agents.json_parsing import extract_json, message_text
+from hifi.agents.lm_client import LLAMA_33_70B, ChatModel, make_llm
 from hifi.agents.mcp_client import call_tool
 from hifi.agents.schemas import AgentSignal, FundamentalAnalysis
 from hifi.data.schemas import FundamentalsSnapshot
@@ -87,7 +87,7 @@ class FundamentalistState(TypedDict, total=False):
     retrieved_context: str        # SEC filing passages (empty if use_rag=False)
     llm_response: str             # raw LLM output (last attempt)
     model_id: str                 # set by generate_analysis_node; read by parse_output_node
-    _test_llm: object | None      # DI: injected by tests only; bypasses make_llm()
+    _test_llm: ChatModel | None      # DI: injected by tests only; bypasses make_llm()
     signal: AgentSignal | None
     error: str | None
     start_time: float             # wall-clock start for latency measurement
@@ -306,7 +306,7 @@ def generate_analysis_node(state: FundamentalistState) -> dict:
         llm = make_llm(_fundamental_model())
     messages = [SystemMessage(content=system_text), HumanMessage(content=user_text)]
     response = llm.invoke(messages)
-    return {"llm_response": response.content, "model_id": llm.model_name}
+    return {"llm_response": message_text(response.content), "model_id": llm.model_name}
 
 
 def parse_output_node(state: FundamentalistState) -> dict:
@@ -365,14 +365,14 @@ def parse_output_node(state: FundamentalistState) -> dict:
         HumanMessage(content=llm_response),
         HumanMessage(content=_RETRY_MSG),
     ])
-    signal = _try_parse(retry_response.content)
+    signal = _try_parse(message_text(retry_response.content))
     if signal is not None:
-        return {"signal": signal, "llm_response": retry_response.content}
+        return {"signal": signal, "llm_response": message_text(retry_response.content)}
 
     return {
         "error": (
             f"Failed to parse AgentSignal after retry. "
-            f"Last response: {retry_response.content[:200]}"
+            f"Last response: {message_text(retry_response.content)[:200]}"
         )
     }
 
@@ -441,7 +441,7 @@ def run_analysis(
     use_rag: bool = False,
     retrieved_context: str = "",
     memory_prefix: str = "",
-    _test_llm: object | None = None,
+    _test_llm: ChatModel | None = None,
 ) -> FundamentalAnalysis:
     """
     Run the Fundamental Analyst Agent for one ticker on one date.

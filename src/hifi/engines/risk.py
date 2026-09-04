@@ -197,8 +197,8 @@ def compute_beta(
     if len(common_idx) < 2:
         return None
 
-    a = r_a.loc[common_idx].values
-    b = r_b.loc[common_idx].values
+    a = r_a.loc[common_idx].to_numpy()
+    b = r_b.loc[common_idx].to_numpy()
     bench_var = float(np.var(b, ddof=1))
 
     if bench_var == 0.0 or math.isnan(bench_var):

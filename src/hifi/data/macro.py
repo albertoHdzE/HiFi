@@ -30,6 +30,7 @@ from __future__ import annotations
 import logging
 import math
 from datetime import UTC, date, datetime
+from typing import cast
 
 import pandas as pd
 
@@ -173,15 +174,16 @@ class MacroDataFetcher:
         self, series_id: str, start: str, end: str
     ) -> pd.Series:
         """Issue the FRED series request. Isolated for patching in tests."""
-        return self._fred.get_series(
+        # fredapi ships no stubs; cast keeps the declared contract explicit.
+        return cast("pd.Series", self._fred.get_series(
             series_id,
             observation_start=start,
             observation_end=end,
-        )
+        ))
 
     def _get_series_info(self, series_id: str) -> pd.Series:
         """Issue the FRED series info request. Isolated for patching in tests."""
-        return self._fred.get_series_info(series_id)
+        return cast("pd.Series", self._fred.get_series_info(series_id))
 
     def _normalise(
         self, series_id: str, raw: pd.Series
@@ -189,7 +191,8 @@ class MacroDataFetcher:
         """Convert a raw fredapi Series to a list of MacroIndicator objects."""
         observations: list[MacroIndicator] = []
         for ts, value in raw.items():
-            obs_date: date = ts.date() if hasattr(ts, "date") else pd.Timestamp(ts).date()
+            obs_date: date = (ts.date() if isinstance(ts, pd.Timestamp)
+                              else pd.Timestamp(str(ts)).date())
 
             if not isinstance(value, float):
                 try:

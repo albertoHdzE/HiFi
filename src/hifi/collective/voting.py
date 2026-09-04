@@ -17,6 +17,7 @@ per-method comparison is apples-to-apples:
 from __future__ import annotations
 
 import math
+from collections.abc import Sequence
 
 from hifi.agents.schemas import AgentSignal, ContrarianAnalysis
 from hifi.collective.schemas import EnsembleDecision
@@ -25,14 +26,17 @@ _OPTIONS = ("Buy", "Hold", "Sell")
 
 
 def confidence_weighted_vote(
-    signals: list[AgentSignal | None],
+    signals: Sequence[AgentSignal | None],
 ) -> EnsembleDecision:
     """
     Aggregate a list of AgentSignals via confidence-weighted voting.
 
     Parameters
     ----------
-    signals : list[AgentSignal | None]
+    signals : Sequence[AgentSignal | None]
+        Read, never mutated — hence Sequence, which is covariant. As a list this
+        rejected a plain ``list[AgentSignal]`` from a caller that had already
+        filtered out the Nones (DJ-142).
         One entry per agent. None entries indicate agents that failed to
         produce a signal and are excluded from the vote.
 

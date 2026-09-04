@@ -35,6 +35,7 @@ import logging
 import os
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 from hifi.data.quality import DataQualityChecker
 from hifi.data.versioning import DatasetRegistry
@@ -326,7 +327,9 @@ def check_ohlcv_quality(tickers: list[str], data_dir: Path,
     from hifi.mcp.financial_server import _load_ohlcv
 
     checker = DataQualityChecker()
-    poor = []
+    # Two shapes: an unreadable ticker carries `error`, a poor one carries
+    # `gaps`/`anomalies`. Both are report rows, not a typed record.
+    poor: list[dict[str, Any]] = []
     for ticker in tickers:
         try:
             dataset = _load_ohlcv(ticker)

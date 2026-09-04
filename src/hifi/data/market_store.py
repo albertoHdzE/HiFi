@@ -183,11 +183,12 @@ def coverage_report(
         layout = "nested" if path.name == "ohlcv.parquet" else "flat-legacy"
         try:
             df = pd.read_parquet(path)
-            idx = df.index if isinstance(df.index, pd.DatetimeIndex) else None
+            idx: pd.DatetimeIndex | None = (
+                df.index if isinstance(df.index, pd.DatetimeIndex) else None)
             if idx is None:
                 for col in ("Date", "date"):
                     if col in df.columns:
-                        idx = pd.to_datetime(df[col])
+                        idx = pd.DatetimeIndex(pd.to_datetime(df[col]))
                         break
             last = str(idx.max().date()) if idx is not None and len(idx) else None
             out[ticker] = {

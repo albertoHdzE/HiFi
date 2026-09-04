@@ -65,7 +65,7 @@ def _spy_52w_return(ohlcv: pd.DataFrame, as_of: pd.Timestamp) -> float | None:
     price_year_ago = data.iloc[-_TRADING_YEAR]
     if price_year_ago == 0:
         return None
-    return (price_now - price_year_ago) / price_year_ago
+    return float((price_now - price_year_ago) / price_year_ago)
 
 
 def _close_col(df: pd.DataFrame) -> str:

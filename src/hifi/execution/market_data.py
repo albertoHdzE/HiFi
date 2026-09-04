@@ -16,6 +16,7 @@ from alpaca.data.requests import StockBarsRequest
 from alpaca.data.timeframe import TimeFrame
 
 from hifi.data.market_store import load_ohlcv_frame
+from hifi.execution.alpaca_types import model
 from hifi.execution.retry import with_retry
 
 logger = logging.getLogger(__name__)
@@ -61,7 +62,7 @@ def fetch_bars(
         start=start,
         end=end,
     )
-    bars = client.get_stock_bars(req)
+    bars = model(client.get_stock_bars(req))
     rows = []
     for bar in bars.data.values():
         for b in bar:

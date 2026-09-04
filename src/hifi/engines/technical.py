@@ -162,8 +162,8 @@ def _compute_rsi(price: pd.Series, n: int = 14) -> pd.Series:
     #   avg_loss == 0, avg_gain == 0 → RS = NaN → RSI = NaN (no movement)
     #   avg_loss  > 0               → RS = avg_gain / avg_loss (standard)
     import numpy as _np
-    g = avg_gain.values
-    loss_vals = avg_loss.values
+    g = avg_gain.to_numpy()
+    loss_vals = avg_loss.to_numpy()
     with _np.errstate(divide="ignore", invalid="ignore"):
         rs_vals = _np.where(
             loss_vals == 0.0,

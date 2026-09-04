@@ -76,6 +76,21 @@ warn_unused_configs = true
 disallow_untyped_defs = false
 check_untyped_defs = true
 
+# Libraries that publish no stubs and no py.typed marker. This is not a
+# suppression of findings: mypy reports nothing about these modules either way,
+# and leaving the notices in place buried the real errors underneath them.
+# Every value crossing one of these boundaries is cast explicitly at the call
+# site (see hifi/data/market.py::_download, hifi/data/macro.py::_get_series),
+# so the contract is stated in code rather than assumed.
+#
+# scipy-stubs is deliberately NOT installed: its .pyi files use `type`
+# statements, which are 3.12 syntax, and python_version above is 3.11 to match
+# this project's requires-python. Four stub syntax errors aborted the entire
+# check, which is worse than one unanalysed import.
+[[tool.mypy.overrides]]
+module = ["yfinance.*", "fredapi.*", "scipy.*", "quantstats.*", "lancedb.*"]
+ignore_missing_imports = true
+
 # One dev group, not two (DJ-136).
 #
 # pytest-cov, ruff and mypy used to live in [project.optional-dependencies].dev
