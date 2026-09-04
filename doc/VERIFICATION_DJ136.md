@@ -245,6 +245,95 @@ while that holds.
 
 ---
 
+## Freezing the signal path before Genesis III (DJ-141, DJ-142)
+
+Once a generation starts, an edit to the code the nightly cycle runs is a
+protocol deviation *inside* it — the failure that voided Phase 15 and the A/B/D
+record. So the remaining cleanup was split on one question: does it change what
+the cycle executes? Two bodies of work did, and both landed before the reset.
+
+### DJ-141 — seven readers of one file, and one of them dated the cycle 1970
+
+`data/market/<TICKER>/ohlcv.parquet` was read from seven places, each
+normalising it itself, disagreeing about where the date lives:
+
+| contract | readers |
+|---|---|
+| date in the index, reset to a column | `live/cycle`, `execution/riskbudget_strategy`, `execution/market_data` |
+| date in the index, left there | `live/walkforward`, `live/market._last_completed_session` |
+| neither; `.iloc[-1]`, unsorted | `live/market._latest_prices` |
+| both shapes, explicitly | `mcp/financial_server` |
+
+All seven worked against the file as written — so six worked by accident. The
+pinning tests were written **first** and run against the real store before any
+source change. Two failed, both with the same value:
+
+- **`_last_completed_session`** took `read_parquet(p).index.max()` and stamped
+  every arm's decision with it. Against a store whose date sits in a column that
+  index is a RangeIndex, its max is an integer, and `pd.Timestamp(5712)` is
+  1970-01-01. **Measured: `'1970-01-01'` where `'2026-09-02'` was expected** —
+  for the whole cycle, all four arms, nothing raised.
+- **`live/walkforward`** filtered `df.index <= as_of_date` on that RangeIndex
+  and returned everything or nothing, also silently.
+
+`_latest_prices` never sorted, and its number sizes orders (DJ-126). Four of the
+seven bypassed `resolve_ohlcv_path` and hard-coded the nested path, so they
+reported "no data" exactly where the other two found a legacy fixture — **arms
+disagreeing about whether a ticker exists.**
+
+That is DJ-120's shape one layer up: its fix centralised where a ticker's bars
+are *found*; how they are *read* stayed scattered.
+`hifi.data.market_store.load_ohlcv_frame` is now the one normaliser, and it
+refuses an integer date column rather than letting `pd.to_datetime` turn 0, 1, 2
+into 1970-01-01.
+
+One regression the existing suite caught: moving the handler from around the
+whole loop to per-ticker made corrupt stores skip **silently**, because
+`pyarrow.ArrowInvalid` subclasses `ValueError`. Per-ticker isolation is right —
+one bad file used to blind a whole sweep — but silence is exactly DJ-120. Every
+skip now logs.
+
+### DJ-142 — 99 type errors to 32, none on the signal path
+
+`hifi/live`, `hifi/mcp`, `hifi/portfolio`, `hifi/execution`, the six agents,
+`hifi/engines`, `simulation/{agent_executor,snapshot,model_manager}` and
+`collective/voting` are clean. The 32 remaining are all offline: reporting,
+knowledge graph, training data, EDGAR's network fetch, and two in the untracked
+paper modules.
+
+Two were defects, not annotations:
+
+- **`BaseMessage.content` is `str | list[str | dict]`.** All seven call sites
+  passed it into `extract_json`, which begins `text.strip()`. A provider
+  answering with content *blocks* would have raised AttributeError inside the
+  agent's own try/except and been recorded as a parse failure naming neither the
+  cause nor the text — the identical shape to the list-from-`json.loads` case
+  fixed at DJ-140, one layer earlier. Local LM Studio models return strings;
+  that is a property of the serving stack, not of the interface.
+- **MCP tool results, LM Studio responses and `book_state.json`** were read with
+  `json.loads` and handed to callers that immediately `.get()`. Each now refuses
+  a non-object at the boundary.
+
+`_test_llm` was `object | None` in all six agents and in `agent_executor`, which
+joined with the `make_llm()` branch to `object` — three errors per agent, and it
+was **masking the content-union finding underneath.** `ChatModel` is now a
+Protocol for what the nodes actually call.
+
+`simulation/snapshot` passed a `str` to `period_end`, declared `date` — the
+field that decides which fundamentals an agent may see. Pydantic coerced it;
+it is now explicit.
+
+### Freeze checks
+
+- `decisions.jsonl` and `equity.jsonl` unchanged at 4 rows per arm across a
+  `make live-plan`; only arm C's `dry_runs.jsonl` grew, exactly as DJ-136
+  documents.
+- `make lint` clean, `make typecheck` runs, `make live-status` and
+  `make live-plan` run against the live accounts.
+- 3,237 tests pass, 6 skipped.
+
+---
+
 ## mypy: measured, reported, not gated
 
 **165 errors in 55 files.** Honestly categorised:
@@ -314,10 +403,19 @@ which skips itself on missing data passes for the wrong reason:
    — **confirmed.** Four decision rows per arm before and after; one dry row per
    arm added.
 
-Nothing technical now gates Genesis III. What remains is Alberto's to trigger:
+3. ~~Archive `data/live/<ARM>/` and `data/live/_dj136_backup/`~~ — **done
+   2026-09-03**, `data/live/_genesis2_archive/`, 81 MB, all four arms verified
+   byte-identical with `cmp`, originals untouched.
+4. ~~Freeze the signal path~~ — **done**: DJ-141 and DJ-142 above. The frozen
+   commit is tagged **`genesis-3`**.
 
-3. Reset the four Alpaca accounts to $100,000 **together**. Arm B in particular
+Nothing technical now gates Genesis III. What remains is Alberto's to trigger,
+in this order:
+
+5. Reset the four Alpaca accounts to $100,000 **together**. Arm B in particular
    has $9.94 of buying power and can only sell until this happens.
-4. Archive `data/live/<ARM>/` and `data/live/_dj136_backup/`.
-5. `make live-nightly`.
-6. OSF amendment 002.
+6. `scripts/genesis_reset.sh --clear --generation 2 --genesis-date <first
+   decision date>` — refuses without the archive, refuses a marker that moves
+   backwards, and advances `genesis_date.txt`, which nothing else writes.
+7. `make live-nightly`, after 16:00 ET.
+8. OSF amendment 002.
