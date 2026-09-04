@@ -82,7 +82,25 @@ class TestLoadOhlcv:
         bad.parent.mkdir(parents=True)
         bad.write_text("corrupt")
         assert walkforward._load_ohlcv(str(store), ["BAD"], "2026-08-31") == {}
-        assert "OHLCV load error" in caplog.text
+        assert "OHLCV load error for BAD" in caplog.text, (
+            "a corrupt store was skipped silently; DJ-120 is what happens when "
+            "missing data is quiet"
+        )
+
+    def test_one_corrupt_ticker_does_not_blind_the_others(self, store, caplog):
+        """Before DJ-141 the handler was around the whole loop, so a single
+        unreadable file returned {} for every ticker in the sweep."""
+        bad = store / "market" / "BAD" / "ohlcv.parquet"
+        bad.parent.mkdir(parents=True)
+        bad.write_text("corrupt")
+        good = store / "market" / "GOOD" / "ohlcv.parquet"
+        good.parent.mkdir(parents=True)
+        pd.DataFrame({"Close": [50.0]}, index=pd.to_datetime(["2026-08-28"])
+                     ).to_parquet(good)
+
+        out = walkforward._load_ohlcv(str(store), ["BAD", "GOOD"], "2026-08-31")
+        assert "GOOD" in out and "BAD" not in out
+        assert "OHLCV load error for BAD" in caplog.text
 
 
 class TestPipelineMode:

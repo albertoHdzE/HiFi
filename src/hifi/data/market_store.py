@@ -32,11 +32,16 @@ import glob
 import logging
 import os
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:  # pandas is imported lazily; this is for the annotations only
+    import pandas as pd
 
 logger = logging.getLogger(__name__)
 
 __all__ = [
     "coverage_report",
+    "load_ohlcv_frame",
     "market_dir",
     "resolve_ohlcv_path",
 ]
@@ -81,6 +86,80 @@ def resolve_ohlcv_path(ticker: str, data_dir: str | Path | None = None) -> Path:
         f"No OHLCV data for ticker '{ticker}': looked for {nested} and "
         f"{root / f'{ticker}_*.parquet'}"
     )
+
+
+#: Column spellings that have meant "the trading date" in this store.
+_DATE_ALIASES = ("date", "Date", "DATE", "index", "level_0")
+
+
+def load_ohlcv_frame(ticker: str, data_dir: str | Path | None = None) -> pd.DataFrame:
+    """Return ``ticker``'s bars as one normalised frame (DJ-141).
+
+    Lowercase columns, the trading date as a ``date`` column of dtype
+    ``datetime64``, sorted ascending, with a fresh RangeIndex.
+
+    Seven call sites used to normalise this file themselves and did not agree
+    about where the date lived. Four reset a date index into a column, two
+    treated the index *as* the date, and one did neither and took ``.iloc[-1]``
+    unsorted. All seven worked against the file as written, which means six
+    worked by accident, and the accidents were not equal in cost:
+
+    * ``live.market._last_completed_session`` took ``read_parquet(p).index.max()``
+      and stamped every arm's decision with it. Against a store whose date sits
+      in a column that index is a RangeIndex, ``max()`` is an integer, and the
+      cycle dates itself 1970-01-01 — silently, for every arm.
+    * ``live.market._latest_prices`` never sorted, and its number sizes orders.
+    * ``live.walkforward`` filtered ``df.index <= as_of_date`` on that same
+      RangeIndex and returned everything or nothing, without raising.
+
+    That is DJ-120's shape one layer up: the fix then centralised where a
+    ticker's bars are *found*; how they are *read* stayed scattered.
+
+    ``data_dir`` is passed through to :func:`resolve_ohlcv_path`, so the legacy
+    flat fixtures resolve too. **Live callers must pass it explicitly** — when it
+    is None the path resolver honours ``HIFI_DATA_DIR``, and
+    ``hifi.live.paths`` deliberately does not (a stray export would redirect a
+    night's decisions into a temp directory and look like a night that never
+    ran).
+
+    Raises
+    ------
+    FileNotFoundError
+        Propagated from :func:`resolve_ohlcv_path` when no layout has the
+        ticker. Callers that translate this into a tool-level error must make
+        the payload clearly an *error*, never an absence of signal (DJ-120).
+    """
+    import pandas as pd  # noqa: PLC0415
+
+    df = pd.read_parquet(resolve_ohlcv_path(ticker, data_dir))
+
+    # The date is in the index in the canonical store and in a column in the
+    # flat fixtures. Normalise to a column before touching anything else.
+    if "date" not in {str(c).lower() for c in df.columns}:
+        df = df.reset_index()
+
+    df = df.rename(columns={c: "date" for c in df.columns
+                            if str(c) in _DATE_ALIASES})
+    df.columns = [str(c).lower() for c in df.columns]
+
+    if "date" not in df.columns:
+        raise ValueError(
+            f"OHLCV store for {ticker!r} has no recognisable date: columns "
+            f"{list(df.columns)}. Reading it would date the bars by position."
+        )
+
+    # Refuse a positional index promoted to "date". reset_index() on a frame
+    # with a plain RangeIndex yields an integer column named "index", and
+    # pd.to_datetime turns 0, 1, 2 into 1970-01-01 without complaint — which is
+    # precisely the failure this function exists to make impossible.
+    if pd.api.types.is_integer_dtype(df["date"]):
+        raise ValueError(
+            f"OHLCV store for {ticker!r} has an integer date column; the bars "
+            "carry no trading date and would all be read as 1970-01-01"
+        )
+
+    df["date"] = pd.to_datetime(df["date"])
+    return df.sort_values("date").reset_index(drop=True)
 
 
 def coverage_report(

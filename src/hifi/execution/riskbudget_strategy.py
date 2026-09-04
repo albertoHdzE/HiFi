@@ -38,19 +38,21 @@ def point_in_time_closes(ticker: str, as_of_date: str, data_dir: str) -> list[fl
 
     Reads HiFi's own parquet store; returns [] when the ticker has no file.
     """
-    import pandas as pd  # noqa: PLC0415
+    from hifi.data.market_store import load_ohlcv_frame  # noqa: PLC0415
 
-    pq = Path(data_dir) / "market" / ticker / "ohlcv.parquet"
-    if not pq.exists():
+    try:
+        df = load_ohlcv_frame(ticker, data_dir)
+    except FileNotFoundError:
         return []
-    df = pd.read_parquet(pq)
-    if df.index.name and df.index.name.lower() == "date":
-        df = df.reset_index()
-    df.columns = [c.lower() for c in df.columns]
-    if "date" not in df.columns or "close" not in df.columns:
+    except ValueError as exc:
+        # Arm D sizes from these closes. An empty list is a real answer here,
+        # but it must never be a quiet one (DJ-120).
+        logger.warning("No usable bars for %s; arm D sees no history: %s",
+                       ticker, exc)
         return []
-    df["date"] = pd.to_datetime(df["date"]).astype(str).str[:10]
-    df = df[df["date"] <= as_of_date].sort_values("date")
+    if "close" not in df.columns:
+        return []
+    df = df[df["date"].dt.strftime("%Y-%m-%d") <= as_of_date]
     return [float(x) for x in df["close"].tolist() if x == x]
 
 

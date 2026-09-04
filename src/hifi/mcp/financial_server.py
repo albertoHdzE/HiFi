@@ -124,40 +124,32 @@ def _load_ohlcv(ticker: str):
 def _load_raw_ohlcv(path: Path, ticker: str):
     """Load an OHLCV parquet that carries no HiFi metadata block.
 
-    Handles both shapes in the store: the nested canonical layout (DatetimeIndex
-    named Date, no "Adj Close") and the legacy flat yfinance fixtures (Date
-    column, "Adj Close" present).
+    Shape handling moved to ``hifi.data.market_store.load_ohlcv_frame`` at
+    DJ-141, where the other six readers now get it too. This function keeps only
+    what is specific to it: turning a normalised frame into a validated
+    ``OHLCVDataset``, and labelling provenance.
     """
     import math
     from datetime import datetime as _dt
 
-    import pyarrow.parquet as pq
-
+    from hifi.data.market_store import load_ohlcv_frame
     from hifi.data.schemas import OHLCVBar, OHLCVDataset, ProvenanceRecord
 
-    table = pq.read_table(path)
-    df = table.to_pandas()
-    # Nested store keeps the date in the index; flat fixtures keep it in a column.
-    if "Date" not in df.columns:
-        df = df.reset_index()
-        for cand in ("Date", "date", "index"):
-            if cand in df.columns:
-                df = df.rename(columns={cand: "Date"})
-                break
+    df = load_ohlcv_frame(ticker, _data_dir())
     # Label provenance honestly: the nested store is real market data, the flat
     # files are test fixtures. Downstream provenance panels rely on this.
     src = "market_store" if path.name == "ohlcv.parquet" else "fixture"
     prov = ProvenanceRecord(source=src, fetched_at=_dt(2023, 4, 1))
     bars = []
     for _, row in df.iterrows():
-        dt = row["Date"].date() if hasattr(row["Date"], "date") else row["Date"]
+        dt = row["date"].date() if hasattr(row["date"], "date") else row["date"]
         try:
-            o = float(row["Open"])
-            h = float(row["High"])
-            lv = float(row["Low"])
-            c = float(row["Close"])
-            adj = float(row["Adj Close"]) if "Adj Close" in row else None
-            vol = float(row.get("Volume", 0) or 0)
+            o = float(row["open"])
+            h = float(row["high"])
+            lv = float(row["low"])
+            c = float(row["close"])
+            adj = float(row["adj close"]) if "adj close" in row else None
+            vol = float(row.get("volume", 0) or 0)
         except (TypeError, ValueError):
             continue
         if any(math.isnan(x) for x in [o, h, lv, c]):

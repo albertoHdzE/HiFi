@@ -15,6 +15,7 @@ from alpaca.data.historical import StockHistoricalDataClient
 from alpaca.data.requests import StockBarsRequest
 from alpaca.data.timeframe import TimeFrame
 
+from hifi.data.market_store import load_ohlcv_frame
 from hifi.execution.retry import with_retry
 
 logger = logging.getLogger(__name__)
@@ -99,12 +100,11 @@ def update_local_ohlcv(
     for ticker in tickers:
         parquet_path = Path(market_dir) / ticker / "ohlcv.parquet"
         if parquet_path.exists():
-            existing = pd.read_parquet(parquet_path)
-            # Normalize: existing parquets have Date as DatetimeIndex + capitalized columns
-            if existing.index.name and existing.index.name.lower() == "date":
-                existing = existing.reset_index()
-            existing.columns = existing.columns.str.lower()
-            last_date = pd.to_datetime(existing["date"]).max()
+            # One normaliser for the whole codebase (DJ-141). This is the writer;
+            # reading the file the same way every reader does is what keeps the
+            # two ends of the store agreeing about where the date lives.
+            existing = load_ohlcv_frame(ticker, Path(market_dir).parent)
+            last_date = existing["date"].max()
             # Re-fetch the last stored day: if it was fetched intraday it is a
             # partial bar (wrong close/volume) and must be replaced by the
             # settled bar once the session ends.

@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import logging
 import os
-from pathlib import Path
 
 from hifi.live import paths
 
@@ -51,18 +50,18 @@ def _last_completed_session(tickers: list[str], sample: int = 5) -> str | None:
     Must be called AFTER update_data(), or it returns a stale session. Takes the
     max over several tickers so one halted or delisted name cannot drag it back.
     """
-    import pandas as pd
+    from hifi.data.market_store import load_ohlcv_frame
 
     newest: str | None = None
     for ticker in tickers[:sample]:
-        pq = Path(paths._DATA_DIR) / "market" / ticker / "ohlcv.parquet"
-        if not pq.exists():
-            continue
         try:
-            idx = pd.read_parquet(pq).index
-            if len(idx) == 0:
+            # Was read_parquet(...).index.max(). Against a store with the date
+            # in a column that index is a RangeIndex, its max is an integer, and
+            # every arm's decision would have been dated 1970-01-01 (DJ-141).
+            df = load_ohlcv_frame(ticker, paths._DATA_DIR)
+            if df.empty:
                 continue
-            last = pd.Timestamp(idx.max()).strftime("%Y-%m-%d")
+            last = df["date"].max().strftime("%Y-%m-%d")
         except Exception as exc:
             logger.warning("Could not read %s for session date: %s", ticker, exc)
             continue
@@ -72,13 +71,24 @@ def _last_completed_session(tickers: list[str], sample: int = 5) -> str | None:
 
 
 def _latest_prices(tickers: list[str]) -> dict[str, float]:
-    import pandas as pd
+    """Newest close per ticker. This number sizes orders (DJ-126).
+
+    ``load_ohlcv_frame`` sorts, so ``.iloc[-1]`` is the newest bar rather than
+    whatever row the file happened to end with. It was unsorted before DJ-141
+    and correct only because the writer happened to append in order.
+    """
+    from hifi.data.market_store import load_ohlcv_frame
 
     prices: dict[str, float] = {}
     for ticker in tickers:
-        pq = Path(paths._DATA_DIR) / "market" / ticker / "ohlcv.parquet"
-        if pq.exists():
-            df = pd.read_parquet(pq)
-            df.columns = df.columns.str.lower()
+        try:
+            df = load_ohlcv_frame(ticker, paths._DATA_DIR)
+        except FileNotFoundError:
+            continue
+        except ValueError as exc:
+            # A price the allocator will not get. Never silent (DJ-120).
+            logger.warning("No usable bars for %s, so no price: %s", ticker, exc)
+            continue
+        if not df.empty:
             prices[ticker] = float(df["close"].iloc[-1])
     return prices

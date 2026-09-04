@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import json
 import logging
-from pathlib import Path
 
 from hifi.agents.roster import CANONICAL_ORDER
 from hifi.live import paths
@@ -26,20 +25,30 @@ def _load_ohlcv(
     try:
         import pandas as pd  # noqa: PLC0415
 
+        from hifi.data.market_store import load_ohlcv_frame  # noqa: PLC0415
+
         result: dict[str, list[dict]] = {}
         for ticker in tickers:
-            path = Path(data_dir) / "market" / ticker / "ohlcv.parquet"
-            if not path.exists():
+            try:
+                # Was pd.to_datetime(df.index) with no reset. Against a store
+                # whose date sits in a column that index is a RangeIndex, and
+                # this filter returned everything or nothing without raising
+                # (DJ-141).
+                df = load_ohlcv_frame(ticker, data_dir)
+            except FileNotFoundError:
                 continue
-            df = pd.read_parquet(path)
-            df.columns = df.columns.str.lower()   # normalize 'Close' → 'close'
-            df.index = pd.to_datetime(df.index)
-            df = df[df.index <= as_of_date].tail(90)
+            except ValueError as exc:
+                # Per-ticker now, not per-sweep: one corrupt file used to abort
+                # the whole list. It must still be LOUD — DJ-120 is what happens
+                # when missing data is skipped quietly and read as a signal.
+                logger.warning("OHLCV load error for %s: %s", ticker, exc)
+                continue
+            df = df[df["date"] <= pd.Timestamp(as_of_date)].tail(90)
             if df.empty:
                 continue
             result[ticker] = [
-                {"date": str(idx.date()), "close": float(row["close"])}
-                for idx, row in df.iterrows()
+                {"date": str(row["date"].date()), "close": float(row["close"])}
+                for _, row in df.iterrows()
             ]
         return result
     except Exception as exc:

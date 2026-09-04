@@ -19,7 +19,6 @@ import json
 import logging
 import os
 from datetime import datetime
-from pathlib import Path
 
 from hifi.live import accounts, ensemble, guards, market, paths, strategies
 
@@ -35,7 +34,6 @@ def run_mcp_pipeline(signals: list[dict], tickers: list[str], executor,
     equity, ``(hwm - pv) / hwm`` was identically zero and the control could
     never trip. ``None`` (dry-run) preserves the old fallback behavior.
     """
-    import pandas as pd
 
     from hifi.simulation.pipeline import run_pipeline
 
@@ -97,16 +95,23 @@ def run_mcp_pipeline(signals: list[dict], tickers: list[str], executor,
     logger.info("Allocation %s max_sector=%.1f%%",
                 policy.describe(), constraints["max_sector"] * 100)
 
+    from hifi.data.market_store import load_ohlcv_frame
+
     ohlcv = {}
     for ticker in tickers:
-        pq = Path(paths._DATA_DIR) / "market" / ticker / "ohlcv.parquet"
-        if pq.exists():
-            df = pd.read_parquet(pq)
-            if df.index.name and df.index.name.lower() == "date":
-                df = df.reset_index()
-            df.columns = df.columns.str.lower()
-            df["date"] = df["date"].astype(str)
-            ohlcv[ticker] = df.to_dict("records")
+        try:
+            df = load_ohlcv_frame(ticker, paths._DATA_DIR)
+        except FileNotFoundError:
+            continue
+        except ValueError as exc:
+            # The pipeline will price this ticker on nothing. Loud, always: the
+            # data-coverage gate reads the log (DJ-120).
+            logger.warning("No usable bars for %s in the pipeline: %s",
+                           ticker, exc)
+            continue
+        df = df.copy()
+        df["date"] = df["date"].dt.strftime("%Y-%m-%d")
+        ohlcv[ticker] = df.to_dict("records")
 
     return run_pipeline(signals, ohlcv, portfolio_state, constraints)
 
